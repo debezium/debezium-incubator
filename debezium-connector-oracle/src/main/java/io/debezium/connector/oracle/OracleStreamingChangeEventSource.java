@@ -104,7 +104,7 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
 
     private byte[] convertScnToPosition(long scn) {
         try {
-            return XStreamUtility.convertSCNToPosition(new NUMBER(scn), XStreamUtility.POS_VERSION_V2);
+            return XStreamUtility.convertSCNToPosition(new NUMBER(scn), XStreamUtility.POS_VERSION_V1);
         }
         catch (StreamsException e) {
             throw new RuntimeException(e);

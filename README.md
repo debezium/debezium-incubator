@@ -9,6 +9,10 @@
 Copyright Debezium Authors.
 Licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
+# For Oracle 11g
+
+The Original Debezium oracle connector is tested for oracle 12c, but it can't run with oracle 11g. This project change 3 point of code, to run the oracle connect with oracle 11g.
+
 # Debezium Incubator
 
 Debezium is an open source project that provides a low latency data streaming platform for change data capture (CDC).
@@ -34,18 +38,22 @@ In order to build the Debezium Oracle connector, the following prerequisites mus
 (Running Oracle in VirtualBox is not a requirement, but we found it to be the easiest in terms of set-up)
 * The Instant Client is downloaded (e.g. [from here](http://www.oracle.com/technetwork/topics/linuxx86-64soft-092277.html) for Linux) and unpacked
 * The _xstream.jar_ and _ojdbc8.jar_ from the Instant Client directory must be installed to the local Maven repository:
-  * mvn install:install-file \
+
+```bash
+mvn install:install-file \
   -DgroupId=com.oracle.instantclient \
   -DartifactId=ojdbc8 \
   -Dversion=12.1.0.2 \
   -Dpackaging=jar \
-  -Dfile=ojdbc8.jar`
-  * mvn install:install-file \
+  -Dfile=ojdbc8.jar
+
+mvn install:install-file \
   -DgroupId=com.oracle.instantclient \
   -DartifactId=xstreams \
   -Dversion=12.1.0.2 \
   -Dpackaging=jar \
   -Dfile=xstreams.jar
+```
 
 Then the Oracle connector can be built like so:
 
