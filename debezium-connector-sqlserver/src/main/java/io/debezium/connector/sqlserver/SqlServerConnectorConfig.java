@@ -105,9 +105,9 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
     }
 
     /**
-     * The set of predefined Snapshot Locking Mode options.
+     * The set of predefined Snapshot Isolation Mode options.
      */
-    public static enum SnapshotLockingMode implements EnumeratedValue {
+    public enum SnapshotIsolationMode implements EnumeratedValue {
 
         /**
          * This mode will block all reads and writes for the entire duration of the snapshot.
@@ -123,14 +123,21 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
         SNAPSHOT("snapshot"),
 
         /**
-         * This mode will avoid using ANY table locks during the snapshot process.  This mode can only be used with SnapShotMode
-         * set to schema_only or schema_only_recovery.
+         * This mode uses REPEATABLE READ isolation level.  This mode will avoid taking any table locks
+         * during the snapshot process.  Since phantom reads can occur, it does not fully guarantee consistency.
          */
-        NONE("none");
+        REPEATABLE_READ("repeatable_read"),
+
+        /**
+         * The snapshot uses READ COMMITTED isolation level.  Neither table locks nor row-level locks are taken.
+         * This way other transactions are not affected by initial snapshot process.  However, snapshot consistency is
+         * not guaranteed.
+         */
+        READ_COMMITTED("read_committed");
 
         private final String value;
 
-        private SnapshotLockingMode(String value) {
+        private SnapshotIsolationMode(String value) {
             this.value = value;
         }
 
@@ -145,10 +152,10 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
          * @param value the configuration property value; may not be null
          * @return the matching option, or null if no match is found
          */
-        public static SnapshotLockingMode parse(String value) {
+        public static SnapshotIsolationMode parse(String value) {
             if (value == null) return null;
             value = value.trim();
-            for (SnapshotLockingMode option : SnapshotLockingMode.values()) {
+            for (SnapshotIsolationMode option : SnapshotIsolationMode.values()) {
                 if (option.getValue().equalsIgnoreCase(value)) return option;
             }
             return null;
@@ -161,8 +168,8 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
          * @param defaultValue the default value; may be null
          * @return the matching option, or null if no match is found and the non-null default is invalid
          */
-        public static SnapshotLockingMode parse(String value, String defaultValue) {
-            SnapshotLockingMode mode = parse(value);
+        public static SnapshotIsolationMode parse(String value, String defaultValue) {
+            SnapshotIsolationMode mode = parse(value);
             if (mode == null && defaultValue != null) mode = parse(defaultValue);
             return mode;
         }
@@ -199,14 +206,16 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
                     + "'initial' (the default) to specify the connector should run a snapshot only when no offsets are available for the logical server name; "
                     + "'initial_schema_only' to specify the connector should run a snapshot of the schema when no offsets are available for the logical server name. ");
 
-    public static final Field SNAPSHOT_LOCKING_MODE = Field.create("snapshot.locking.mode")
-            .withDisplayName("Snapshot locking mode")
-            .withEnum(SnapshotLockingMode.class, SnapshotLockingMode.NONE)
+    public static final Field SNAPSHOT_ISOLATION_MODE = Field.create("snapshot.isolation.mode")
+            .withDisplayName("Snapshot isolation mode")
+            .withEnum(SnapshotIsolationMode.class, SnapshotIsolationMode.REPEATABLE_READ)
             .withWidth(Width.SHORT)
             .withImportance(Importance.LOW)
-            .withDescription("Controls how long the connector locks the montiored tables for snapshot execution. The default is '" + SnapshotLockingMode.NONE.getValue() + "', "
-                + "which means that the connector does not hold any locks for all monitored tables."
-                + "Using a value of '" + SnapshotLockingMode.EXCLUSIVE.getValue() + "' ensures that the connector holds the exlusive lock (and thus prevents any reads and updates) for all monitored tables.");
+            .withDescription("Controls which transaction isolation level is used and how long the connector locks the monitored tables for snapshot execution. "
+                + "The default is '" + SnapshotIsolationMode.REPEATABLE_READ.getValue() + "', which means that the connector does not hold any locks for all monitored tables. "
+                + "Using a value of '" + SnapshotIsolationMode.EXCLUSIVE.getValue() + "' ensures that the connector holds the exclusive lock (and thus prevents any reads and updates) for all monitored tables. "
+                + "When '" + SnapshotIsolationMode.SNAPSHOT.getValue() + "' is specified, connector runs the initial snapshot in SNAPSHOT isolation level, which guarantees snapshot consistency. In addition, neither table nor row-level locks are held. "
+                + "In '" + SnapshotIsolationMode.READ_COMMITTED.getValue() + "' mode neither table nor row-level locks are acquired, but connector does not guarantee snapshot consistency.");
 
     /**
      * The set of {@link Field}s defined as part of this configuration.
@@ -246,22 +255,22 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
 
     private final String databaseName;
     private final SnapshotMode snapshotMode;
-    private final SnapshotLockingMode snapshotLockingMode;
+    private final SnapshotIsolationMode snapshotIsolationMode;
 
     public SqlServerConnectorConfig(Configuration config) {
         super(config, config.getString(LOGICAL_NAME), new SystemTablesPredicate(), x -> x.schema() + "." + x.table());
 
         this.databaseName = config.getString(DATABASE_NAME);
         this.snapshotMode = SnapshotMode.parse(config.getString(SNAPSHOT_MODE), SNAPSHOT_MODE.defaultValueAsString());
-        this.snapshotLockingMode = SnapshotLockingMode.parse(config.getString(SNAPSHOT_LOCKING_MODE), SNAPSHOT_LOCKING_MODE.defaultValueAsString());
+        this.snapshotIsolationMode = SnapshotIsolationMode.parse(config.getString(SNAPSHOT_ISOLATION_MODE), SNAPSHOT_ISOLATION_MODE.defaultValueAsString());
     }
 
     public String getDatabaseName() {
         return databaseName;
     }
 
-    public SnapshotLockingMode getSnapshotLockingMode() {
-        return this.snapshotLockingMode;
+    public SnapshotIsolationMode getSnapshotIsolationMode() {
+        return this.snapshotIsolationMode;
     }
 
     public SnapshotMode getSnapshotMode() {
