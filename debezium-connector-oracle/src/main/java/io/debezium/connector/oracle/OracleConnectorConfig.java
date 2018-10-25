@@ -81,11 +81,12 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
                     + "'initial' (the default) to specify the connector should run a snapshot only when no offsets are available for the logical server name; "
                     + "'initial_schema_only' to specify the connector should run a snapshot of the schema when no offsets are available for the logical server name. ");
 
-    public static final Field TABLENAME_CASE_MODE = Field.create("database.tablename.case.mode")
-        .withDisplayName("Oracle table name case sensitve mode")
+    public static final Field TABLENAME_CASE_MODE = Field.create("database.tablename.case.insensitive")
+        .withDisplayName("Oracle table name case insensitve mode")
+        .withType(Type.BOOLEAN)
         .withDefault(false)
         .withImportance(Importance.LOW)
-        .withDescription("Oracle table node case sensitve true or false, use false mode when you need to work with oracle 11g.");
+        .withDescription("Oracle table node case sensitve true or false, use true mode when you need to work with oracle 11g.");
     
     public static final Field POS_VERSION = Field.create("database.position.version")
         .withDisplayName("Oracle pos version, v1 or v2")
