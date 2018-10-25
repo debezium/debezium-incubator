@@ -30,8 +30,8 @@ public class OracleDatabaseSchema extends HistorizedRelationalDatabaseSchema {
 
     public OracleDatabaseSchema(OracleConnectorConfig connectorConfig, SchemaNameAdjuster schemaNameAdjuster, TopicSelector<TableId> topicSelector, OracleConnection connection) {
         super(connectorConfig, topicSelector, connectorConfig.getTableFilters().dataCollectionFilter(), null,
-                new TableSchemaBuilder(new OracleValueConverters(connection), schemaNameAdjuster, SourceInfo.SCHEMA),
-                true);
+            new TableSchemaBuilder(new OracleValueConverters(connection), schemaNameAdjuster, SourceInfo.SCHEMA),
+            connectorConfig.getTablenameCaseMode());  
     }
 
     @Override

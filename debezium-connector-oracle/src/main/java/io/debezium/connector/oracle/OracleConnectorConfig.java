@@ -23,6 +23,7 @@ import io.debezium.relational.TableId;
 import io.debezium.relational.Tables.TableFilter;
 import io.debezium.relational.history.HistoryRecordComparator;
 import io.debezium.relational.history.KafkaDatabaseHistory;
+import oracle.streams.XStreamUtility;
 
 /**
  * Connector configuration for Oracle.
@@ -80,6 +81,18 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
                     + "'initial' (the default) to specify the connector should run a snapshot only when no offsets are available for the logical server name; "
                     + "'initial_schema_only' to specify the connector should run a snapshot of the schema when no offsets are available for the logical server name. ");
 
+    public static final Field TABLENAME_CASE_MODE = Field.create("database.tablename.case.mode")
+        .withDisplayName("Oracle table name case sensitve mode")
+        .withDefault(false)
+        .withImportance(Importance.LOW)
+        .withDescription("Oracle table node case sensitve true or false, use false mode when you need to work with oracle 11g.");
+    
+    public static final Field POS_VERSION = Field.create("database.position.version")
+        .withDisplayName("Oracle pos version, v1 or v2")
+        .withEnum(PosVersion.class, PosVersion.V2)
+        .withImportance(Importance.LOW)
+        .withDescription("For oracle 12c+, use default value v2, for oracle 11g, use value v1.");
+
     /**
      * The set of {@link Field}s defined as part of this configuration.
      */
@@ -97,13 +110,18 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             CommonConnectorConfig.MAX_BATCH_SIZE,
             CommonConnectorConfig.MAX_QUEUE_SIZE,
             Heartbeat.HEARTBEAT_INTERVAL,
-            Heartbeat.HEARTBEAT_TOPICS_PREFIX
+            Heartbeat.HEARTBEAT_TOPICS_PREFIX,
+            TABLENAME_CASE_MODE,
+            POS_VERSION
     );
 
     private final String databaseName;
     private final String pdbName;
     private final String xoutServerName;
     private final SnapshotMode snapshotMode;
+
+    private final boolean tablenameCaseMode;
+    private final PosVersion posVersion;
 
     public OracleConnectorConfig(Configuration config) {
         super(config, config.getString(LOGICAL_NAME), new SystemTablesPredicate());
@@ -112,6 +130,8 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         this.pdbName = config.getString(PDB_NAME);
         this.xoutServerName = config.getString(XSTREAM_SERVER_NAME);
         this.snapshotMode = SnapshotMode.parse(config.getString(SNAPSHOT_MODE));
+        this.tablenameCaseMode = config.getBoolean(TABLENAME_CASE_MODE);
+        this.posVersion = PosVersion.parse(config.getString(POS_VERSION));
     }
 
     public static ConfigDef configDef() {
@@ -147,6 +167,14 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         return snapshotMode;
     }
 
+    public boolean  getTablenameCaseMode() {
+        return tablenameCaseMode;
+    }
+
+    public PosVersion getPosVersion() {
+        return posVersion;
+    }
+
     @Override
     protected HistoryRecordComparator getHistoryRecordComparator() {
         return new HistoryRecordComparator() {
@@ -155,6 +183,53 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
                 return (recorded.getLong(SourceInfo.SCN_KEY).compareTo(desired.getLong(SourceInfo.SCN_KEY)) < 1);
             }
         };
+    }
+
+    public static enum PosVersion implements EnumeratedValue{
+
+        V1("v1"),
+        V2("v2");
+        private final String version;
+
+        private PosVersion(String version) {
+            this.version = version;
+        }
+
+        @Override
+        public String getValue() {
+            return version;
+        }
+
+        public int getVersion() {
+            switch(version) {
+                case "v1": return XStreamUtility.POS_VERSION_V1;
+                case "v2": return XStreamUtility.POS_VERSION_V2;
+                default: return XStreamUtility.POS_VERSION_V2;
+            }
+        }
+
+        public static PosVersion parse(String value) {
+            if (value == null) {
+                return null;
+            }
+            value = value.trim();
+
+            for (PosVersion option : PosVersion.values()) {
+                if (option.getValue().equalsIgnoreCase(value)) return option;
+            }
+
+            return null;
+        }
+
+        public static PosVersion parse(String value, String defaultValue) {
+            PosVersion option = parse(value);
+
+            if (option == null && defaultValue != null) {
+                option = parse(defaultValue);
+            }
+
+            return option;
+        }
     }
 
     /**
