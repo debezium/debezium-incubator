@@ -40,8 +40,8 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
     private final OracleOffsetContext offsetContext;
     private final String xStreamServerName;
     private volatile XStreamOut xsOut;
-    private final boolean tablename_case_mode;
-    private final int pos_version;
+    private final boolean tablenameCaseInsensitive;
+    private final int posVersion;
 
     public OracleStreamingChangeEventSource(OracleConnectorConfig connectorConfig, OracleOffsetContext offsetContext, JdbcConnection jdbcConnection, EventDispatcher<TableId> dispatcher, ErrorHandler errorHandler, Clock clock, OracleDatabaseSchema schema) {
         this.jdbcConnection = jdbcConnection;
@@ -51,8 +51,8 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
         this.schema = schema;
         this.offsetContext = offsetContext;
         this.xStreamServerName = connectorConfig.getXoutServerName();
-        this.tablename_case_mode = connectorConfig.getTablenameCaseMode();
-        this.pos_version = connectorConfig.getPosVersion().getVersion();
+        this.tablenameCaseInsensitive = connectorConfig.getTablenameCaseInsensitive();
+        this.posVersion = connectorConfig.getOracleVersion().getPosVersion();
     }
 
     @Override
@@ -62,7 +62,7 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
             xsOut = XStreamOut.attach((OracleConnection) jdbcConnection.connection(), xStreamServerName,
                     convertScnToPosition(offsetContext.getScn()), 1, 1, XStreamOut.DEFAULT_MODE);
 
-            LcrEventHandler handler = new LcrEventHandler(errorHandler, dispatcher, clock, schema, offsetContext, this.tablename_case_mode);
+            LcrEventHandler handler = new LcrEventHandler(errorHandler, dispatcher, clock, schema, offsetContext, this.tablenameCaseInsensitive);
 
             // 2. receive events while running
             while(context.isRunning()) {
@@ -108,7 +108,7 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
 
     private byte[] convertScnToPosition(long scn) {
         try {
-            return XStreamUtility.convertSCNToPosition(new NUMBER(scn), this.pos_version);
+            return XStreamUtility.convertSCNToPosition(new NUMBER(scn), this.posVersion);
         }
         catch (StreamsException e) {
             throw new RuntimeException(e);

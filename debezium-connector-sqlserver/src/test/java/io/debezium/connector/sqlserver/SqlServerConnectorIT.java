@@ -5,6 +5,7 @@
  */
 package io.debezium.connector.sqlserver;
 
+import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertNull;
 
 import java.sql.SQLException;
@@ -23,6 +24,7 @@ import io.debezium.config.Configuration;
 import io.debezium.connector.sqlserver.SqlServerConnectorConfig.SnapshotMode;
 import io.debezium.connector.sqlserver.util.TestHelper;
 import io.debezium.data.SchemaAndValueField;
+import io.debezium.doc.FixFor;
 import io.debezium.embedded.AbstractConnectorTest;
 import io.debezium.util.Testing;
 
@@ -44,8 +46,8 @@ public class SqlServerConnectorIT extends AbstractConnectorTest {
                 "CREATE TABLE tableb (id int primary key, colb varchar(30))",
                 "INSERT INTO tablea VALUES(1, 'a')"
         );
-        connection.enableTableCdc("tablea");
-        connection.enableTableCdc("tableb");
+        TestHelper.enableTableCdc(connection, "tablea");
+        TestHelper.enableTableCdc(connection, "tableb");
 
         initializeConnectorTestFramework();
         Testing.Files.delete(TestHelper.DB_HISTORY_PATH);
@@ -316,6 +318,31 @@ public class SqlServerConnectorIT extends AbstractConnectorTest {
         Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
 
         stopConnector();
+    }
+
+    /**
+     * Passing the "applicationName" property which can be asserted from the connected sessions".
+     */
+    @Test
+    @FixFor("DBZ-964")
+    public void shouldPropagateDatabaseDriverProperties() throws Exception {
+        final Configuration config = TestHelper.defaultConfig()
+                .with(SqlServerConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+                .with("database.applicationName", "Debezium App DBZ-964")
+                .build();
+
+        start(SqlServerConnector.class, config);
+        assertConnectorIsRunning();
+
+        // consuming one record to make sure the connector establishes the DB connection which happens asynchronously
+        // after the start() call
+        connection.execute("INSERT INTO tablea VALUES(964, 'a')");
+        consumeRecordsByTopic(1);
+
+        connection.query("select count(1) from sys.dm_exec_sessions where program_name = 'Debezium App DBZ-964'", rs -> {
+            rs.next();
+            assertThat(rs.getInt(1)).isEqualTo(1);
+        });
     }
 
     private void assertRecord(Struct record, List<SchemaAndValueField> expected) {

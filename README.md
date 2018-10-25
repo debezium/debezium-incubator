@@ -1,6 +1,6 @@
 [![License](http://img.shields.io/:license-apache%202.0-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.debezium/debezium-parent/badge.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.debezium%22)
-[![Build Status](https://travis-ci.org/debezium/debezium.svg?branch=master)](https://travis-ci.org/debezium/debezium)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.debezium/debezium-incubator-parent/badge.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.debezium%22)
+[![Build Status](https://travis-ci.com/debezium/debezium-incubator.svg?branch=master)](https://travis-ci.com/debezium/debezium-incubator/)
 [![User chat](https://img.shields.io/badge/chat-users-brightgreen.svg)](https://gitter.im/debezium/user)
 [![Developer chat](https://img.shields.io/badge/chat-devs-brightgreen.svg)](https://gitter.im/debezium/dev)
 [![Google Group](https://img.shields.io/:mailing%20list-debezium-brightgreen.svg)](https://groups.google.com/forum/#!forum/debezium)
@@ -8,20 +8,6 @@
 
 Copyright Debezium Authors.
 Licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
-
-# For Oracle 11g
-
-The Original Debezium oracle connector is tested for oracle 12c, but it can't run with oracle 11g. This project change 3 point of code, to run the oracle connect with oracle 11g.
-
-Run setup.oracle11g.sh to prepare the database.
-
-Run command like following to create the connector.
-
-```bash
-curl -X POST -H "Content-Type: application/json" \
-    --data '{ "name": "inventory-connector", "config": { "connector.class": "io.debezium.connector.oracle.OracleConnector", "tasks.max": "1", "database.server.name": "oracledb", "database.hostname": "oracledb", "database.port": "1521", "database.user": "c##xstrm", "database.password": "xs", "database.dbname": "orcl", "database.out.server.name": "dbzxout", "database.history.kafka.bootstrap.servers": "kafka1:9092",  "database.history.kafka.topic": "schema-changes.inventory" , "table.whitelist":"orcl.debezium.products" } }' \
-    http://dbz-connect:8083/connectors
-```
 
 # Debezium Incubator
 
@@ -68,6 +54,23 @@ mvn install:install-file \
 Then the Oracle connector can be built like so:
 
     $ mvn clean install -pl debezium-connector-oracle -am -Poracle -Dinstantclient.dir=/path/to/instant-client-dir
+
+## For Oracle 11g
+
+To run Debezium oracle connector with Oracle 11g, add these additional parameters. If run with Oralce 12c+, leave these parameters to default.
+
+```json
+"database.tablename.case.insensitive": "true"
+"database.oracle.version": "11"
+```
+
+By default, DBZ will ignore some admin tables in oracle 12c, but those tables are different in oracle 11g, by now, DBZ will report error on those tables. So when use DBZ on oracle 11g, use table white list, remember to use lower case.
+
+Example:
+
+```json
+"table.whitelist":"orcl\\.debezium\\.(.*)"
+```
 
 ## Contributing
 

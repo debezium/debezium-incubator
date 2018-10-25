@@ -81,17 +81,18 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
                     + "'initial' (the default) to specify the connector should run a snapshot only when no offsets are available for the logical server name; "
                     + "'initial_schema_only' to specify the connector should run a snapshot of the schema when no offsets are available for the logical server name. ");
 
-    public static final Field TABLENAME_CASE_MODE = Field.create("database.tablename.case.mode")
-        .withDisplayName("Oracle table name case sensitve mode")
+    public static final Field TABLENAME_CASE_INSENSITIVE = Field.create("database.tablename.case.insensitive")
+        .withDisplayName("Case insensitive table names")
+        .withType(Type.BOOLEAN)
         .withDefault(false)
         .withImportance(Importance.LOW)
-        .withDescription("Oracle table node case sensitve true or false, use false mode when you need to work with oracle 11g.");
+        .withDescription("Case insensitive table names; set to 'true' for Oracle 11g, 'false' (default) otherwise.");
     
-    public static final Field POS_VERSION = Field.create("database.position.version")
-        .withDisplayName("Oracle pos version, v1 or v2")
-        .withEnum(PosVersion.class, PosVersion.V2)
+    public static final Field ORACLE_VERSION = Field.create("database.oracle.version")
+        .withDisplayName("Oracle version, 11 or 12+")
+        .withEnum(OracleVersion.class, OracleVersion.V12Plus)
         .withImportance(Importance.LOW)
-        .withDescription("For oracle 12c+, use default value v2, for oracle 11g, use value v1.");
+        .withDescription("For default oracle 12+, use default pos_version value v2, for oracle 11, use pos_version value v1.");
 
     /**
      * The set of {@link Field}s defined as part of this configuration.
@@ -111,8 +112,8 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             CommonConnectorConfig.MAX_QUEUE_SIZE,
             Heartbeat.HEARTBEAT_INTERVAL,
             Heartbeat.HEARTBEAT_TOPICS_PREFIX,
-            TABLENAME_CASE_MODE,
-            POS_VERSION
+            TABLENAME_CASE_INSENSITIVE,
+            ORACLE_VERSION
     );
 
     private final String databaseName;
@@ -120,8 +121,8 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
     private final String xoutServerName;
     private final SnapshotMode snapshotMode;
 
-    private final boolean tablenameCaseMode;
-    private final PosVersion posVersion;
+    private final boolean tablenameCaseInsensitive;
+    private final OracleVersion oracleVersion;
 
     public OracleConnectorConfig(Configuration config) {
         super(config, config.getString(LOGICAL_NAME), new SystemTablesPredicate());
@@ -130,8 +131,8 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         this.pdbName = config.getString(PDB_NAME);
         this.xoutServerName = config.getString(XSTREAM_SERVER_NAME);
         this.snapshotMode = SnapshotMode.parse(config.getString(SNAPSHOT_MODE));
-        this.tablenameCaseMode = config.getBoolean(TABLENAME_CASE_MODE);
-        this.posVersion = PosVersion.parse(config.getString(POS_VERSION));
+        this.tablenameCaseInsensitive = config.getBoolean(TABLENAME_CASE_INSENSITIVE);
+        this.oracleVersion = OracleVersion.parse(config.getString(ORACLE_VERSION));
     }
 
     public static ConfigDef configDef() {
@@ -167,12 +168,12 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         return snapshotMode;
     }
 
-    public boolean  getTablenameCaseMode() {
-        return tablenameCaseMode;
+    public boolean  getTablenameCaseInsensitive() {
+        return tablenameCaseInsensitive;
     }
 
-    public PosVersion getPosVersion() {
-        return posVersion;
+    public OracleVersion getOracleVersion() {
+        return oracleVersion;
     }
 
     @Override
@@ -185,13 +186,13 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         };
     }
 
-    public static enum PosVersion implements EnumeratedValue{
+    public static enum OracleVersion implements EnumeratedValue {
 
-        V1("v1"),
-        V2("v2");
+        V11("11"),
+        V12Plus("12+");
         private final String version;
 
-        private PosVersion(String version) {
+        private OracleVersion(String version) {
             this.version = version;
         }
 
@@ -200,29 +201,32 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             return version;
         }
 
-        public int getVersion() {
+        public int getPosVersion() {
             switch(version) {
-                case "v1": return XStreamUtility.POS_VERSION_V1;
-                case "v2": return XStreamUtility.POS_VERSION_V2;
-                default: return XStreamUtility.POS_VERSION_V2;
+                case "11": 
+                    return XStreamUtility.POS_VERSION_V1;
+                case "12+": 
+                    return XStreamUtility.POS_VERSION_V2;
+                default: 
+                    return XStreamUtility.POS_VERSION_V2;
             }
         }
 
-        public static PosVersion parse(String value) {
+        public static OracleVersion parse(String value) {
             if (value == null) {
                 return null;
             }
             value = value.trim();
 
-            for (PosVersion option : PosVersion.values()) {
+            for (OracleVersion option : OracleVersion.values()) {
                 if (option.getValue().equalsIgnoreCase(value)) return option;
             }
 
             return null;
         }
 
-        public static PosVersion parse(String value, String defaultValue) {
-            PosVersion option = parse(value);
+        public static OracleVersion parse(String value, String defaultValue) {
+            OracleVersion option = parse(value);
 
             if (option == null && defaultValue != null) {
                 option = parse(defaultValue);
