@@ -81,7 +81,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
                     + "'initial' (the default) to specify the connector should run a snapshot only when no offsets are available for the logical server name; "
                     + "'initial_schema_only' to specify the connector should run a snapshot of the schema when no offsets are available for the logical server name. ");
 
-    public static final Field TABLENAME_CASE_MODE = Field.create("database.tablename.case.insensitive")
+    public static final Field TABLENAME_CASE_INSENSITIVE = Field.create("database.tablename.case.insensitive")
         .withDisplayName("Oracle table name case insensitve mode")
         .withType(Type.BOOLEAN)
         .withDefault(false)
@@ -112,7 +112,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             CommonConnectorConfig.MAX_QUEUE_SIZE,
             Heartbeat.HEARTBEAT_INTERVAL,
             Heartbeat.HEARTBEAT_TOPICS_PREFIX,
-            TABLENAME_CASE_MODE,
+            TABLENAME_CASE_INSENSITIVE,
             POS_VERSION
     );
 
@@ -121,7 +121,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
     private final String xoutServerName;
     private final SnapshotMode snapshotMode;
 
-    private final boolean tablenameCaseMode;
+    private final boolean tablenameCaseInsensitive;
     private final PosVersion posVersion;
 
     public OracleConnectorConfig(Configuration config) {
@@ -131,7 +131,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         this.pdbName = config.getString(PDB_NAME);
         this.xoutServerName = config.getString(XSTREAM_SERVER_NAME);
         this.snapshotMode = SnapshotMode.parse(config.getString(SNAPSHOT_MODE));
-        this.tablenameCaseMode = config.getBoolean(TABLENAME_CASE_MODE);
+        this.tablenameCaseInsensitive = config.getBoolean(TABLENAME_CASE_INSENSITIVE);
         this.posVersion = PosVersion.parse(config.getString(POS_VERSION));
     }
 
@@ -168,8 +168,8 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         return snapshotMode;
     }
 
-    public boolean  getTablenameCaseMode() {
-        return tablenameCaseMode;
+    public boolean  getTablenameCaseInsensitive() {
+        return tablenameCaseInsensitive;
     }
 
     public PosVersion getPosVersion() {
