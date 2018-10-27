@@ -17,6 +17,7 @@ import io.debezium.config.Field;
 import io.debezium.document.Document;
 import io.debezium.heartbeat.Heartbeat;
 import io.debezium.jdbc.JdbcConfiguration;
+import io.debezium.jdbc.JdbcValueConverters.DecimalMode;
 import io.debezium.relational.HistorizedRelationalDatabaseConnectorConfig;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.TableId;
@@ -31,253 +32,344 @@ import io.debezium.relational.history.KafkaDatabaseHistory;
  */
 public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnectorConfig {
 
-    /**
-     * The set of predefined SnapshotMode options or aliases.
-     */
-    public static enum SnapshotMode implements EnumeratedValue {
+	/**
+	 * The set of predefined SnapshotMode options or aliases.
+	 */
+	public static enum SnapshotMode implements EnumeratedValue {
 
-        /**
-         * Perform a snapshot of data and schema upon initial startup of a connector.
-         */
-        INITIAL("initial", true),
+		/**
+		 * Perform a snapshot of data and schema upon initial startup of a
+		 * connector.
+		 */
+		INITIAL("initial", true),
 
-        /**
-         * Perform a snapshot of the schema but no data upon initial startup of a connector.
-         */
-        INITIAL_SCHEMA_ONLY("initial_schema_only", false);
+		/**
+		 * Perform a snapshot of the schema but no data upon initial startup of
+		 * a connector.
+		 */
+		INITIAL_SCHEMA_ONLY("initial_schema_only", false);
 
-        private final String value;
-        private final boolean includeData;
+		private final String value;
+		private final boolean includeData;
 
-        private SnapshotMode(String value, boolean includeData) {
-            this.value = value;
-            this.includeData = includeData;
-        }
+		private SnapshotMode(String value, boolean includeData) {
+			this.value = value;
+			this.includeData = includeData;
+		}
 
-        @Override
-        public String getValue() {
-            return value;
-        }
+		@Override
+		public String getValue() {
+			return value;
+		}
 
-        /**
-         * Whether this snapshotting mode should include the actual data or just the
-         * schema of captured tables.
-         */
-        public boolean includeData() {
-            return includeData;
-        }
+		/**
+		 * Whether this snapshotting mode should include the actual data or just
+		 * the schema of captured tables.
+		 */
+		public boolean includeData() {
+			return includeData;
+		}
 
-        /**
-         * Determine if the supplied value is one of the predefined options.
-         *
-         * @param value the configuration property value; may not be null
-         * @return the matching option, or null if no match is found
-         */
-        public static SnapshotMode parse(String value) {
-            if (value == null) {
-                return null;
-            }
-            value = value.trim();
+		/**
+		 * Determine if the supplied value is one of the predefined options.
+		 *
+		 * @param value
+		 *            the configuration property value; may not be null
+		 * @return the matching option, or null if no match is found
+		 */
+		public static SnapshotMode parse(String value) {
+			if (value == null) {
+				return null;
+			}
+			value = value.trim();
 
-            for (SnapshotMode option : SnapshotMode.values()) {
-                if (option.getValue().equalsIgnoreCase(value)) return option;
-            }
+			for (SnapshotMode option : SnapshotMode.values()) {
+				if (option.getValue().equalsIgnoreCase(value))
+					return option;
+			}
 
-            return null;
-        }
+			return null;
+		}
 
-        /**
-         * Determine if the supplied value is one of the predefined options.
-         *
-         * @param value the configuration property value; may not be null
-         * @param defaultValue the default value; may be null
-         * @return the matching option, or null if no match is found and the non-null default is invalid
-         */
-        public static SnapshotMode parse(String value, String defaultValue) {
-            SnapshotMode mode = parse(value);
+		/**
+		 * Determine if the supplied value is one of the predefined options.
+		 *
+		 * @param value
+		 *            the configuration property value; may not be null
+		 * @param defaultValue
+		 *            the default value; may be null
+		 * @return the matching option, or null if no match is found and the
+		 *         non-null default is invalid
+		 */
+		public static SnapshotMode parse(String value, String defaultValue) {
+			SnapshotMode mode = parse(value);
 
-            if (mode == null && defaultValue != null) {
-                mode = parse(defaultValue);
-            }
+			if (mode == null && defaultValue != null) {
+				mode = parse(defaultValue);
+			}
 
-            return mode;
-        }
-    }
+			return mode;
+		}
+	}
 
-    /**
-     * The set of predefined Snapshot Locking Mode options.
-     */
-    public static enum SnapshotLockingMode implements EnumeratedValue {
+	/**
+	 * The set of predefined Snapshot Locking Mode options.
+	 */
+	public static enum SnapshotLockingMode implements EnumeratedValue {
 
-        /**
-         * This mode will block all reads and writes for the entire duration of the snapshot.
-         *
-         * The connector will execute {@code SELECT * FROM .. WITH (TABLOCKX)}
-         */
-        EXCLUSIVE("exclusive"),
+		/**
+		 * This mode will block all reads and writes for the entire duration of
+		 * the snapshot.
+		 *
+		 * The connector will execute {@code SELECT * FROM .. WITH (TABLOCKX)}
+		 */
+		EXCLUSIVE("exclusive"),
 
-        /**
-         * This mode will avoid using ANY table locks during the snapshot process.  This mode can only be used with SnapShotMode
-         * set to schema_only or schema_only_recovery.
-         */
-        NONE("none");
+		/**
+		 * This mode will avoid using ANY table locks during the snapshot
+		 * process. This mode can only be used with SnapShotMode set to
+		 * schema_only or schema_only_recovery.
+		 */
+		NONE("none");
 
-        private final String value;
+		private final String value;
 
-        private SnapshotLockingMode(String value) {
-            this.value = value;
-        }
+		private SnapshotLockingMode(String value) {
+			this.value = value;
+		}
 
-        @Override
-        public String getValue() {
-            return value;
-        }
+		@Override
+		public String getValue() {
+			return value;
+		}
 
-        /**
-         * Determine if the supplied value is one of the predefined options.
-         *
-         * @param value the configuration property value; may not be null
-         * @return the matching option, or null if no match is found
-         */
-        public static SnapshotLockingMode parse(String value) {
-            if (value == null) return null;
-            value = value.trim();
-            for (SnapshotLockingMode option : SnapshotLockingMode.values()) {
-                if (option.getValue().equalsIgnoreCase(value)) return option;
-            }
-            return null;
-        }
+		/**
+		 * Determine if the supplied value is one of the predefined options.
+		 *
+		 * @param value
+		 *            the configuration property value; may not be null
+		 * @return the matching option, or null if no match is found
+		 */
+		public static SnapshotLockingMode parse(String value) {
+			if (value == null)
+				return null;
+			value = value.trim();
+			for (SnapshotLockingMode option : SnapshotLockingMode.values()) {
+				if (option.getValue().equalsIgnoreCase(value))
+					return option;
+			}
+			return null;
+		}
 
-        /**
-         * Determine if the supplied value is one of the predefined options.
-         *
-         * @param value the configuration property value; may not be null
-         * @param defaultValue the default value; may be null
-         * @return the matching option, or null if no match is found and the non-null default is invalid
-         */
-        public static SnapshotLockingMode parse(String value, String defaultValue) {
-            SnapshotLockingMode mode = parse(value);
-            if (mode == null && defaultValue != null) mode = parse(defaultValue);
-            return mode;
-        }
-    }
+		/**
+		 * Determine if the supplied value is one of the predefined options.
+		 *
+		 * @param value
+		 *            the configuration property value; may not be null
+		 * @param defaultValue
+		 *            the default value; may be null
+		 * @return the matching option, or null if no match is found and the
+		 *         non-null default is invalid
+		 */
+		public static SnapshotLockingMode parse(String value, String defaultValue) {
+			SnapshotLockingMode mode = parse(value);
+			if (mode == null && defaultValue != null)
+				mode = parse(defaultValue);
+			return mode;
+		}
+	}
 
-    public static final Field LOGICAL_NAME = Field.create("database.server.name")
-            .withDisplayName("Namespace")
-            .withType(Type.STRING)
-            .withWidth(Width.MEDIUM)
-            .withImportance(Importance.HIGH)
-            .withValidation(Field::isRequired)
-            .withValidation(Field::isRequired, CommonConnectorConfig::validateServerNameIsDifferentFromHistoryTopicName)
-            .withDescription("Unique name that identifies the database server and all recorded offsets, and"
-                    + "that is used as a prefix for all schemas and topics. "
-                    + "Each distinct SQL Server installation should have a separate namespace and monitored by "
-                    + "at most one Debezium connector.");
+	public static final Field LOGICAL_NAME = Field.create("database.server.name").withDisplayName("Namespace")
+			.withType(Type.STRING).withWidth(Width.MEDIUM).withImportance(Importance.HIGH)
+			.withValidation(Field::isRequired)
+			.withValidation(Field::isRequired, CommonConnectorConfig::validateServerNameIsDifferentFromHistoryTopicName)
+			.withDescription("Unique name that identifies the database server and all recorded offsets, and"
+					+ "that is used as a prefix for all schemas and topics. "
+					+ "Each distinct SQL Server installation should have a separate namespace and monitored by "
+					+ "at most one Debezium connector.");
 
-    public static final Field DATABASE_NAME = Field.create(DATABASE_CONFIG_PREFIX + JdbcConfiguration.DATABASE)
-            .withDisplayName("Database name")
-            .withType(Type.STRING)
-            .withWidth(Width.MEDIUM)
-            .withImportance(Importance.HIGH)
-            .withValidation(Field::isRequired)
-            .withDescription("The name of the database the connector should be monitoring. When working with a "
-                    + "multi-tenant set-up, must be set to the CDB name.");
+	public static final Field DATABASE_NAME = Field.create(DATABASE_CONFIG_PREFIX + JdbcConfiguration.DATABASE)
+			.withDisplayName("Database name").withType(Type.STRING).withWidth(Width.MEDIUM)
+			.withImportance(Importance.HIGH).withValidation(Field::isRequired)
+			.withDescription("The name of the database the connector should be monitoring. When working with a "
+					+ "multi-tenant set-up, must be set to the CDB name.");
 
-    public static final Field SNAPSHOT_MODE = Field.create("snapshot.mode")
-            .withDisplayName("Snapshot mode")
-            .withEnum(SnapshotMode.class, SnapshotMode.INITIAL)
-            .withWidth(Width.SHORT)
-            .withImportance(Importance.LOW)
-            .withDescription("The criteria for running a snapshot upon startup of the connector. "
-                    + "Options include: "
-                    + "'initial' (the default) to specify the connector should run a snapshot only when no offsets are available for the logical server name; "
-                    + "'initial_schema_only' to specify the connector should run a snapshot of the schema when no offsets are available for the logical server name. ");
+	public static final Field SNAPSHOT_MODE = Field.create("snapshot.mode").withDisplayName("Snapshot mode")
+			.withEnum(SnapshotMode.class, SnapshotMode.INITIAL).withWidth(Width.SHORT).withImportance(Importance.LOW)
+			.withDescription("The criteria for running a snapshot upon startup of the connector. " + "Options include: "
+					+ "'initial' (the default) to specify the connector should run a snapshot only when no offsets are available for the logical server name; "
+					+ "'initial_schema_only' to specify the connector should run a snapshot of the schema when no offsets are available for the logical server name. ");
 
-    public static final Field SNAPSHOT_LOCKING_MODE = Field.create("snapshot.locking.mode")
-            .withDisplayName("Snapshot locking mode")
-            .withEnum(SnapshotLockingMode.class, SnapshotLockingMode.NONE)
-            .withWidth(Width.SHORT)
-            .withImportance(Importance.LOW)
-            .withDescription("Controls how long the connector locks the montiored tables for snapshot execution. The default is '" + SnapshotLockingMode.NONE.getValue() + "', "
-                + "which means that the connector does not hold any locks for all monitored tables."
-                + "Using a value of '" + SnapshotLockingMode.EXCLUSIVE.getValue() + "' ensures that the connector holds the exlusive lock (and thus prevents any reads and updates) for all monitored tables.");
+	public static final Field SNAPSHOT_LOCKING_MODE = Field.create("snapshot.locking.mode")
+			.withDisplayName("Snapshot locking mode").withEnum(SnapshotLockingMode.class, SnapshotLockingMode.NONE)
+			.withWidth(Width.SHORT).withImportance(Importance.LOW).withDescription(
+					"Controls how long the connector locks the montiored tables for snapshot execution. The default is '"
+							+ SnapshotLockingMode.NONE.getValue() + "', "
+							+ "which means that the connector does not hold any locks for all monitored tables."
+							+ "Using a value of '" + SnapshotLockingMode.EXCLUSIVE.getValue()
+							+ "' ensures that the connector holds the exlusive lock (and thus prevents any reads and updates) for all monitored tables.");
 
-    /**
-     * The set of {@link Field}s defined as part of this configuration.
-     */
-    public static Field.Set ALL_FIELDS = Field.setOf(
-            LOGICAL_NAME,
-            DATABASE_NAME,
-            SNAPSHOT_MODE,
-            HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY,
-            RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
-            RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
-            RelationalDatabaseConnectorConfig.TABLE_IGNORE_BUILTIN,
-            CommonConnectorConfig.POLL_INTERVAL_MS,
-            CommonConnectorConfig.MAX_BATCH_SIZE,
-            CommonConnectorConfig.MAX_QUEUE_SIZE,
-            Heartbeat.HEARTBEAT_INTERVAL, Heartbeat.HEARTBEAT_TOPICS_PREFIX
-    );
+	public static final Field DECIMAL_HANDLING_MODE = Field.create("decimal.handling.mode")
+			.withDisplayName("Decimal Handling").withEnum(DecimalHandlingMode.class, DecimalHandlingMode.PRECISE)
+			.withWidth(Width.SHORT).withImportance(Importance.MEDIUM).withDescription(
+					"Specify how DECIMAL and NUMERIC columns should be represented in change events, including:"
+							+ "'precise' (the default) uses java.math.BigDecimal to represent values, which are encoded in the change events using a binary representation and Kafka Connect's 'org.apache.kafka.connect.data.Decimal' type; "
+							+ "'string' uses string to represent values; "
+							+ "'double' represents values using Java's 'double', which may not offer the precision but will be far easier to use in consumers.");
 
-    public static ConfigDef configDef() {
-        ConfigDef config = new ConfigDef();
+	/**
+	 * The set of {@link Field}s defined as part of this configuration.
+	 */
+	public static Field.Set ALL_FIELDS = Field.setOf(LOGICAL_NAME, DATABASE_NAME, SNAPSHOT_MODE,
+			HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY,
+			RelationalDatabaseConnectorConfig.TABLE_WHITELIST, RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
+			RelationalDatabaseConnectorConfig.TABLE_IGNORE_BUILTIN, CommonConnectorConfig.POLL_INTERVAL_MS,
+			CommonConnectorConfig.MAX_BATCH_SIZE, CommonConnectorConfig.MAX_QUEUE_SIZE, Heartbeat.HEARTBEAT_INTERVAL,
+			Heartbeat.HEARTBEAT_TOPICS_PREFIX);
 
-        Field.group(config, "SQL Server", LOGICAL_NAME, DATABASE_NAME, SNAPSHOT_MODE);
-        Field.group(config, "History Storage", KafkaDatabaseHistory.BOOTSTRAP_SERVERS,
-                KafkaDatabaseHistory.TOPIC, KafkaDatabaseHistory.RECOVERY_POLL_ATTEMPTS,
-                KafkaDatabaseHistory.RECOVERY_POLL_INTERVAL_MS, HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY);
-        Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
-                RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
-                RelationalDatabaseConnectorConfig.TABLE_IGNORE_BUILTIN,
-                Heartbeat.HEARTBEAT_INTERVAL, Heartbeat.HEARTBEAT_TOPICS_PREFIX
-        );
-        Field.group(config, "Connector", CommonConnectorConfig.POLL_INTERVAL_MS, CommonConnectorConfig.MAX_BATCH_SIZE, CommonConnectorConfig.MAX_QUEUE_SIZE);
+	public static ConfigDef configDef() {
+		ConfigDef config = new ConfigDef();
 
-        return config;
-    }
+		Field.group(config, "SQL Server", LOGICAL_NAME, DATABASE_NAME, SNAPSHOT_MODE);
+		Field.group(config, "History Storage", KafkaDatabaseHistory.BOOTSTRAP_SERVERS, KafkaDatabaseHistory.TOPIC,
+				KafkaDatabaseHistory.RECOVERY_POLL_ATTEMPTS, KafkaDatabaseHistory.RECOVERY_POLL_INTERVAL_MS,
+				HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY);
+		Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
+				RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
+				RelationalDatabaseConnectorConfig.TABLE_IGNORE_BUILTIN, Heartbeat.HEARTBEAT_INTERVAL,
+				Heartbeat.HEARTBEAT_TOPICS_PREFIX);
+		Field.group(config, "Connector", CommonConnectorConfig.POLL_INTERVAL_MS, CommonConnectorConfig.MAX_BATCH_SIZE,
+				CommonConnectorConfig.MAX_QUEUE_SIZE);
 
-    private final String databaseName;
-    private final SnapshotMode snapshotMode;
-    private final SnapshotLockingMode snapshotLockingMode;
+		return config;
+	}
 
-    public SqlServerConnectorConfig(Configuration config) {
-        super(config, config.getString(LOGICAL_NAME), new SystemTablesPredicate(), x -> x.schema() + "." + x.table());
+	private final String databaseName;
+	private final SnapshotMode snapshotMode;
+	private final SnapshotLockingMode snapshotLockingMode;
 
-        this.databaseName = config.getString(DATABASE_NAME);
-        this.snapshotMode = SnapshotMode.parse(config.getString(SNAPSHOT_MODE), SNAPSHOT_MODE.defaultValueAsString());
-        this.snapshotLockingMode = SnapshotLockingMode.parse(config.getString(SNAPSHOT_LOCKING_MODE), SNAPSHOT_LOCKING_MODE.defaultValueAsString());
-    }
+	public SqlServerConnectorConfig(Configuration config) {
+		super(config, config.getString(LOGICAL_NAME), new SystemTablesPredicate(), x -> x.schema() + "." + x.table());
 
-    public String getDatabaseName() {
-        return databaseName;
-    }
+		this.databaseName = config.getString(DATABASE_NAME);
+		this.snapshotMode = SnapshotMode.parse(config.getString(SNAPSHOT_MODE), SNAPSHOT_MODE.defaultValueAsString());
+		this.snapshotLockingMode = SnapshotLockingMode.parse(config.getString(SNAPSHOT_LOCKING_MODE),
+				SNAPSHOT_LOCKING_MODE.defaultValueAsString());
+	}
 
-    public SnapshotLockingMode getSnapshotLockingMode() {
-        return this.snapshotLockingMode;
-    }
+	public String getDatabaseName() {
+		return databaseName;
+	}
 
-    public SnapshotMode getSnapshotMode() {
-        return snapshotMode;
-    }
+	public SnapshotLockingMode getSnapshotLockingMode() {
+		return this.snapshotLockingMode;
+	}
 
-    private static class SystemTablesPredicate implements TableFilter {
+	public SnapshotMode getSnapshotMode() {
+		return snapshotMode;
+	}
 
-        @Override
-        public boolean isIncluded(TableId t) {
-            return !(t.schema().toLowerCase().equals("cdc") ||
-                    t.schema().toLowerCase().equals("sys") ||
-                    t.table().toLowerCase().equals("systranschemas"));
-            }
-    }
+	private static class SystemTablesPredicate implements TableFilter {
 
-    @Override
-    protected HistoryRecordComparator getHistoryRecordComparator() {
-        return new HistoryRecordComparator() {
-            @Override
-            protected boolean isPositionAtOrBefore(Document recorded, Document desired) {
-                return Lsn.valueOf(recorded.getString(SourceInfo.CHANGE_LSN_KEY))
-                        .compareTo(Lsn.valueOf(desired.getString(SourceInfo.CHANGE_LSN_KEY))) < 1;
-            }
-        };
-    }
+		@Override
+		public boolean isIncluded(TableId t) {
+			return !(t.schema().toLowerCase().equals("cdc") || t.schema().toLowerCase().equals("sys")
+					|| t.table().toLowerCase().equals("systranschemas"));
+		}
+	}
+
+	@Override
+	protected HistoryRecordComparator getHistoryRecordComparator() {
+		return new HistoryRecordComparator() {
+			@Override
+			protected boolean isPositionAtOrBefore(Document recorded, Document desired) {
+				return Lsn.valueOf(recorded.getString(SourceInfo.CHANGE_LSN_KEY))
+						.compareTo(Lsn.valueOf(desired.getString(SourceInfo.CHANGE_LSN_KEY))) < 1;
+			}
+		};
+	}
+
+	/**
+	 * The set of predefined DecimalHandlingMode options or aliases.
+	 */
+	public enum DecimalHandlingMode implements EnumeratedValue {
+		/**
+		 * Represent {@code DECIMAL} and {@code NUMERIC} values as precise
+		 * {@link BigDecimal} values, which are represented in change events in
+		 * a binary form. This is precise but difficult to use.
+		 */
+		PRECISE("precise"),
+
+		/**
+		 * Represent {@code DECIMAL} and {@code NUMERIC} values as a string
+		 * values. This is precise, it supports also special values but the type
+		 * information is lost.
+		 */
+		STRING("string"),
+
+		/**
+		 * Represent {@code DECIMAL} and {@code NUMERIC} values as precise
+		 * {@code double} values. This may be less precise but is far easier to
+		 * use.
+		 */
+		DOUBLE("double");
+
+		private final String value;
+
+		private DecimalHandlingMode(String value) {
+			this.value = value;
+		}
+
+		@Override
+		public String getValue() {
+			return value;
+		}
+
+		public DecimalMode asDecimalMode() {
+			switch (this) {
+			case DOUBLE:
+				return DecimalMode.DOUBLE;
+			case STRING:
+				return DecimalMode.STRING;
+			case PRECISE:
+			default:
+				return DecimalMode.PRECISE;
+			}
+		}
+
+		/**
+		 * Determine if the supplied value is one of the predefined options.
+		 *
+		 * @param value
+		 *            the configuration property value; may not be null
+		 * @return the matching option, or null if no match is found
+		 */
+		public static DecimalHandlingMode parse(String value) {
+			if (value == null)
+				return null;
+			value = value.trim();
+			for (DecimalHandlingMode option : DecimalHandlingMode.values()) {
+				if (option.getValue().equalsIgnoreCase(value))
+					return option;
+			}
+			return null;
+		}
+
+		/**
+		 * Determine if the supplied value is one of the predefined options.
+		 *
+		 * @param value
+		 *            the configuration property value; may not be null
+		 * @param defaultValue
+		 *            the default value; may be null
+		 * @return the matching option, or null if no match is found and the
+		 *         non-null default is invalid
+		 */
+		public static DecimalHandlingMode parse(String value, String defaultValue) {
+			DecimalHandlingMode mode = parse(value);
+			if (mode == null && defaultValue != null)
+				mode = parse(defaultValue);
+			return mode;
+		}
+	}
 }
