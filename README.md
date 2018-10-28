@@ -59,8 +59,10 @@ Then the Oracle connector can be built like so:
 
 To run Debezium oracle connector with Oracle 11g, add these additional parameters. If run with Oralce 12c, leave these parameters to default.
 
+```json
 "database.tablename.case.insensitive": "true"
 "database.position.version": "v1"
+```
 
 ## Contributing
 
