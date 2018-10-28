@@ -9,20 +9,6 @@
 Copyright Debezium Authors.
 Licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
-# For Oracle 11g
-
-The Original Debezium oracle connector is tested for oracle 12c, but it can't run with oracle 11g. This project change 3 point of code, to run the oracle connect with oracle 11g.
-
-Run setup.oracle11g.sh to prepare the database.
-
-Run command like following to create the connector.
-
-```bash
-curl -X POST -H "Content-Type: application/json" \
-    --data '{ "name": "inventory-connector", "config": { "connector.class": "io.debezium.connector.oracle.OracleConnector", "tasks.max": "1", "database.server.name": "oracledb", "database.hostname": "oracledb", "database.port": "1521", "database.user": "c##xstrm", "database.password": "xs", "database.dbname": "orcl", "database.out.server.name": "dbzxout", "database.history.kafka.bootstrap.servers": "kafka1:9092",  "database.history.kafka.topic": "schema-changes.inventory" , "table.whitelist":"orcl.debezium.products" } }' \
-    http://dbz-connect:8083/connectors
-```
-
 # Debezium Incubator
 
 Debezium is an open source project that provides a low latency data streaming platform for change data capture (CDC).
@@ -68,6 +54,13 @@ mvn install:install-file \
 Then the Oracle connector can be built like so:
 
     $ mvn clean install -pl debezium-connector-oracle -am -Poracle -Dinstantclient.dir=/path/to/instant-client-dir
+
+## For Oracle 11g
+
+To run Debezium oracle connector with Oracle 11g, add these additional parameters. If run with Oralce 12c, leave these parameters to default.
+
+"database.tablename.case.insensitive": "true"
+"database.position.version": "v1"
 
 ## Contributing
 
