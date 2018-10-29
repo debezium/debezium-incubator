@@ -62,6 +62,7 @@ To run Debezium oracle connector with Oracle 11g, add these additional parameter
 ```json
 "database.tablename.case.insensitive": "true"
 "database.position.version": "v1"
+"table.whitelist":"your_table_name_with_full_path"
 ```
 
 ## Contributing
