@@ -41,7 +41,7 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
     private final String xStreamServerName;
     private volatile XStreamOut xsOut;
     private final boolean tablenameCaseInsensitive;
-    private final int pos_version;
+    private final int posVersion;
 
     public OracleStreamingChangeEventSource(OracleConnectorConfig connectorConfig, OracleOffsetContext offsetContext, JdbcConnection jdbcConnection, EventDispatcher<TableId> dispatcher, ErrorHandler errorHandler, Clock clock, OracleDatabaseSchema schema) {
         this.jdbcConnection = jdbcConnection;
@@ -52,7 +52,7 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
         this.offsetContext = offsetContext;
         this.xStreamServerName = connectorConfig.getXoutServerName();
         this.tablenameCaseInsensitive = connectorConfig.getTablenameCaseInsensitive();
-        this.pos_version = connectorConfig.getPosVersion().getVersion();
+        this.posVersion = connectorConfig.getPosVersion().getVersion();
     }
 
     @Override
@@ -108,7 +108,7 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
 
     private byte[] convertScnToPosition(long scn) {
         try {
-            return XStreamUtility.convertSCNToPosition(new NUMBER(scn), this.pos_version);
+            return XStreamUtility.convertSCNToPosition(new NUMBER(scn), this.posVersion);
         }
         catch (StreamsException e) {
             throw new RuntimeException(e);
