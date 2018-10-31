@@ -82,11 +82,11 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
                     + "'initial_schema_only' to specify the connector should run a snapshot of the schema when no offsets are available for the logical server name. ");
 
     public static final Field TABLENAME_CASE_INSENSITIVE = Field.create("database.tablename.case.insensitive")
-        .withDisplayName("Oracle table name case insensitve mode")
+        .withDisplayName("Case insensitive table names")
         .withType(Type.BOOLEAN)
         .withDefault(false)
         .withImportance(Importance.LOW)
-        .withDescription("Oracle table node case sensitve true or false, use true mode when you need to work with oracle 11g.");
+        .withDescription("Case insensitive table names; set to 'true' for Oracle 11g, 'false' (default) otherwise.");
     
     public static final Field POS_VERSION = Field.create("database.position.version")
         .withDisplayName("Oracle pos version, v1 or v2")
@@ -186,7 +186,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         };
     }
 
-    public static enum PosVersion implements EnumeratedValue{
+    public static enum PosVersion implements EnumeratedValue {
 
         V1("v1"),
         V2("v2");
@@ -203,9 +203,12 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
 
         public int getVersion() {
             switch(version) {
-                case "v1": return XStreamUtility.POS_VERSION_V1;
-                case "v2": return XStreamUtility.POS_VERSION_V2;
-                default: return XStreamUtility.POS_VERSION_V2;
+                case "v1": 
+                    return XStreamUtility.POS_VERSION_V1;
+                case "v2": 
+                    return XStreamUtility.POS_VERSION_V2;
+                default: 
+                    return XStreamUtility.POS_VERSION_V2;
             }
         }
 

@@ -40,7 +40,7 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
     private final OracleOffsetContext offsetContext;
     private final String xStreamServerName;
     private volatile XStreamOut xsOut;
-    private final boolean tablename_case_insensitive;
+    private final boolean tablenameCaseInsensitive;
     private final int pos_version;
 
     public OracleStreamingChangeEventSource(OracleConnectorConfig connectorConfig, OracleOffsetContext offsetContext, JdbcConnection jdbcConnection, EventDispatcher<TableId> dispatcher, ErrorHandler errorHandler, Clock clock, OracleDatabaseSchema schema) {
@@ -51,7 +51,7 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
         this.schema = schema;
         this.offsetContext = offsetContext;
         this.xStreamServerName = connectorConfig.getXoutServerName();
-        this.tablename_case_insensitive = connectorConfig.getTablenameCaseInsensitive();
+        this.tablenameCaseInsensitive = connectorConfig.getTablenameCaseInsensitive();
         this.pos_version = connectorConfig.getPosVersion().getVersion();
     }
 
@@ -62,7 +62,7 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
             xsOut = XStreamOut.attach((OracleConnection) jdbcConnection.connection(), xStreamServerName,
                     convertScnToPosition(offsetContext.getScn()), 1, 1, XStreamOut.DEFAULT_MODE);
 
-            LcrEventHandler handler = new LcrEventHandler(errorHandler, dispatcher, clock, schema, offsetContext, this.tablename_case_insensitive);
+            LcrEventHandler handler = new LcrEventHandler(errorHandler, dispatcher, clock, schema, offsetContext, this.tablenameCaseInsensitive);
 
             // 2. receive events while running
             while(context.isRunning()) {
