@@ -31,20 +31,22 @@ public class SqlServerValueConverters extends JdbcValueConverters {
 
     public SqlServerValueConverters() {
     }
-    
 
     /**
-     * Create a new instance that always uses UTC for the default time zone when converting values without timezone information
-     * to values that require timezones.
+     * Create a new instance that always uses UTC for the default time zone when
+     * converting values without timezone information to values that require
+     * timezones.
      * <p>
      *
-     * @param decimalMode how {@code DECIMAL} and {@code NUMERIC} values should be treated; may be null if
-     *            {@link io.debezium.jdbc.JdbcValueConverters.DecimalMode#PRECISE} is to be used
+     * @param decimalMode
+     *            how {@code DECIMAL} and {@code NUMERIC} values should be
+     *            treated; may be null if
+     *            {@link io.debezium.jdbc.JdbcValueConverters.DecimalMode#PRECISE}
+     *            is to be used
      */
     public SqlServerValueConverters(DecimalMode decimalMode) {
-    	 super(decimalMode, TemporalPrecisionMode.ADAPTIVE, ZoneOffset.UTC, null, null);
+        super(decimalMode, TemporalPrecisionMode.ADAPTIVE_TIME_MICROSECONDS, ZoneOffset.UTC, null, null);
     }
-    
 
     @Override
     public SchemaBuilder schemaBuilder(Column column) {

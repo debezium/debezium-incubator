@@ -39,8 +39,8 @@ public class SqlServerDatabaseSchema extends HistorizedRelationalDatabaseSchema 
     public SqlServerDatabaseSchema(SqlServerConnectorConfig connectorConfig, SchemaNameAdjuster schemaNameAdjuster, TopicSelector<TableId> topicSelector, SqlServerConnection connection) {
         super(connectorConfig, topicSelector, connectorConfig.getTableFilters().dataCollectionFilter(), null,
                 new TableSchemaBuilder(new SqlServerValueConverters(DecimalHandlingMode
-						.parse(connectorConfig.getConfig().getString(SqlServerConnectorConfig.DECIMAL_HANDLING_MODE))
-						.asDecimalMode()), schemaNameAdjuster, SourceInfo.SCHEMA),
+                        .parse(connectorConfig.getConfig().getString(SqlServerConnectorConfig.DECIMAL_HANDLING_MODE))
+                        .asDecimalMode()), schemaNameAdjuster, SourceInfo.SCHEMA),
                 false);
         try {
             this.capturedTables = determineCapturedTables(connectorConfig, connection);
