@@ -110,10 +110,11 @@ public class SqlServerConnectorTask extends BaseSourceTask {
                 errorHandler,
                 SqlServerConnector.class,
                 connectorConfig.getLogicalName(),
-                new SqlServerChangeEventSourceFactory(connectorConfig, jdbcConnection, errorHandler, dispatcher, clock, schema)
+                new SqlServerChangeEventSourceFactory(connectorConfig, jdbcConnection, errorHandler, dispatcher, clock, schema),
+                dispatcher
         );
 
-        coordinator.start();
+        coordinator.start(taskContext);
     }
 
     /**
