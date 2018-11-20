@@ -5,6 +5,7 @@
  */
 package io.debezium.connector.sqlserver;
 
+import static io.debezium.connector.sqlserver.SqlServerConnectorConfig.SNAPSHOT_LOCKING_MODE;
 import static org.junit.Assert.assertNull;
 
 import java.math.BigDecimal;
@@ -24,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.debezium.config.Configuration;
+import io.debezium.connector.sqlserver.SqlServerConnectorConfig.SnapshotLockingMode;
 import io.debezium.connector.sqlserver.SqlServerConnectorConfig.SnapshotMode;
 import io.debezium.connector.sqlserver.util.TestHelper;
 import io.debezium.data.SchemaAndValueField;
@@ -58,7 +60,7 @@ public class SnapshotIT extends AbstractConnectorTest {
             );
         }
 
-        connection.enableTableCdc("table1");
+        TestHelper.enableTableCdc(connection, "table1");
 
         initializeConnectorTestFramework();
         Testing.Files.delete(TestHelper.DB_HISTORY_PATH);
@@ -73,8 +75,24 @@ public class SnapshotIT extends AbstractConnectorTest {
     }
 
     @Test
-    public void takeSnapshot() throws Exception {
-        final Configuration config = TestHelper.defaultConfig().build();
+    public void takeSnapshotInExclusiveMode() throws Exception {
+        takeSnapshot(SnapshotLockingMode.EXCLUSIVE);
+    }
+
+    @Test
+    public void takeSnapshotInSnapshotMode() throws Exception {
+        takeSnapshot(SnapshotLockingMode.SNAPSHOT);
+    }
+
+    @Test
+    public void takeSnapshotInNoneMode() throws Exception {
+        takeSnapshot(SnapshotLockingMode.NONE);
+    }
+
+    private void takeSnapshot(SnapshotLockingMode lockingMode) throws Exception {
+        final Configuration config = TestHelper.defaultConfig()
+            .with(SNAPSHOT_LOCKING_MODE.name(), lockingMode.getValue())
+            .build();
 
         start(SqlServerConnector.class, config);
         assertConnectorIsRunning();
