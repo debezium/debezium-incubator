@@ -52,7 +52,7 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
         this.offsetContext = offsetContext;
         this.xStreamServerName = connectorConfig.getXoutServerName();
         this.tablenameCaseInsensitive = connectorConfig.getTablenameCaseInsensitive();
-        this.posVersion = connectorConfig.getPosVersion().getVersion();
+        this.posVersion = connectorConfig.getOracleVersion().getPosVersion();
     }
 
     @Override
