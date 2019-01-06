@@ -5,6 +5,8 @@
  */
 package io.debezium.connector.sqlserver;
 
+import java.util.function.Predicate;
+
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
@@ -17,8 +19,10 @@ import io.debezium.config.Field;
 import io.debezium.document.Document;
 import io.debezium.heartbeat.Heartbeat;
 import io.debezium.jdbc.JdbcConfiguration;
+import io.debezium.relational.ColumnId;
 import io.debezium.relational.HistorizedRelationalDatabaseConnectorConfig;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
+import io.debezium.relational.Selectors;
 import io.debezium.relational.TableId;
 import io.debezium.relational.Tables.TableFilter;
 import io.debezium.relational.history.HistoryRecordComparator;
@@ -219,6 +223,7 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
             RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
             RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
             RelationalDatabaseConnectorConfig.TABLE_IGNORE_BUILTIN,
+            RelationalDatabaseConnectorConfig.COLUMN_BLACKLIST,
             CommonConnectorConfig.POLL_INTERVAL_MS,
             CommonConnectorConfig.MAX_BATCH_SIZE,
             CommonConnectorConfig.MAX_QUEUE_SIZE,
@@ -235,6 +240,7 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
                 KafkaDatabaseHistory.RECOVERY_POLL_INTERVAL_MS, HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY);
         Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
                 RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
+                RelationalDatabaseConnectorConfig.COLUMN_BLACKLIST,
                 RelationalDatabaseConnectorConfig.TABLE_IGNORE_BUILTIN,
                 Heartbeat.HEARTBEAT_INTERVAL, Heartbeat.HEARTBEAT_TOPICS_PREFIX
         );
@@ -247,6 +253,7 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
     private final String databaseName;
     private final SnapshotMode snapshotMode;
     private final SnapshotLockingMode snapshotLockingMode;
+    private final Predicate<ColumnId> columnFilter;
 
     public SqlServerConnectorConfig(Configuration config) {
         super(config, config.getString(LOGICAL_NAME), new SystemTablesPredicate(), x -> x.schema() + "." + x.table());
@@ -254,6 +261,7 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
         this.databaseName = config.getString(DATABASE_NAME);
         this.snapshotMode = SnapshotMode.parse(config.getString(SNAPSHOT_MODE), SNAPSHOT_MODE.defaultValueAsString());
         this.snapshotLockingMode = SnapshotLockingMode.parse(config.getString(SNAPSHOT_LOCKING_MODE), SNAPSHOT_LOCKING_MODE.defaultValueAsString());
+        this.columnFilter = Selectors.excludeColumns(config.getString(RelationalDatabaseConnectorConfig.COLUMN_BLACKLIST));
     }
 
     public String getDatabaseName() {
@@ -266,6 +274,10 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
 
     public SnapshotMode getSnapshotMode() {
         return snapshotMode;
+    }
+
+    public Predicate<ColumnId> getColumnFilter() {
+        return columnFilter;
     }
 
     private static class SystemTablesPredicate implements TableFilter {
