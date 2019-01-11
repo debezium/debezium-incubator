@@ -126,14 +126,7 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
          * This mode uses REPEATABLE READ isolation level.  This mode will avoid taking any table locks
          * during the snapshot process.  Since phantom reads can occur, it does not fully guarantee consistency.
          */
-        REPEATABLE_READ("repeatable_read"),
-
-        /**
-         * The snapshot uses READ COMMITTED isolation level.  Neither table locks nor row-level locks are taken.
-         * This way other transactions are not affected by initial snapshot process.  However, snapshot consistency is
-         * not guaranteed.
-         */
-        READ_COMMITTED("read_committed");
+        REPEATABLE_READ("repeatable_read");
 
         private final String value;
 
@@ -212,10 +205,9 @@ public class SqlServerConnectorConfig extends HistorizedRelationalDatabaseConnec
             .withWidth(Width.SHORT)
             .withImportance(Importance.LOW)
             .withDescription("Controls which transaction isolation level is used and how long the connector locks the monitored tables for snapshot execution. "
-                + "The default is '" + SnapshotIsolationMode.REPEATABLE_READ.getValue() + "', which means that the connector does not hold any locks for all monitored tables. "
+                + "The default is '" + SnapshotIsolationMode.REPEATABLE_READ.getValue() + "', which means that the connector does not hold any table locks for all monitored tables. "
                 + "Using a value of '" + SnapshotIsolationMode.EXCLUSIVE.getValue() + "' ensures that the connector holds the exclusive lock (and thus prevents any reads and updates) for all monitored tables. "
-                + "When '" + SnapshotIsolationMode.SNAPSHOT.getValue() + "' is specified, connector runs the initial snapshot in SNAPSHOT isolation level, which guarantees snapshot consistency. In addition, neither table nor row-level locks are held. "
-                + "In '" + SnapshotIsolationMode.READ_COMMITTED.getValue() + "' mode neither table nor row-level locks are acquired, but connector does not guarantee snapshot consistency.");
+                + "When '" + SnapshotIsolationMode.SNAPSHOT.getValue() + "' is specified, connector runs the initial snapshot in SNAPSHOT isolation level, which guarantees snapshot consistency. In addition, neither table nor row-level locks are held.");
 
     /**
      * The set of {@link Field}s defined as part of this configuration.
