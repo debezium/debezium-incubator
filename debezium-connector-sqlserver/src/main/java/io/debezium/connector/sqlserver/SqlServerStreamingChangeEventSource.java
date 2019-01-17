@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -165,7 +166,7 @@ public class SqlServerStreamingChangeEventSource implements StreamingChangeEvent
                             final Lsn commitLsn = tableWithSmallestLsn.getCommitLsn();
                             final Lsn rowLsn = tableWithSmallestLsn.getRowLsn();
                             final int operation = tableWithSmallestLsn.getOperation();
-                            final Object[] data = tableWithSmallestLsn.getData();
+                            final Map<String, Object> data = tableWithSmallestLsn.getData();
 
                             // UPDATE consists of two consecutive events, first event contains
                             // the row before it was updated and the second the row after
@@ -175,7 +176,7 @@ public class SqlServerStreamingChangeEventSource implements StreamingChangeEvent
                                     throw new IllegalStateException("The update before event at " + rowLsn + " for table " + tableId + " was not followed by after event.\n Please report this as a bug together with a events around given LSN.");
                                 }
                             }
-                            final Object[] dataNext = (operation == SqlServerChangeRecordEmitter.OP_UPDATE_BEFORE) ? tableWithSmallestLsn.getData() : null;
+                            final Map<String, Object> dataNext = (operation == SqlServerChangeRecordEmitter.OP_UPDATE_BEFORE) ? tableWithSmallestLsn.getData() : null;
 
                             offsetContext.setChangeLsn(rowLsn);
                             offsetContext.setCommitLsn(commitLsn);
@@ -321,11 +322,14 @@ public class SqlServerStreamingChangeEventSource implements StreamingChangeEvent
             return resultSet.getInt(COL_OPERATION);
         }
 
-        public Object[] getData() throws SQLException {
+        public Map<String, Object> getData() throws SQLException {
             final int dataColumnCount = resultSet.getMetaData().getColumnCount() - (COL_DATA - 1);
-            final Object[] data = new Object[dataColumnCount];
+            final Map<String, Object> data = new HashMap<>(dataColumnCount);
             for (int i = 0; i < dataColumnCount; i++) {
-                data[i] = resultSet.getObject(COL_DATA + i);
+                data.put(
+                        resultSet.getMetaData().getColumnName(COL_DATA + i),
+                        resultSet.getObject(COL_DATA + i)
+                );
             }
             return data;
         }

@@ -6,8 +6,11 @@
 
 package io.debezium.connector.sqlserver.util;
 
+import io.debezium.util.Strings;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import io.debezium.config.Configuration;
@@ -34,7 +37,7 @@ public class TestHelper {
             + "EXEC sys.sp_cdc_disable_db";
     private static final String ENABLE_TABLE_CDC = "IF EXISTS(select 1 from sys.tables where name = '#' AND is_tracked_by_cdc=0)\n"
             + "EXEC sys.sp_cdc_enable_table @source_schema = N'dbo', @source_name = N'#', @role_name = NULL, @supports_net_changes = 0";
-    private static final String ENABLE_TABLE_CDC_WITH_CUSTOM_CAPTURE = "EXEC sys.sp_cdc_enable_table @source_schema = N'dbo', @source_name = N'%s', @capture_instance = N'%s', @role_name = NULL, @supports_net_changes = 0";
+    private static final String ENABLE_TABLE_CDC_WITH_CUSTOM_CAPTURE = "EXEC sys.sp_cdc_enable_table @source_schema = N'dbo', @source_name = N'%s', @capture_instance = N'%s', @role_name = NULL, @supports_net_changes = 0, @captured_column_list = %s";
     private static final String DISABLE_TABLE_CDC = "EXEC sys.sp_cdc_disable_table @source_schema = N'dbo', @source_name = N'#', @capture_instance = 'all'";
     private static final String CDC_WRAPPERS_DML;
 
@@ -166,6 +169,8 @@ public class TestHelper {
      * Enables CDC for a table if not already enabled and generates the wrapper
      * functions for that table.
      *
+     * @param connection
+     *            sql connection
      * @param name
      *            the name of the table, may not be {@code null}
      * @throws SQLException if anything unexpected fails
@@ -181,14 +186,42 @@ public class TestHelper {
      * Enables CDC for a table with a custom capture name
      * functions for that table.
      *
-     * @param name
+     * @param connection
+     *            sql connection
+     * @param tableName
      *            the name of the table, may not be {@code null}
+     * @param captureName
+     *            the name of the capture instance, may not be {@code null}
+     *
      * @throws SQLException if anything unexpected fails
      */
     public static void enableTableCdc(SqlServerConnection connection, String tableName, String captureName) throws SQLException {
         Objects.requireNonNull(tableName);
         Objects.requireNonNull(captureName);
-        String enableCdcForTableStmt = String.format(ENABLE_TABLE_CDC_WITH_CUSTOM_CAPTURE, tableName, captureName);
+        String enableCdcForTableStmt = String.format(ENABLE_TABLE_CDC_WITH_CUSTOM_CAPTURE, tableName, captureName, "NULL");
+        connection.execute(enableCdcForTableStmt);
+    }
+
+    /**
+     * Enables CDC for a table with a custom capture name
+     * functions for that table.
+     *
+     * @param connection
+     *            sql connection
+     * @param tableName
+     *            the name of the table, may not be {@code null}
+     * @param captureName
+     *            the name of the capture instance, may not be {@code null}
+     * @param captureColumnList
+     *            the source table columns that are to be included in the change table, may not be {@code null}
+     * @throws SQLException if anything unexpected fails
+     */
+    public static void enableTableCdc(SqlServerConnection connection, String tableName, String captureName, List<String> captureColumnList) throws SQLException {
+        Objects.requireNonNull(tableName);
+        Objects.requireNonNull(captureName);
+        Objects.requireNonNull(captureColumnList);
+        String captureColumnListParam = String.format("N'%s'", Strings.join(",", captureColumnList));
+        String enableCdcForTableStmt = String.format(ENABLE_TABLE_CDC_WITH_CUSTOM_CAPTURE, tableName, captureName, captureColumnListParam);
         connection.execute(enableCdcForTableStmt);
     }
 

@@ -10,6 +10,7 @@ import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.relational.RelationalChangeRecordEmitter;
 import io.debezium.relational.Table;
 import io.debezium.util.Clock;
+import java.util.Map;
 
 /**
  * Emits change data based on a single (or two in case of updates) CDC data row(s).
@@ -24,10 +25,10 @@ public class SqlServerChangeRecordEmitter extends RelationalChangeRecordEmitter 
     public static final int OP_UPDATE_AFTER = 4;
 
     private final int operation;
-    private final Object[] data;
-    private final Object[] dataNext;
+    private final Map<String, Object> data;
+    private final Map<String, Object> dataNext;
 
-    public SqlServerChangeRecordEmitter(OffsetContext offset, int operation, Object[] data, Object[] dataNext, Table table, Clock clock) {
+    public SqlServerChangeRecordEmitter(OffsetContext offset, int operation, Map<String, Object> data, Map<String, Object> dataNext, Table table, Clock clock) {
         super(offset, clock);
 
         this.operation = operation;
@@ -50,7 +51,7 @@ public class SqlServerChangeRecordEmitter extends RelationalChangeRecordEmitter 
     }
 
     @Override
-    protected Object[] getOldColumnValues() {
+    protected Map<String, Object> getOldColumnValues() {
         switch (getOperation()) {
             case CREATE:
             case READ:
@@ -61,7 +62,7 @@ public class SqlServerChangeRecordEmitter extends RelationalChangeRecordEmitter 
     }
 
     @Override
-    protected Object[] getNewColumnValues() {
+    protected Map<String, Object> getNewColumnValues() {
         switch (getOperation()) {
             case CREATE:
             case READ:

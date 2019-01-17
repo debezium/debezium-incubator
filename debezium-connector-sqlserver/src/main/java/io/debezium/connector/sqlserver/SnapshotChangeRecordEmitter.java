@@ -5,6 +5,8 @@
  */
 package io.debezium.connector.sqlserver;
 
+import java.util.Map;
+
 import io.debezium.data.Envelope.Operation;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.relational.RelationalChangeRecordEmitter;
@@ -17,9 +19,9 @@ import io.debezium.util.Clock;
  */
 public class SnapshotChangeRecordEmitter extends RelationalChangeRecordEmitter {
 
-    private final Object[] row;
+    private final Map<String, Object> row;
 
-    public SnapshotChangeRecordEmitter(OffsetContext offset, Object[] row, Clock clock) {
+    public SnapshotChangeRecordEmitter(OffsetContext offset, Map<String, Object> row, Clock clock) {
         super(offset, clock);
 
         this.row = row;
@@ -31,12 +33,12 @@ public class SnapshotChangeRecordEmitter extends RelationalChangeRecordEmitter {
     }
 
     @Override
-    protected Object[] getOldColumnValues() {
+    protected Map<String, Object> getOldColumnValues() {
         throw new UnsupportedOperationException("Can't get old row values for READ record");
     }
 
     @Override
-    protected Object[] getNewColumnValues() {
+    protected Map<String, Object> getNewColumnValues() {
         return row;
     }
 }
