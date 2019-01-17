@@ -9,7 +9,6 @@ package io.debezium.connector.sqlserver.util;
 import io.debezium.util.Strings;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 

@@ -11,8 +11,10 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -23,6 +25,8 @@ import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.SnapshotProgressListener;
 import io.debezium.pipeline.spi.ChangeRecordEmitter;
 import io.debezium.pipeline.spi.OffsetContext;
+import io.debezium.relational.Column;
+import io.debezium.relational.ColumnId;
 import io.debezium.relational.HistorizedRelationalSnapshotChangeEventSource;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
@@ -176,7 +180,20 @@ public class SqlServerSnapshotChangeEventSource extends HistorizedRelationalSnap
 
     @Override
     protected String getSnapshotSelect(SnapshotContext snapshotContext, TableId tableId) {
-        return String.format("SELECT * FROM [%s].[%s]", tableId.schema(), tableId.table());
+        List<Column> whitelistedColumns = getWhitelistedColumns(snapshotContext, tableId);
+        String columnsToFetch = whitelistedColumns.stream()
+                .map(column -> String.format("[%s]", column.name()))
+                .collect(Collectors.joining(","));
+
+        return String.format("SELECT %s FROM [%s].[%s]", columnsToFetch, tableId.schema(), tableId.table());
+    }
+
+    private List<Column> getWhitelistedColumns(SnapshotContext snapshotContext, TableId tableId) {
+        Predicate<ColumnId> filter = connectorConfig.getColumnFilter();
+        Table table = snapshotContext.tables.forTable(tableId);
+        return table.columns().stream()
+                .filter(column ->  filter != null && filter.test(new ColumnId(tableId, column.name())))
+                .collect(Collectors.toList());
     }
 
     @Override
