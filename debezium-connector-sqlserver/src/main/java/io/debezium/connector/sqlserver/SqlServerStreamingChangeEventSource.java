@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.StreamingChangeEventSource;
+import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import io.debezium.util.Clock;
 import io.debezium.util.Metronome;
@@ -120,7 +122,7 @@ public class SqlServerStreamingChangeEventSource implements StreamingChangeEvent
                         final ChangeTable[] tables = tablesSlot.get();
 
                         for (int i = 0; i < tableCount; i++) {
-                            changeTables[i] = new ChangeTablePointer(tables[i], resultSets[i]);
+                            changeTables[i] = new ChangeTablePointer(schema, tables[i], resultSets[i]);
                             changeTables[i].next();
                         }
 
@@ -295,12 +297,21 @@ public class SqlServerStreamingChangeEventSource implements StreamingChangeEvent
      */
     private static class ChangeTablePointer {
 
+        @FunctionalInterface
+        private interface RowMapper {
+            Object[] apply(ResultSet resultSet) throws SQLException;
+        }
+
+        private final SqlServerDatabaseSchema schema;
         private final ChangeTable changeTable;
         private final ResultSet resultSet;
         private boolean completed = false;
+        private RowMapper rowMapper = null;
+
         private Lsn currentChangeLsn;
 
-        public ChangeTablePointer(ChangeTable changeTable, ResultSet resultSet) {
+        public ChangeTablePointer(SqlServerDatabaseSchema schema, ChangeTable changeTable, ResultSet resultSet) {
+            this.schema = schema;
             this.changeTable = changeTable;
             this.resultSet = resultSet;
         }
@@ -322,12 +333,10 @@ public class SqlServerStreamingChangeEventSource implements StreamingChangeEvent
         }
 
         public Object[] getData() throws SQLException {
-            final int dataColumnCount = resultSet.getMetaData().getColumnCount() - (COL_DATA - 1);
-            final Object[] data = new Object[dataColumnCount];
-            for (int i = 0; i < dataColumnCount; i++) {
-                data[i] = resultSet.getObject(COL_DATA + i);
+            if (rowMapper == null) {
+                rowMapper = createRowMapper(schema.tableFor(this.changeTable.getSourceTableId()));
             }
-            return data;
+            return rowMapper.apply(resultSet);
         }
 
         public boolean next() throws SQLException {
@@ -352,6 +361,55 @@ public class SqlServerStreamingChangeEventSource implements StreamingChangeEvent
         public String toString() {
             return "ChangeTablePointer [changeTable=" + changeTable + ", resultSet=" + resultSet + ", completed="
                     + completed + ", currentChangeLsn=" + currentChangeLsn + "]";
+        }
+
+        private RowMapper createRowMapper(Table table) throws SQLException {
+            final List<String> sourceTableColumns = table.columnNames();
+            final List<String> resultColumns = getResultColumnNames();
+            final int sourceColumnCount = sourceTableColumns.size();
+            final int resultColumnCount = resultColumns.size();
+
+            if (sourceTableColumns.equals(resultColumns)) {
+                return resultSet -> {
+                    final Object[] data = new Object[sourceColumnCount];
+                    for (int i = 0; i < sourceColumnCount; i++) {
+                        data[i] = resultSet.getObject(COL_DATA + i);
+                    }
+                    return data;
+                };
+            }
+            else {
+                final Map<Integer, Integer> indicesMapping =
+                        getIndicesMapping(sourceTableColumns, resultColumns);
+                return resultSet -> {
+                    final Object[] data = new Object[sourceColumnCount];
+                    for (int i = 0; i < resultColumnCount; i++) {
+                        int index = indicesMapping.get(i);
+                        data[index] = resultSet.getObject(COL_DATA + i);
+                    }
+                    return data;
+                };
+            }
+        }
+
+        private List<String> getResultColumnNames() throws SQLException {
+            final int columnCount = resultSet.getMetaData().getColumnCount() - (COL_DATA - 1);
+            final List<String> columns = new ArrayList<>(columnCount);
+            for (int i = 0; i < columnCount; ++i) {
+                columns.add(resultSet.getMetaData().getColumnName(COL_DATA + i));
+            }
+            return columns;
+        }
+
+        private Map<Integer, Integer> getIndicesMapping(List<String> sourceTableColumns,
+                List<String> captureInstanceColumns) {
+            Map<Integer, Integer> indicesMapper = new HashMap<>(sourceTableColumns.size());
+
+            for (int i = 0; i < captureInstanceColumns.size(); ++i) {
+                indicesMapper.put(i, sourceTableColumns.indexOf(captureInstanceColumns.get(i)));
+            }
+
+            return indicesMapper;
         }
     }
 }
