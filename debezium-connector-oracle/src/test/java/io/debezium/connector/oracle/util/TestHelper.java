@@ -60,10 +60,10 @@ public class TestHelper {
     public static OracleConnection defaultConnection() {
         Configuration config = defaultConfig().build();
         Configuration jdbcConfig = config.subset("database.", true);
+        OracleConnectorConfig connectorConfig = new OracleConnectorConfig(config);
+        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory(connectorConfig));
 
-        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
-
-        String pdbName = new OracleConnectorConfig(config).getPdbName();
+        String pdbName = connectorConfig.getPdbName();
 
         if (pdbName != null) {
             jdbcConnection.setSessionToPdb(pdbName);
@@ -123,8 +123,8 @@ public class TestHelper {
     public static OracleConnection testConnection() {
         Configuration config = testConfig().build();
         Configuration jdbcConfig = config.subset("database.", true);
-
-        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
+        OracleConnectorConfig connectorConfig = new OracleConnectorConfig(config);
+        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory(connectorConfig));
         try {
             jdbcConnection.setAutoCommit(false);
         }
@@ -132,7 +132,7 @@ public class TestHelper {
             throw new RuntimeException(e);
         }
 
-        String pdbName = new OracleConnectorConfig(config).getPdbName();
+        String pdbName = connectorConfig.getPdbName();
 
         if (pdbName != null) {
             jdbcConnection.setSessionToPdb(pdbName);
@@ -144,8 +144,8 @@ public class TestHelper {
     public static OracleConnection adminConnection() {
         Configuration config = adminConfig().build();
         Configuration jdbcConfig = config.subset("database.", true);
-
-        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
+        OracleConnectorConfig connectorConfig = new OracleConnectorConfig(config);
+        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory(connectorConfig));
         try {
             jdbcConnection.setAutoCommit(false);
         }
@@ -153,7 +153,7 @@ public class TestHelper {
             throw new RuntimeException(e);
         }
 
-        String pdbName = new OracleConnectorConfig(config).getPdbName();
+        String pdbName = connectorConfig.getPdbName();
 
         if (pdbName != null) {
             jdbcConnection.setSessionToPdb(pdbName);

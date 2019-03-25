@@ -25,6 +25,7 @@ public class OracleOffsetContext implements OffsetContext {
     private final Map<String, String> partition;
 
     private final SourceInfo sourceInfo;
+    private Long offsetScn;
 
     /**
      * Whether a snapshot has been completed or not.
@@ -36,6 +37,7 @@ public class OracleOffsetContext implements OffsetContext {
 
         sourceInfo = new SourceInfo(connectorConfig);
         sourceInfo.setScn(scn);
+        offsetScn = scn;
         sourceInfo.setLcrPosition(lcrPosition);
         sourceInfoSchema = sourceInfo.schema();
 
@@ -81,7 +83,7 @@ public class OracleOffsetContext implements OffsetContext {
             return this;
         }
 
-        OracleOffsetContext build() {
+        public OracleOffsetContext build() {
             return new OracleOffsetContext(connectorConfig, scn, lcrPosition, snapshot, snapshotCompleted);
         }
     }
@@ -110,7 +112,7 @@ public class OracleOffsetContext implements OffsetContext {
             if (sourceInfo.getLcrPosition() != null) {
                 return Collections.singletonMap(SourceInfo.LCR_POSITION_KEY, sourceInfo.getLcrPosition().toString());
             }
-            return Collections.singletonMap(SourceInfo.SCN_KEY, sourceInfo.getScn());
+            return Collections.singletonMap(SourceInfo.SCN_KEY, (offsetScn == null) ? sourceInfo.getScn() : offsetScn);
         }
     }
 
@@ -130,6 +132,10 @@ public class OracleOffsetContext implements OffsetContext {
 
     public long getScn() {
         return sourceInfo.getScn();
+    }
+
+    public void setOffsetScn(long scn) {
+        offsetScn = scn;
     }
 
     public void setLcrPosition(LcrPosition lcrPosition) {

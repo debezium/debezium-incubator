@@ -59,7 +59,6 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             .withType(Type.STRING)
             .withWidth(Width.MEDIUM)
             .withImportance(Importance.HIGH)
-            .withValidation(Field::isRequired)
             .withDescription("Name of the XStream Out server to connect to.");
 
     public static final Field SNAPSHOT_MODE = Field.create("snapshot.mode")
@@ -70,7 +69,14 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             .withDescription("The criteria for running a snapshot upon startup of the connector. "
                     + "Options include: "
                     + "'initial' (the default) to specify the connector should run a snapshot only when no offsets are available for the logical server name; "
-                    + "'initial_schema_only' to specify the connector should run a snapshot of the schema when no offsets are available for the logical server name. ");
+                    + "'initial_schema_only' to specify the connector should run a snapshot of the schema when no offsets are available for the logical server name.");
+
+    public static final Field STREAMING_ENGINE = Field.create("streaming.engine")
+            .withDisplayName("Streaming engine")
+            .withEnum(StreamingEngine.class, StreamingEngine.XSTREAM)
+            .withWidth(Width.SHORT)
+            .withImportance(Importance.HIGH)
+            .withDescription("The engine name (XStream or LogMiner) for receiving data changes from the database.");
 
     public static final Field TABLENAME_CASE_INSENSITIVE = Field.create("database.tablename.case.insensitive")
         .withDisplayName("Case insensitive table names")
@@ -94,6 +100,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             PDB_NAME,
             XSTREAM_SERVER_NAME,
             SNAPSHOT_MODE,
+            STREAMING_ENGINE,
             HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY,
             RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
             RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
@@ -112,6 +119,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
     private final String pdbName;
     private final String xoutServerName;
     private final SnapshotMode snapshotMode;
+    private final StreamingEngine streamingEngine;
 
     private final boolean tablenameCaseInsensitive;
     private final OracleVersion oracleVersion;
@@ -123,6 +131,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         this.pdbName = config.getString(PDB_NAME);
         this.xoutServerName = config.getString(XSTREAM_SERVER_NAME);
         this.snapshotMode = SnapshotMode.parse(config.getString(SNAPSHOT_MODE));
+        this.streamingEngine = StreamingEngine.parse(config.getString(STREAMING_ENGINE));
         this.tablenameCaseInsensitive = config.getBoolean(TABLENAME_CASE_INSENSITIVE);
         this.oracleVersion = OracleVersion.parse(config.getString(ORACLE_VERSION));
     }
@@ -131,7 +140,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         ConfigDef config = new ConfigDef();
 
         Field.group(config, "Oracle", RelationalDatabaseConnectorConfig.SERVER_NAME, DATABASE_NAME, PDB_NAME,
-                XSTREAM_SERVER_NAME, SNAPSHOT_MODE);
+                XSTREAM_SERVER_NAME, SNAPSHOT_MODE, STREAMING_ENGINE);
         Field.group(config, "History Storage", KafkaDatabaseHistory.BOOTSTRAP_SERVERS,
                 KafkaDatabaseHistory.TOPIC, KafkaDatabaseHistory.RECOVERY_POLL_ATTEMPTS,
                 KafkaDatabaseHistory.RECOVERY_POLL_INTERVAL_MS, HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY);
@@ -162,6 +171,10 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         return snapshotMode;
     }
 
+    public StreamingEngine getStreamingEngine() {
+        return streamingEngine;
+    }
+
     public boolean  getTablenameCaseInsensitive() {
         return tablenameCaseInsensitive;
     }
@@ -172,6 +185,14 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
 
     @Override
     protected HistoryRecordComparator getHistoryRecordComparator() {
+        if (streamingEngine == StreamingEngine.LOG_MINER) {
+            return new HistoryRecordComparator() {
+                @Override
+                protected boolean isPositionAtOrBefore(Document recorded, Document desired) {
+                    return (recorded.getLong(SourceInfo.SCN_KEY).compareTo(desired.getLong(SourceInfo.SCN_KEY)) < 1);
+                }
+            };
+        }
         return new HistoryRecordComparator() {
             @Override
             protected boolean isPositionAtOrBefore(Document recorded, Document desired) {
@@ -311,6 +332,71 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             }
 
             return mode;
+        }
+    }
+
+    /**
+     * The set of predefined StreamingEngine options or aliases.
+     */
+    public static enum StreamingEngine implements EnumeratedValue {
+
+        /**
+         * The engine is based on XStream API.
+         */
+        XSTREAM("XStream"),
+
+        /**
+         * The engine is based on LogMiner utility.
+         */
+        LOG_MINER("LogMiner");
+
+        private final String value;
+
+        private StreamingEngine(String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String getValue() {
+            return value;
+        }
+
+        /**
+         * Determine if the supplied value is one of the predefined options.
+         *
+         * @param value the configuration property value; may not be null
+         * @return the matching option, or null if no match is found
+         */
+        public static StreamingEngine parse(String value) {
+            if (value == null) {
+                return null;
+            }
+            value = value.trim();
+
+            for (StreamingEngine option : StreamingEngine.values()) {
+                if (option.getValue().equalsIgnoreCase(value)) {
+                    return option;
+                }
+            }
+
+            return null;
+        }
+
+        /**
+         * Determine if the supplied value is one of the predefined options.
+         *
+         * @param value the configuration property value; may not be null
+         * @param defaultValue the default value; may be null
+         * @return the matching option, or null if no match is found and the non-null default is invalid
+         */
+        public static StreamingEngine parse(String value, String defaultValue) {
+            StreamingEngine engine = parse(value);
+
+            if (engine == null && defaultValue != null) {
+                engine = parse(defaultValue);
+            }
+
+            return engine;
         }
     }
 

@@ -5,6 +5,8 @@
  */
 package io.debezium.connector.oracle;
 
+import java.math.BigDecimal;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -29,6 +31,8 @@ import oracle.jdbc.OracleTypes;
 public class OracleConnection extends JdbcConnection {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(OracleConnection.class);
+
+    private static final String GET_CURRENT_SCN = "SELECT current_scn FROM v$database";
 
     /**
      * Returned by column metadata in Oracle if no scale is set;
@@ -141,5 +145,37 @@ public class OracleConnection extends JdbcConnection {
 
             tables.removeTable(tableId);
         }
+    }
+
+    /**
+     * Returns the current system change number.
+     *
+     * @return the current system change number
+     * @throws SQLException if anything unexpected fails
+     */
+    public BigDecimal getCurrentScn() throws SQLException {
+        return queryAndMap(GET_CURRENT_SCN, singleResultMapper(rs -> {
+            BigDecimal scn = rs.getBigDecimal(1);
+            LOGGER.trace("Current SCN is {}", scn);
+            return scn;
+        }, "Current SCN query must return exactly one value"));
+    }
+
+    // TODO: it is necessary to move to debezium-core
+    private <T> ResultSetMapper<T> singleResultMapper(ResultSetExtractor<T> extractor, String error) {
+        return (rs) -> {
+            if (rs.next()) {
+                final T ret = extractor.apply(rs);
+                if (!rs.next()) {
+                    return ret;
+                }
+            }
+            throw new IllegalStateException(error);
+        };
+    }
+
+    // TODO: it is necessary to move to debezium-core
+    private static interface ResultSetExtractor<T> {
+        T apply(ResultSet rs) throws SQLException;
     }
 }

@@ -14,6 +14,12 @@ import io.debezium.jdbc.JdbcConnection.ConnectionFactory;
 
 public class OracleConnectionFactory implements ConnectionFactory {
 
+    private final String driver;
+
+    public OracleConnectionFactory(OracleConnectorConfig connectorConfig) {
+        this.driver = (connectorConfig.getStreamingEngine() == OracleConnectorConfig.StreamingEngine.LOG_MINER) ? "thin" : "oci";
+    }
+
     @Override
     public Connection connect(JdbcConfiguration config) throws SQLException {
         String hostName = config.getHostname();
@@ -23,7 +29,7 @@ public class OracleConnectionFactory implements ConnectionFactory {
         String password = config.getPassword();
 
         return DriverManager.getConnection(
-              "jdbc:oracle:oci:@" + hostName + ":" + port + "/" + database, user, password
+              "jdbc:oracle:" + driver + ":@" + hostName + ":" + port + "/" + database, user, password
         );
     }
 }

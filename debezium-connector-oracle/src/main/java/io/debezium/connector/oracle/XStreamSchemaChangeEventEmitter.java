@@ -24,15 +24,15 @@ import oracle.streams.DDLLCR;
  *
  * @author Gunnar Morling
  */
-public class OracleSchemaChangeEventEmitter implements SchemaChangeEventEmitter {
+public class XStreamSchemaChangeEventEmitter implements SchemaChangeEventEmitter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(OracleSchemaChangeEventEmitter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(XStreamSchemaChangeEventEmitter.class);
 
     private final OracleOffsetContext offsetContext;
     private final TableId tableId;
     private final DDLLCR ddlLcr;
 
-    public OracleSchemaChangeEventEmitter(OracleOffsetContext offsetContext, TableId tableId, DDLLCR ddlLcr) {
+    public XStreamSchemaChangeEventEmitter(OracleOffsetContext offsetContext, TableId tableId, DDLLCR ddlLcr) {
         this.offsetContext = offsetContext;
         this.tableId = tableId;
         this.ddlLcr = ddlLcr;

@@ -66,8 +66,14 @@ public class OracleConnectorTask extends BaseSourceTask {
         SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create(LOGGER);
 
         Configuration jdbcConfig = config.subset("database.", true);
-        jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
-        this.schema = new OracleDatabaseSchema(connectorConfig, schemaNameAdjuster, topicSelector, jdbcConnection);
+        jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory(connectorConfig));
+        try {
+            jdbcConnection.setAutoCommit(false);
+        }
+        catch (SQLException e) {
+            throw new ConnectException(e);
+        }
+        this.schema = new OracleDatabaseSchema(connectorConfig, schemaNameAdjuster, topicSelector, new OracleValueConverters(jdbcConnection));
         this.schema.initializeStorage();
 
         OffsetContext previousOffset = getPreviousOffset(new OracleOffsetContext.Loader(connectorConfig));
@@ -168,7 +174,9 @@ public class OracleConnectorTask extends BaseSourceTask {
             LOGGER.error("Exception while closing JDBC connection", e);
         }
 
-        schema.close();
+        if (schema != null) {
+            schema.close();
+        }
     }
 
     @Override

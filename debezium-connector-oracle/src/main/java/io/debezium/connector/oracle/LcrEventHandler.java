@@ -27,7 +27,7 @@ import oracle.streams.XStreamLCRCallbackHandler;
  */
 class LcrEventHandler implements XStreamLCRCallbackHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(OracleStreamingChangeEventSource.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(XStreamChangeEventSource.class);
 
     private final ErrorHandler errorHandler;
     private final EventDispatcher<TableId> dispatcher;
@@ -113,7 +113,7 @@ class LcrEventHandler implements XStreamLCRCallbackHandler {
 
         dispatcher.dispatchSchemaChangeEvent(
                 tableId,
-                new OracleSchemaChangeEventEmitter(offsetContext, tableId, ddlLcr)
+                new XStreamSchemaChangeEventEmitter(offsetContext, tableId, ddlLcr)
         );
     }
 

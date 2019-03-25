@@ -38,7 +38,7 @@ public class LcrPosition implements Comparable<LcrPosition> {
         catch (SQLException | StreamsException e) {
             throw new RuntimeException(e);
         }
-        LOGGER.trace("LCR position {} converted to SCN {}", rawPosition, stringFromat, scn);
+        LOGGER.trace("LCR position {} converted to SCN {}", stringFromat, scn);
     }
 
     public static LcrPosition valueOf(String rawPosition) {
@@ -76,10 +76,7 @@ public class LcrPosition implements Comparable<LcrPosition> {
             return false;
         }
         LcrPosition other = (LcrPosition) obj;
-        if (!Arrays.equals(rawPosition, other.rawPosition)) {
-            return false;
-        }
-        return true;
+        return Arrays.equals(rawPosition, other.rawPosition);
     }
 
     @Override

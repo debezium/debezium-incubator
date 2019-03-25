@@ -6,14 +6,11 @@
 package io.debezium.connector.oracle;
 
 import io.debezium.connector.oracle.antlr.OracleDdlParser;
-
+import io.debezium.relational.ValueConverterProvider;
+import io.debezium.relational.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.debezium.relational.HistorizedRelationalDatabaseSchema;
-import io.debezium.relational.Table;
-import io.debezium.relational.TableId;
-import io.debezium.relational.TableSchemaBuilder;
 import io.debezium.relational.ddl.DdlParser;
 import io.debezium.relational.history.TableChanges;
 import io.debezium.schema.SchemaChangeEvent;
@@ -30,10 +27,10 @@ public class OracleDatabaseSchema extends HistorizedRelationalDatabaseSchema {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OracleDatabaseSchema.class);
 
-    public OracleDatabaseSchema(OracleConnectorConfig connectorConfig, SchemaNameAdjuster schemaNameAdjuster, TopicSelector<TableId> topicSelector, OracleConnection connection) {
+    public OracleDatabaseSchema(OracleConnectorConfig connectorConfig, SchemaNameAdjuster schemaNameAdjuster, TopicSelector<TableId> topicSelector, ValueConverterProvider valueConverterProvider) {
         super(connectorConfig, topicSelector, connectorConfig.getTableFilters().dataCollectionFilter(), null,
             new TableSchemaBuilder(
-                    new OracleValueConverters(connection),
+                    valueConverterProvider,
                     schemaNameAdjuster,
                     connectorConfig.getSourceInfoStructMaker().schema()),
                     connectorConfig.getTablenameCaseInsensitive()

@@ -42,7 +42,18 @@ public class OracleChangeEventSourceFactory implements ChangeEventSourceFactory 
 
     @Override
     public StreamingChangeEventSource getStreamingChangeEventSource(OffsetContext offsetContext) {
-        return new OracleStreamingChangeEventSource(
+        if (configuration.getStreamingEngine() == OracleConnectorConfig.StreamingEngine.LOG_MINER) {
+            return new LogMinerChangeEventSource(
+                    configuration,
+                    (OracleOffsetContext) offsetContext,
+                    jdbcConnection,
+                    dispatcher,
+                    errorHandler,
+                    clock,
+                    schema
+            );
+        }
+        return new XStreamChangeEventSource(
                 configuration,
                 (OracleOffsetContext) offsetContext,
                 jdbcConnection,

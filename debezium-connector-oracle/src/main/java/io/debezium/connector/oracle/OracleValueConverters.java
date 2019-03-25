@@ -5,21 +5,10 @@
  */
 package io.debezium.connector.oracle;
 
-import static io.debezium.util.NumberConversions.BYTE_FALSE;
-
-import java.math.BigDecimal;
-import java.sql.SQLException;
-import java.sql.Types;
-import java.time.ZonedDateTime;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.SchemaBuilder;
-
 import io.debezium.data.SpecialValueDecimal;
 import io.debezium.data.VariableScaleDecimal;
 import io.debezium.jdbc.JdbcValueConverters;
+import io.debezium.jdbc.ResultReceiver;
 import io.debezium.relational.Column;
 import io.debezium.relational.ValueConverter;
 import io.debezium.time.MicroDuration;
@@ -27,19 +16,47 @@ import io.debezium.time.ZonedTimestamp;
 import io.debezium.util.NumberConversions;
 import io.debezium.util.Strings;
 import oracle.jdbc.OracleTypes;
-import oracle.sql.BINARY_DOUBLE;
-import oracle.sql.BINARY_FLOAT;
-import oracle.sql.CHAR;
-import oracle.sql.DATE;
-import oracle.sql.INTERVALDS;
-import oracle.sql.INTERVALYM;
-import oracle.sql.NUMBER;
-import oracle.sql.TIMESTAMP;
-import oracle.sql.TIMESTAMPLTZ;
-import oracle.sql.TIMESTAMPTZ;
+import oracle.sql.*;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.SchemaBuilder;
+
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static io.debezium.util.NumberConversions.BYTE_FALSE;
 
 public class OracleValueConverters extends JdbcValueConverters {
 
+    private static final DateTimeFormatter DATE_FORMATTER = new DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .appendPattern("yyyy-MM-dd")
+        .toFormatter();
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = new DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .appendPattern("yyyy-MM-dd HH:mm:ss")
+        .optionalStart()
+        .appendPattern(".")
+        .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, false)
+        .optionalEnd()
+        .toFormatter();
+    private static final DateTimeFormatter TIMESTAMP_TZ_FORMATTER = new DateTimeFormatterBuilder()
+        .parseCaseInsensitive()
+        .appendPattern("yyyy-MM-dd HH:mm:ss")
+        .optionalStart()
+        .appendPattern(".")
+        .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, false)
+        .optionalEnd()
+        .appendPattern(" XXX")
+        .toFormatter();
     private static final Pattern INTERVAL_DAY_SECOND_PATTERN = Pattern.compile("([+\\-])?(\\d+) (\\d+):(\\d+):(\\d+).(\\d+)");
 
     private final OracleConnection connection;
@@ -206,6 +223,9 @@ public class OracleValueConverters extends JdbcValueConverters {
                 throw new RuntimeException("Couldn't convert value for column " + column.name(), e);
             }
         }
+        else if (data instanceof String) {
+            return Float.valueOf((String) data);
+        }
 
         return super.convertFloat(column, fieldDefn, data);
     }
@@ -220,6 +240,9 @@ public class OracleValueConverters extends JdbcValueConverters {
                 throw new RuntimeException("Couldn't convert value for column " + column.name(), e);
             }
         }
+        else if (data instanceof String) {
+            return Double.valueOf((String) data);
+        }
 
         return super.convertDouble(column, fieldDefn, data);
     }
@@ -233,6 +256,9 @@ public class OracleValueConverters extends JdbcValueConverters {
             catch (SQLException e) {
                 throw new RuntimeException("Couldn't convert value for column " + column.name(), e);
             }
+        }
+        else if (data instanceof String) {
+            data = new BigDecimal((String) data);
         }
 
         // adjust scale to column's scale if the column's scale is larger than the one from
@@ -284,16 +310,7 @@ public class OracleValueConverters extends JdbcValueConverters {
     }
 
     protected Object convertNumericAsInteger(Column column, Field fieldDefn, Object data) {
-        if (data instanceof NUMBER) {
-            try {
-                data = ((NUMBER) data).intValue();
-            }
-            catch (SQLException e) {
-                throw new RuntimeException("Couldn't convert value for column " + column.name(), e);
-            }
-        }
-
-        return super.convertInteger(column, fieldDefn, data);
+        return convertInteger(column, fieldDefn, data);
     }
 
     protected Object convertNumericAsBigInteger(Column column, Field fieldDefn, Object data) {
@@ -371,21 +388,33 @@ public class OracleValueConverters extends JdbcValueConverters {
 
     @Override
     protected Object convertTimestampToEpochMicros(Column column, Field fieldDefn, Object data) {
+        if (data instanceof String) {
+            data = LocalDateTime.parse((String) data, TIMESTAMP_FORMATTER);
+        }
         return super.convertTimestampToEpochMicros(column, fieldDefn, fromOracleTimeClasses(column, data));
     }
 
     @Override
     protected Object convertTimestampToEpochMillis(Column column, Field fieldDefn, Object data) {
+        if (data instanceof String) {
+            data = LocalDateTime.parse((String) data, TIMESTAMP_FORMATTER);
+        }
         return super.convertTimestampToEpochMillis(column, fieldDefn, fromOracleTimeClasses(column, data));
     }
 
     @Override
     protected Object convertTimestampToEpochNanos(Column column, Field fieldDefn, Object data) {
+        if (data instanceof String) {
+            data = LocalDateTime.parse((String) data, TIMESTAMP_FORMATTER);
+        }
         return super.convertTimestampToEpochNanos(column, fieldDefn, fromOracleTimeClasses(column, data));
     }
 
     @Override
     protected Object convertTimestampWithZone(Column column, Field fieldDefn, Object data) {
+        if (data instanceof String) {
+            data = OffsetDateTime.parse((String) data, TIMESTAMP_TZ_FORMATTER);
+        }
         return super.convertTimestampWithZone(column, fieldDefn, fromOracleTimeClasses(column, data));
     }
 
@@ -396,23 +425,29 @@ public class OracleValueConverters extends JdbcValueConverters {
                 r.deliver(((Number) data).doubleValue());
             }
             else if (data instanceof INTERVALYM) {
-                final String interval = ((INTERVALYM) data).stringValue();
-                int sign = 1;
-                int start = 0;
-                if (interval.charAt(0) == '-') {
-                    sign = -1;
-                    start = 1;
-                }
-                for (int i = 1; i < interval.length(); i++) {
-                    if (interval.charAt(i) == '-') {
-                        final int year = sign * Integer.parseInt(interval.substring(start, i));
-                        final int month = sign * Integer.parseInt(interval.substring(i + 1, interval.length()));
-                        r.deliver(MicroDuration.durationMicros(year, month, 0, 0,
-                                0, 0, MicroDuration.DAYS_PER_MONTH_AVG));
-                    }
-                }
+                deliverIntervalYearMonth(r, ((INTERVALYM) data).stringValue());
+            }
+            else if (data instanceof String) {
+                deliverIntervalYearMonth(r, (String) data);
             }
         });
+    }
+
+    private void deliverIntervalYearMonth(ResultReceiver r, String interval) {
+        int sign = 1;
+        int start = 0;
+        if (interval.charAt(0) == '-') {
+            sign = -1;
+            start = 1;
+        }
+        for (int i = 1; i < interval.length(); i++) {
+            if (interval.charAt(i) == '-') {
+                final int year = sign * Integer.parseInt(interval.substring(start, i));
+                final int month = sign * Integer.parseInt(interval.substring(i + 1, interval.length()));
+                r.deliver(MicroDuration.durationMicros(year, month, 0, 0,
+                        0, 0, MicroDuration.DAYS_PER_MONTH_AVG));
+            }
+        }
     }
 
     protected Object convertIntervalDaySecond(Column column, Field fieldDefn, Object data) {
@@ -422,21 +457,27 @@ public class OracleValueConverters extends JdbcValueConverters {
                 r.deliver(((Number) data).doubleValue());
             }
             else if (data instanceof INTERVALDS) {
-                final String interval = ((INTERVALDS) data).stringValue();
-                final Matcher m = INTERVAL_DAY_SECOND_PATTERN.matcher(interval);
-                if (m.matches()) {
-                    final int sign = "-".equals(m.group(1)) ? -1 : 1;
-                    r.deliver(MicroDuration.durationMicros(
-                            0,
-                            0,
-                            sign * Integer.valueOf(m.group(2)),
-                            sign * Integer.valueOf(m.group(3)),
-                            sign * Integer.valueOf(m.group(4)),
-                            sign * Integer.valueOf(m.group(5)),
-                            sign * Integer.valueOf(Strings.pad(m.group(6), 6, '0')),
-                            MicroDuration.DAYS_PER_MONTH_AVG));
-                }
+                deliverIntervalDaySecond(r, ((INTERVALDS) data).stringValue());
+            }
+            else if (data instanceof String) {
+                deliverIntervalDaySecond(r, (String) data);
             }
         });
+    }
+
+    private void deliverIntervalDaySecond(ResultReceiver r, String interval) {
+        final Matcher m = INTERVAL_DAY_SECOND_PATTERN.matcher(interval);
+        if (m.matches()) {
+            final int sign = "-".equals(m.group(1)) ? -1 : 1;
+            r.deliver(MicroDuration.durationMicros(
+                    0,
+                    0,
+                    sign * Integer.valueOf(m.group(2)),
+                    sign * Integer.valueOf(m.group(3)),
+                    sign * Integer.valueOf(m.group(4)),
+                    sign * Integer.valueOf(m.group(5)),
+                    sign * Integer.valueOf(Strings.pad(m.group(6), 6, '0')),
+                    MicroDuration.DAYS_PER_MONTH_AVG));
+        }
     }
 }

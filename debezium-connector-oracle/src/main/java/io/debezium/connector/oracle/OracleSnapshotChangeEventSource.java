@@ -116,7 +116,7 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
         // SCN of "now" represents the same timestamp as a newly created table that should be captured; in that case
         // we'd get a ORA-01466 when running the flashback query for doing the snapshot
         do {
-            currentScn = getCurrentScn(ctx);
+            currentScn = jdbcConnection.getCurrentScn().longValue();
         }
         while(areSameTimestamp(latestTableDdlScn.orElse(null), currentScn));
 
@@ -124,18 +124,6 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
                 .logicalName(connectorConfig)
                 .scn(currentScn)
                 .build();
-    }
-
-    private long getCurrentScn(SnapshotContext ctx) throws SQLException {
-        try(Statement statement = jdbcConnection.connection().createStatement();
-                ResultSet rs = statement.executeQuery("select CURRENT_SCN from V$DATABASE")) {
-
-            if (!rs.next()) {
-                throw new IllegalStateException("Couldn't get SCN");
-            }
-
-            return rs.getLong(1);
-        }
     }
 
     /**
@@ -179,6 +167,11 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
             }
 
             return Optional.of(rs.getLong(1));
+        }
+        // handle java.sql.SQLException: ORA-08180: no snapshot found based on specified time
+        catch (SQLException e) {
+            LOGGER.warn("Error occurred during latest table DDL SCN getting", e);
+            return Optional.empty();
         }
     }
 

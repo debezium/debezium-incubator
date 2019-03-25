@@ -9,10 +9,9 @@ import io.debezium.data.Envelope.Operation;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.relational.RelationalChangeRecordEmitter;
 import io.debezium.util.Clock;
-import oracle.streams.RowLCR;
 
 /**
- * Emits change data based on a single {@link RowLCR} event.
+ * Emits change data based on a single row read via JDBC.
  *
  * @author Gunnar Morling
  */

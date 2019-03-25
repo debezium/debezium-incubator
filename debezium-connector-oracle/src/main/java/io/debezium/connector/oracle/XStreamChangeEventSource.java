@@ -28,9 +28,9 @@ import oracle.streams.XStreamUtility;
  *
  * @author Gunnar Morling
  */
-public class OracleStreamingChangeEventSource implements StreamingChangeEventSource {
+public class XStreamChangeEventSource implements StreamingChangeEventSource {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(OracleStreamingChangeEventSource.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(XStreamChangeEventSource.class);
 
     private final JdbcConnection jdbcConnection;
     private final EventDispatcher<TableId> dispatcher;
@@ -43,7 +43,7 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
     private final boolean tablenameCaseInsensitive;
     private final int posVersion;
 
-    public OracleStreamingChangeEventSource(OracleConnectorConfig connectorConfig, OracleOffsetContext offsetContext, JdbcConnection jdbcConnection, EventDispatcher<TableId> dispatcher, ErrorHandler errorHandler, Clock clock, OracleDatabaseSchema schema) {
+    public XStreamChangeEventSource(OracleConnectorConfig connectorConfig, OracleOffsetContext offsetContext, JdbcConnection jdbcConnection, EventDispatcher<TableId> dispatcher, ErrorHandler errorHandler, Clock clock, OracleDatabaseSchema schema) {
         this.jdbcConnection = jdbcConnection;
         this.dispatcher = dispatcher;
         this.errorHandler = errorHandler;
