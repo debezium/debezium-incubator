@@ -13,6 +13,7 @@ import io.debezium.connector.oracle.antlr.listener.OracleDdlParserListener;
 import io.debezium.ddl.parser.oracle.generated.PlSqlLexer;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
 import io.debezium.relational.SystemVariables;
+import io.debezium.relational.Tables;
 import oracle.jdbc.OracleTypes;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -38,6 +39,14 @@ public class OracleDdlParser extends AntlrDdlParser<PlSqlLexer, PlSqlParser> {
         super(throwErrorsFromTreeWalk);
         this.catalogName = catalogName;
         this.schemaName = schemaName;
+    }
+
+    @Override
+    public void parse(String ddlContent, Tables databaseTables) {
+        if (!ddlContent.endsWith(";")) {
+            ddlContent = ddlContent + ";";
+        }
+        super.parse(toUpperCase(ddlContent), databaseTables);
     }
 
     @Override
