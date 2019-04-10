@@ -21,7 +21,6 @@ import java.util.Optional;
 
 import static org.fest.assertions.Assertions.assertThat;
 
-
 /**
  * This is the test suite for Oracle Antlr parser unit testing
  */
@@ -82,9 +81,7 @@ public class OracleDdlParserTest {
         testColumn(alteredTable, "COL21", true, Types.VARCHAR, "VARCHAR2", 20, null, true, null);
         testColumn(alteredTable, "COL22", true, Types.NUMERIC, "NUMBER", 19, 0, true, null);
 
-        //System.out.println(tables);
-
-        ddl = "alter table " + TABLE_NAME + " add col23 varchar2(20);"; // todo check LogMiner entry, maybe this is not a valid case
+        ddl = "alter table " + TABLE_NAME + " add col23 varchar2(20);";
         try {
             parser.parse(ddl, tables);
         } catch (Exception e) {
@@ -163,7 +160,7 @@ public class OracleDdlParserTest {
         assertThat(column.jdbcType()).isEqualTo(jdbcType);
         assertThat(column.typeName()).isEqualTo(typeName);
         assertThat(column.length()).isEqualTo(length);
-        Optional oScale = column.scale();
+        Optional<Integer> oScale = column.scale();
         if (oScale.isPresent()){
             assertThat(oScale.get()).isEqualTo(scale);
         }
