@@ -7,6 +7,7 @@ package io.debezium.connector.oracle.antlr.listener;
 
 import io.debezium.connector.oracle.antlr.OracleDdlParser;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
+import io.debezium.ddl.parser.oracle.generated.PlSqlParserBaseListener;
 import io.debezium.relational.Column;
 import io.debezium.relational.ColumnEditor;
 import io.debezium.relational.TableEditor;
@@ -18,11 +19,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.debezium.antlr.AntlrDdlParser.getText;
+import static io.debezium.connector.oracle.antlr.listener.ParserListenerUtils.getColumnName;
+import static io.debezium.connector.oracle.antlr.listener.ParserListenerUtils.getTableName;
 
 /**
  * Parser listener that is parsing Oracle ALTER TABLE statements
  */
-public class AlterTableParserListener extends BaseParserListener {
+public class AlterTableParserListener extends PlSqlParserBaseListener {
 
     private static final int STARTING_INDEX = 1;
     private TableEditor tableEditor;

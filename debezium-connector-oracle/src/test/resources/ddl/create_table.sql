@@ -1,6 +1,6 @@
 create table DEBEZIUM
 (id number(19) not null,
-col1 number(4,2),
+col1 numeric(4,2),
 col2 varchar2(255) default 'debezium' not null ,
 col3 nvarchar2(255) not null,
 col4 char(4),

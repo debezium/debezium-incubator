@@ -8,6 +8,7 @@ package io.debezium.connector.oracle.antlr.listener;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.debezium.ddl.parser.oracle.generated.PlSqlParserBaseListener;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
 import io.debezium.connector.oracle.antlr.OracleDdlParser;
@@ -18,7 +19,10 @@ import io.debezium.relational.Table;
 import io.debezium.relational.TableEditor;
 import io.debezium.relational.TableId;
 
-public class CreateTableParserListener extends BaseParserListener {
+import static io.debezium.connector.oracle.antlr.listener.ParserListenerUtils.getColumnName;
+import static io.debezium.connector.oracle.antlr.listener.ParserListenerUtils.getTableName;
+
+public class CreateTableParserListener extends PlSqlParserBaseListener {
 
     private final List<ParseTreeListener> listeners;
     private TableEditor tableEditor;
@@ -86,7 +90,7 @@ public class CreateTableParserListener extends BaseParserListener {
     public void exitOut_of_line_constraint(PlSqlParser.Out_of_line_constraintContext ctx) {
         if(ctx.PRIMARY() != null) {
             List<String> pkColumnNames = ctx.column_name().stream()
-                    .map(this::getColumnName)
+                    .map(ParserListenerUtils::getColumnName)
                     .collect(Collectors.toList());
 
             tableEditor.setPrimaryKeyNames(pkColumnNames);
