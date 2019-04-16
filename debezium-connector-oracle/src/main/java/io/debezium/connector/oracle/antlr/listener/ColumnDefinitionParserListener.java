@@ -7,6 +7,7 @@ package io.debezium.connector.oracle.antlr.listener;
 
 import io.debezium.antlr.DataTypeResolver;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
+import io.debezium.ddl.parser.oracle.generated.PlSqlParserBaseListener;
 import io.debezium.relational.Column;
 import io.debezium.relational.ColumnEditor;
 import io.debezium.relational.TableEditor;
@@ -14,10 +15,12 @@ import oracle.jdbc.OracleTypes;
 
 import java.sql.Types;
 
+import static io.debezium.connector.oracle.antlr.listener.ParserListenerUtils.getColumnName;
+
 /**
  * This class parses column definitions of Oracle statements.
  */
-public class ColumnDefinitionParserListener extends BaseParserListener {
+public class ColumnDefinitionParserListener extends PlSqlParserBaseListener {
 
     private final DataTypeResolver dataTypeResolver;
     private final TableEditor tableEditor;

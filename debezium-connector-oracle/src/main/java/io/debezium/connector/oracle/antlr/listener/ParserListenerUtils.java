@@ -6,14 +6,20 @@
 package io.debezium.connector.oracle.antlr.listener;
 
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
-import io.debezium.ddl.parser.oracle.generated.PlSqlParserBaseListener;
 
 /**
- * This class contains common methods for all listeners
+ * This class contains a few methods for parser listeners
  */
-class BaseParserListener extends PlSqlParserBaseListener {
+class ParserListenerUtils {
 
-    String getTableName(final PlSqlParser.Tableview_nameContext tableview_name) {
+    private ParserListenerUtils() {}
+
+    /**
+     * Obtains the table name
+     * @param tableview_name table view context
+     * @return table name
+     */
+    static String getTableName(final PlSqlParser.Tableview_nameContext tableview_name) {
         if (tableview_name.id_expression() != null) {
             return tableview_name.id_expression().getText();
         } else {
@@ -21,7 +27,8 @@ class BaseParserListener extends PlSqlParserBaseListener {
         }
     }
 
-    String getColumnName(final PlSqlParser.Column_nameContext ctx) {
+    public static String getColumnName(final PlSqlParser.Column_nameContext ctx) {
         return ctx.identifier().id_expression().getText();
     }
+
 }
