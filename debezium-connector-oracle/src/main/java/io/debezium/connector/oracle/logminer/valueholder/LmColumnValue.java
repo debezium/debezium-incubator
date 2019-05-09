@@ -3,13 +3,13 @@
  *
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
-package io.debezium.connector.oracle;
+package io.debezium.connector.oracle.logminer.valueholder;
 
 /**
- * This interface mimics API of oracle.streams.ColumnValue class
+ * This interface mimics API of oracle.streams.ColumnValue interface
  * it does not cover LOB which should be handled in chunks
  */
-public interface ColumnValue {
+public interface LmColumnValue {
     /**
      * @return value of the database record
      * with exception of LOB types

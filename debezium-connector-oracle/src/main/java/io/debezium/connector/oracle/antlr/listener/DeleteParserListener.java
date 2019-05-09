@@ -5,10 +5,10 @@
  */
 package io.debezium.connector.oracle.antlr.listener;
 
-import io.debezium.connector.oracle.ColumnValue;
-import io.debezium.connector.oracle.ColumnValueHolder;
-import io.debezium.connector.oracle.DefaultRowLCR;
-import io.debezium.connector.oracle.RowLCR;
+import io.debezium.connector.oracle.logminer.valueholder.LmColumnValue;
+import io.debezium.connector.oracle.logminer.valueholder.ColumnValueHolder;
+import io.debezium.connector.oracle.logminer.valueholder.LmDefaultRowLCR;
+import io.debezium.connector.oracle.logminer.valueholder.LmRowLCR;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
 import io.debezium.data.Envelope;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
@@ -50,9 +50,9 @@ public class DeleteParserListener extends BaseDmlStringParserListener {
 
     @Override
     public void exitDelete_statement(PlSqlParser.Delete_statementContext ctx) {
-        List<ColumnValue> actualOldValues = oldColumnValues.values()
+        List<LmColumnValue> actualOldValues = oldColumnValues.values()
                 .stream().map(ColumnValueHolder::getColumnValue).collect(Collectors.toList());
-        RowLCR newRecord = new DefaultRowLCR(Envelope.Operation.DELETE, Collections.emptyList(), actualOldValues);
+        LmRowLCR newRecord = new LmDefaultRowLCR(Envelope.Operation.DELETE, Collections.emptyList(), actualOldValues);
         parser.setRowLCR(newRecord);// todo, what is the way to emit it?
         super.exitDelete_statement(ctx);
     }

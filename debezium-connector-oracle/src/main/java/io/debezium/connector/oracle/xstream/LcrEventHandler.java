@@ -3,11 +3,9 @@
  *
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
-package io.debezium.connector.oracle;
+package io.debezium.connector.oracle.xstream;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.debezium.connector.oracle.OracleOffsetContext;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.relational.RelationalDatabaseSchema;
@@ -19,6 +17,8 @@ import oracle.streams.LCR;
 import oracle.streams.RowLCR;
 import oracle.streams.StreamsException;
 import oracle.streams.XStreamLCRCallbackHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handler for Oracle DDL and DML events. Just forwards events to the {@link EventDispatcher}.
@@ -99,7 +99,7 @@ class LcrEventHandler implements XStreamLCRCallbackHandler {
 
         dispatcher.dispatchDataChangeEvent(
                 tableId,
-                new XStreamChangeRecordEmitter(offsetContext, lcr, schema.tableFor(tableId), clock)
+                new ChangeRecordEmitter(offsetContext, lcr, schema.tableFor(tableId), clock)
         );
     }
 

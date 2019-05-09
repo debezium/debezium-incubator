@@ -5,12 +5,6 @@
  */
 package io.debezium.connector.oracle.util;
 
-import java.nio.file.Path;
-import java.sql.SQLException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.debezium.config.Configuration;
 import io.debezium.connector.oracle.OracleConnection;
 import io.debezium.connector.oracle.OracleConnectionFactory;
@@ -19,6 +13,11 @@ import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.history.FileDatabaseHistory;
 import io.debezium.util.Testing;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.file.Path;
+import java.sql.SQLException;
 
 public class TestHelper {
 
@@ -61,7 +60,7 @@ public class TestHelper {
         Configuration config = defaultConfig().build();
         Configuration jdbcConfig = config.subset("database.", true);
 
-        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
+        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory(config));
 
         String pdbName = new OracleConnectorConfig(config).getPdbName();
 
@@ -124,7 +123,7 @@ public class TestHelper {
         Configuration config = testConfig().build();
         Configuration jdbcConfig = config.subset("database.", true);
 
-        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
+        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory(config));
         try {
             jdbcConnection.setAutoCommit(false);
         }
@@ -145,7 +144,7 @@ public class TestHelper {
         Configuration config = adminConfig().build();
         Configuration jdbcConfig = config.subset("database.", true);
 
-        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
+        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory(config));
         try {
             jdbcConnection.setAutoCommit(false);
         }

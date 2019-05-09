@@ -5,6 +5,7 @@
  */
 package io.debezium.connector.oracle;
 
+import io.debezium.config.Configuration;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.ChangeEventSourceFactory;
@@ -15,6 +16,8 @@ import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.relational.TableId;
 import io.debezium.util.Clock;
 
+import static io.debezium.connector.oracle.OracleConnectorConfig.CONNECTOR_ADAPTER;
+
 public class OracleChangeEventSourceFactory implements ChangeEventSourceFactory {
 
     private final OracleConnectorConfig configuration;
@@ -23,15 +26,18 @@ public class OracleChangeEventSourceFactory implements ChangeEventSourceFactory 
     private final EventDispatcher<TableId> dispatcher;
     private final Clock clock;
     private final OracleDatabaseSchema schema;
+    private final Configuration config;
 
     public OracleChangeEventSourceFactory(OracleConnectorConfig configuration, OracleConnection jdbcConnection,
-            ErrorHandler errorHandler, EventDispatcher<TableId> dispatcher, Clock clock, OracleDatabaseSchema schema) {
+            ErrorHandler errorHandler, EventDispatcher<TableId> dispatcher, Clock clock, OracleDatabaseSchema schema,
+                                          Configuration config) {
         this.configuration = configuration;
         this.jdbcConnection = jdbcConnection;
         this.errorHandler = errorHandler;
         this.dispatcher = dispatcher;
         this.clock = clock;
         this.schema = schema;
+        this.config = config;
     }
 
     @Override
@@ -42,7 +48,20 @@ public class OracleChangeEventSourceFactory implements ChangeEventSourceFactory 
 
     @Override
     public StreamingChangeEventSource getStreamingChangeEventSource(OffsetContext offsetContext) {
-        return new OracleStreamingChangeEventSource(
+        OracleConnectorConfig.ConnectorAdapter adapter  =
+                OracleConnectorConfig.ConnectorAdapter.parse(config.getString(CONNECTOR_ADAPTER));
+        if (adapter == OracleConnectorConfig.ConnectorAdapter.XSTREAM) {
+            return new io.debezium.connector.oracle.xstream.OracleStreamingChangeEventSource(
+                    configuration,
+                    (OracleOffsetContext) offsetContext,
+                    jdbcConnection,
+                    dispatcher,
+                    errorHandler,
+                    clock,
+                    schema
+            );
+        }
+        return new io.debezium.connector.oracle.logminer.OracleStreamingChangeEventSource(
                 configuration,
                 (OracleOffsetContext) offsetContext,
                 jdbcConnection,

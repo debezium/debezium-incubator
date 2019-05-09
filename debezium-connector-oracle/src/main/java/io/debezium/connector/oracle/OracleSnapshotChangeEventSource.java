@@ -11,6 +11,9 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -108,7 +111,13 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
 
     @Override
     protected void determineSnapshotOffset(SnapshotContext ctx) throws Exception {
-        Optional<Long> latestTableDdlScn = getLatestTableDdlScn(ctx);
+        Optional<Long> latestTableDdlScn = Optional.empty();
+        try {
+            latestTableDdlScn = getLatestTableDdlScn(ctx);
+        } catch (SQLException e) {
+            // this may happen if the DDL is older than the retention policy and no corresponding SCN could be found
+            LOGGER.warn("No snapshot found based on specified time");
+        }
         long currentScn;
 
         // we must use an SCN for taking the snapshot that represents a later timestamp than the latest DDL change than

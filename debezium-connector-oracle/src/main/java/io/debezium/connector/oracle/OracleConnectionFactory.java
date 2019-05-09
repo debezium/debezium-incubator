@@ -9,10 +9,24 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import io.debezium.config.Configuration;
 import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.jdbc.JdbcConnection.ConnectionFactory;
+import static io.debezium.connector.oracle.OracleConnectorConfig.CONNECTOR_ADAPTER;
 
 public class OracleConnectionFactory implements ConnectionFactory {
+
+    private String driverType;
+
+    public OracleConnectionFactory(Configuration config) {
+        OracleConnectorConfig.ConnectorAdapter adapter  =
+                OracleConnectorConfig.ConnectorAdapter.parse(config.getString(CONNECTOR_ADAPTER));
+        if (adapter == OracleConnectorConfig.ConnectorAdapter.XSTREAM){
+            driverType = "oci";
+        } else {
+            driverType = "thin";
+        }
+    }
 
     @Override
     public Connection connect(JdbcConfiguration config) throws SQLException {
@@ -23,7 +37,7 @@ public class OracleConnectionFactory implements ConnectionFactory {
         String password = config.getPassword();
 
         return DriverManager.getConnection(
-              "jdbc:oracle:oci:@" + hostName + ":" + port + "/" + database, user, password
+              "jdbc:oracle:" + driverType + ":@" + hostName + ":" + port + "/" + database, user, password
         );
     }
 }

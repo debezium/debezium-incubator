@@ -8,6 +8,7 @@ package io.debezium.connector.oracle;
 import java.time.Instant;
 
 import io.debezium.annotation.NotThreadSafe;
+import io.debezium.connector.oracle.xstream.LcrPosition;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 

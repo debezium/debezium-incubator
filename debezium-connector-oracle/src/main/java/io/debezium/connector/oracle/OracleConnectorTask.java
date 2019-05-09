@@ -35,8 +35,8 @@ public class OracleConnectorTask extends BaseSourceTask {
     private static final Logger LOGGER = LoggerFactory.getLogger(OracleConnectorTask.class);
     private static final String CONTEXT_NAME = "oracle-connector-task";
 
-    private static enum State {
-        RUNNING, STOPPED;
+    private enum State {
+        RUNNING, STOPPED
     }
 
     private final AtomicReference<State> state = new AtomicReference<State>(State.STOPPED);
@@ -66,7 +66,7 @@ public class OracleConnectorTask extends BaseSourceTask {
         SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create(LOGGER);
 
         Configuration jdbcConfig = config.subset("database.", true);
-        jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
+        jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory(config));
         this.schema = new OracleDatabaseSchema(connectorConfig, schemaNameAdjuster, topicSelector, jdbcConnection);
         this.schema.initializeStorage();
 
@@ -97,7 +97,7 @@ public class OracleConnectorTask extends BaseSourceTask {
                 errorHandler,
                 OracleConnector.class,
                 connectorConfig.getLogicalName(),
-                new OracleChangeEventSourceFactory(connectorConfig, jdbcConnection, errorHandler, dispatcher, clock, schema),
+                new OracleChangeEventSourceFactory(connectorConfig, jdbcConnection, errorHandler, dispatcher, clock, schema, config),
                 dispatcher
         );
 

@@ -7,6 +7,8 @@ package io.debezium.connector.oracle;
 
 import io.debezium.connector.oracle.antlr.OracleDdlParser;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
+import io.debezium.connector.oracle.logminer.valueholder.LmColumnValue;
+import io.debezium.connector.oracle.logminer.valueholder.LmRowLCR;
 import io.debezium.data.Envelope;
 import io.debezium.relational.Tables;
 import io.debezium.util.IoUtil;
@@ -52,13 +54,13 @@ public class OracleDmlParserTest {
         String dml = "insert into \"DEBEZIUM\"(\"ID\",\"COL1\",\"COL2\",\"COL3\",\"COL4\",\"COL5\",\"COL6\",\"COL7\",\"COL8\"," +
                 "\"COL9\",\"COL10\") values ('5','4','tExt','text',NULL,NULL,NULL,NULL,NULL,EMPTY_BLOB(),EMPTY_CLOB());";
         dmlParser.parse(dml, tables);
-        RowLCR record = dmlParser.getDmlChange();
-        List<ColumnValue> oldValues = record.getOldValues();
+        LmRowLCR record = dmlParser.getDmlChange();
+        List<LmColumnValue> oldValues = record.getOldValues();
         assertThat(oldValues.size()).isEqualTo(0);
 
-        List<ColumnValue> newValues = record.getNewValues();
+        List<LmColumnValue> newValues = record.getNewValues();
 
-        Iterator<ColumnValue> iterator = newValues.iterator();
+        Iterator<LmColumnValue> iterator = newValues.iterator();
         assertThat(iterator.next().getColumnData()).isEqualTo(new BigDecimal(5));
         assertThat(iterator.next().getColumnData()).isEqualTo(BigDecimal.valueOf(400,2));
         assertThat(iterator.next().getColumnData()).isEqualTo("tExt");
@@ -84,7 +86,7 @@ public class OracleDmlParserTest {
 
         oldValues = record.getOldValues();
         assertThat(oldValues.size()).isEqualTo(11);
-        String concatenatedColumnNames = oldValues.stream().map(ColumnValue::getColumnName).collect(Collectors.joining());
+        String concatenatedColumnNames = oldValues.stream().map(LmColumnValue::getColumnName).collect(Collectors.joining());
         assertThat("IDCOL1COL2COL3COL4COL5COL6COL7COL8COL9COL10".equals(concatenatedColumnNames));
 
         iterator = oldValues.iterator();
@@ -112,15 +114,15 @@ public class OracleDmlParserTest {
                 "and COL3 = 'text' and COL4 IS NULL and COL5 IS NULL and COL6 IS NULL " +
                 "and COL7 = TIMESTAMP ' 2019-02-27 18:08:52' and COL8 = TIMESTAMP ' 2019-02-27 18:08:52.650000';";
         dmlParser.parse(dml, tables);
-        RowLCR record = dmlParser.getDmlChange();
+        LmRowLCR record = dmlParser.getDmlChange();
 
         // validate
         assertThat(record.getCommandType() == Envelope.Operation.UPDATE);
-        List<ColumnValue> newValues = record.getNewValues();
+        List<LmColumnValue> newValues = record.getNewValues();
         assertThat(newValues.size()).isEqualTo(7);
-        String concatenatedNames = newValues.stream().map(ColumnValue::getColumnName).collect(Collectors.joining());
+        String concatenatedNames = newValues.stream().map(LmColumnValue::getColumnName).collect(Collectors.joining());
         assertThat("COL1COL2COL3COL4COL6COL7COL8".equals(concatenatedNames));
-        for (ColumnValue newValue : newValues){
+        for (LmColumnValue newValue : newValues){
             String columnName = newValue.getColumnName();
             switch (columnName){
                 case "COL1":
@@ -152,11 +154,11 @@ public class OracleDmlParserTest {
             }
         }
 
-        List<ColumnValue> oldValues = record.getOldValues();
+        List<LmColumnValue> oldValues = record.getOldValues();
         assertThat(oldValues.size()).isEqualTo(9);
-        concatenatedNames = oldValues.stream().map(ColumnValue::getColumnName).collect(Collectors.joining());
+        concatenatedNames = oldValues.stream().map(LmColumnValue::getColumnName).collect(Collectors.joining());
         assertThat("IDCOL1COL2COL3COL4COL6COL7COL8".equals(concatenatedNames));
-        for (ColumnValue oldValue : oldValues){
+        for (LmColumnValue oldValue : oldValues){
             String columnName = oldValue.getColumnName();
             switch (columnName){
                 case "COL1":

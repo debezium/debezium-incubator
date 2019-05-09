@@ -5,6 +5,8 @@
  */
 package io.debezium.connector.oracle;
 
+import io.debezium.connector.oracle.xstream.LcrPosition;
+import io.debezium.connector.oracle.xstream.OracleVersion;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
@@ -23,10 +25,10 @@ import io.debezium.relational.TableId;
 import io.debezium.relational.Tables.TableFilter;
 import io.debezium.relational.history.HistoryRecordComparator;
 import io.debezium.relational.history.KafkaDatabaseHistory;
-import oracle.streams.XStreamUtility;
 
 /**
  * Connector configuration for Oracle.
+ * Includes both XStream and LogMiner configs
  *
  * @author Gunnar Morling
  */
@@ -34,6 +36,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
 
     // TODO pull up to RelationalConnectorConfig
     public static final String DATABASE_CONFIG_PREFIX = "database.";
+    private static final int DEFAULT_ROWS_FETCH_SIZE = 2000;
 
     public static final Field DATABASE_NAME = Field.create(DATABASE_CONFIG_PREFIX + JdbcConfiguration.DATABASE)
             .withDisplayName("Database name")
@@ -83,6 +86,22 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         .withImportance(Importance.LOW)
         .withDescription("For default oracle 12+, use default pos_version value v2, for oracle 11, use pos_version value v1.");
 
+    public static final Field CONNECTOR_ADAPTER = Field.create(DATABASE_CONFIG_PREFIX + "connection.adapter")
+            .withDisplayName("Connector adapter")
+            .withEnum(ConnectorAdapter.class, ConnectorAdapter.XSTREAM)
+            .withWidth(Width.MEDIUM)
+            .withImportance(Importance.HIGH)
+            .withDescription("There are two adapters: XStream and LogMiner.");
+
+    // todo remove this after merging changes on sqlserver
+    public static final Field ROWS_FETCH_SIZE = Field.create("rows.fetch.size")
+            .withDisplayName("Result set fetch size")
+            .withType(Type.INT)
+            .withWidth(Width.MEDIUM)
+            .withImportance(Importance.MEDIUM)
+            .withDefault(DEFAULT_ROWS_FETCH_SIZE)
+            .withDescription("The maximum number of DB rows that should be loaded into memory while performing a snapshot")
+            .withValidation(Field::isPositiveLong);
     /**
      * The set of {@link Field}s defined as part of this configuration.
      */
@@ -103,7 +122,9 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             Heartbeat.HEARTBEAT_INTERVAL,
             Heartbeat.HEARTBEAT_TOPICS_PREFIX,
             TABLENAME_CASE_INSENSITIVE,
-            ORACLE_VERSION
+            ORACLE_VERSION,
+            ROWS_FETCH_SIZE,
+            CONNECTOR_ADAPTER
     );
 
     private final String databaseName;
@@ -129,7 +150,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         ConfigDef config = new ConfigDef();
 
         Field.group(config, "Oracle", RelationalDatabaseConnectorConfig.SERVER_NAME, DATABASE_NAME, PDB_NAME,
-                XSTREAM_SERVER_NAME, SNAPSHOT_MODE);
+                XSTREAM_SERVER_NAME, SNAPSHOT_MODE, CONNECTOR_ADAPTER);
         Field.group(config, "History Storage", KafkaDatabaseHistory.BOOTSTRAP_SERVERS,
                 KafkaDatabaseHistory.TOPIC, KafkaDatabaseHistory.RECOVERY_POLL_ATTEMPTS,
                 KafkaDatabaseHistory.RECOVERY_POLL_INTERVAL_MS, HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY);
@@ -183,58 +204,6 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
                         : recordedScn.compareTo(desiredScn) < 1;
             }
         };
-    }
-
-    public static enum OracleVersion implements EnumeratedValue {
-
-        V11("11"),
-        V12Plus("12+");
-        private final String version;
-
-        private OracleVersion(String version) {
-            this.version = version;
-        }
-
-        @Override
-        public String getValue() {
-            return version;
-        }
-
-        public int getPosVersion() {
-            switch(version) {
-                case "11":
-                    return XStreamUtility.POS_VERSION_V1;
-                case "12+":
-                    return XStreamUtility.POS_VERSION_V2;
-                default:
-                    return XStreamUtility.POS_VERSION_V2;
-            }
-        }
-
-        public static OracleVersion parse(String value) {
-            if (value == null) {
-                return null;
-            }
-            value = value.trim();
-
-            for (OracleVersion option : OracleVersion.values()) {
-                if (option.getValue().equalsIgnoreCase(value)) {
-                    return option;
-                }
-            }
-
-            return null;
-        }
-
-        public static OracleVersion parse(String value, String defaultValue) {
-            OracleVersion option = parse(value);
-
-            if (option == null && defaultValue != null) {
-                option = parse(defaultValue);
-            }
-
-            return option;
-        }
     }
 
     /**
@@ -303,6 +272,59 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
          */
         public static SnapshotMode parse(String value, String defaultValue) {
             SnapshotMode mode = parse(value);
+
+            if (mode == null && defaultValue != null) {
+                mode = parse(defaultValue);
+            }
+
+            return mode;
+        }
+    }
+
+    public enum ConnectorAdapter implements EnumeratedValue {
+
+        /**
+         * This is based on XStream API.
+         */
+        XSTREAM("XStream"),
+
+        /**
+         * This is based on LogMiner utility.
+         */
+        LOG_MINER("LogMiner");
+
+        private final String value;
+
+        ConnectorAdapter(String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String getValue() {
+            return value;
+        }
+
+        /**
+         * Determine if the supplied value is one of the predefined options.
+         *
+         * @param value the configuration property value; may not be null
+         * @return the matching option, or null if no match is found
+         */
+        public static ConnectorAdapter parse(String value) {
+            if (value == null) {
+                return null;
+            }
+            value = value.trim();
+            for (ConnectorAdapter adapter : ConnectorAdapter.values()) {
+                if (adapter.getValue().equalsIgnoreCase(value)) {
+                    return adapter;
+                }
+            }
+            return null;
+        }
+
+        public static ConnectorAdapter parse(String value, String defaultValue) {
+            ConnectorAdapter mode = parse(value);
 
             if (mode == null && defaultValue != null) {
                 mode = parse(defaultValue);

@@ -3,13 +3,17 @@
  *
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
-package io.debezium.connector.oracle;
+package io.debezium.connector.oracle.xstream;
 
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.debezium.connector.oracle.OracleConnectorConfig;
+import io.debezium.connector.oracle.OracleDatabaseSchema;
+import io.debezium.connector.oracle.OracleOffsetContext;
+import io.debezium.connector.oracle.SourceInfo;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.EventDispatcher;

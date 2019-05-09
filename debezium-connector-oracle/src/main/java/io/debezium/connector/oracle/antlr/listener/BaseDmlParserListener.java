@@ -5,8 +5,8 @@
  */
 package io.debezium.connector.oracle.antlr.listener;
 
-import io.debezium.connector.oracle.ColumnValueHolder;
-import io.debezium.connector.oracle.DefaultColumnValue;
+import io.debezium.connector.oracle.logminer.valueholder.ColumnValueHolder;
+import io.debezium.connector.oracle.logminer.valueholder.LmDefaultColumnValue;
 import io.debezium.connector.oracle.OracleValueConverters;
 import io.debezium.connector.oracle.OracleValuePreConverter;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
@@ -65,8 +65,8 @@ abstract class BaseDmlParserListener<T> extends PlSqlParserBaseListener {
             int type = column.jdbcType();
             T key = getKey(column, i);
             String name = column.name().toUpperCase();
-            newColumnValues.put(key, new ColumnValueHolder(new DefaultColumnValue(name, type)));
-            oldColumnValues.put(key, new ColumnValueHolder(new DefaultColumnValue(name, type)));
+            newColumnValues.put(key, new ColumnValueHolder(new LmDefaultColumnValue(name, type)));
+            oldColumnValues.put(key, new ColumnValueHolder(new LmDefaultColumnValue(name, type)));
         }
     }
 

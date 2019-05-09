@@ -5,7 +5,7 @@
  */
 package io.debezium.connector.oracle.antlr.listener;
 
-import io.debezium.connector.oracle.ColumnValueHolder;
+import io.debezium.connector.oracle.logminer.valueholder.ColumnValueHolder;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
 import io.debezium.relational.Column;

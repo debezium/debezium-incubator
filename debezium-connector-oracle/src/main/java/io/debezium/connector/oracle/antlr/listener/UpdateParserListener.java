@@ -5,11 +5,11 @@
  */
 package io.debezium.connector.oracle.antlr.listener;
 
-import io.debezium.connector.oracle.ColumnValue;
-import io.debezium.connector.oracle.ColumnValueHolder;
-import io.debezium.connector.oracle.DefaultRowLCR;
-import io.debezium.connector.oracle.RowLCR;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
+import io.debezium.connector.oracle.logminer.valueholder.ColumnValueHolder;
+import io.debezium.connector.oracle.logminer.valueholder.LmColumnValue;
+import io.debezium.connector.oracle.logminer.valueholder.LmDefaultRowLCR;
+import io.debezium.connector.oracle.logminer.valueholder.LmRowLCR;
 import io.debezium.data.Envelope;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
 import io.debezium.relational.Column;
@@ -72,11 +72,11 @@ public class UpdateParserListener extends BaseDmlStringParserListener {
 
     @Override
     public void exitUpdate_statement(PlSqlParser.Update_statementContext ctx) {
-        List<ColumnValue> actualNewValues = newColumnValues.values().stream()
+        List<LmColumnValue> actualNewValues = newColumnValues.values().stream()
                 .filter(ColumnValueHolder::isProcessed).map(ColumnValueHolder::getColumnValue).collect(Collectors.toList());
-        List<ColumnValue> actualOldValues = oldColumnValues.values().stream()
+        List<LmColumnValue> actualOldValues = oldColumnValues.values().stream()
                 .filter(ColumnValueHolder::isProcessed).map(ColumnValueHolder::getColumnValue).collect(Collectors.toList());
-        RowLCR newRecord = new DefaultRowLCR(Envelope.Operation.UPDATE, actualNewValues, actualOldValues);
+        LmRowLCR newRecord = new LmDefaultRowLCR(Envelope.Operation.UPDATE, actualNewValues, actualOldValues);
         parser.setRowLCR(newRecord);// todo, what is the way to emit it?
         super.exitUpdate_statement(ctx);
     }
