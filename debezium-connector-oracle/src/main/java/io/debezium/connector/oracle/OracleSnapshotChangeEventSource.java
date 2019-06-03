@@ -10,11 +10,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
+import java.sql.Types;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
+import io.debezium.relational.Column;
+import io.debezium.relational.TableEditor;
+import oracle.jdbc.OracleTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +43,11 @@ import io.debezium.util.Clock;
 public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapshotChangeEventSource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OracleSnapshotChangeEventSource.class);
+
+    /**
+     * Returned by column metadata in Oracle if no scale is set;
+     */
+    private static final int ORACLE_UNSET_SCALE = -127;
 
     private final OracleConnectorConfig connectorConfig;
     private final OracleConnection jdbcConnection;
@@ -184,26 +194,41 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
 
     @Override
     protected void readTableStructure(ChangeEventSourceContext sourceContext, SnapshotContext snapshotContext) throws SQLException, InterruptedException {
-        Set<String> schemas = snapshotContext.capturedTables.stream()
-            .map(TableId::schema)
-            .collect(Collectors.toSet());
-
-        // reading info only for the schemas we're interested in as per the set of captured tables;
-        // while the passed table name filter alone would skip all non-included tables, reading the schema
-        // would take much longer that way
-        for (String schema : schemas) {
+        for (TableId tableId : snapshotContext.capturedTables) {
             if (!sourceContext.isRunning()) {
-                throw new InterruptedException("Interrupted while reading structure of schema " + schema);
+                throw new InterruptedException("Interrupted while reading structure of table " + tableId);
             }
 
-            jdbcConnection.readSchema(
-                    snapshotContext.tables,
-                    snapshotContext.catalogName,
-                    schema,
-                    connectorConfig.getTableFilters().dataCollectionFilter(),
-                    null,
-                    false
-            );
+            LOGGER.debug("Reading table {}", tableId);
+            jdbcConnection.readTable(snapshotContext.tables, tableId, null);
+
+            TableEditor editor = snapshotContext.tables.editTable(tableId);
+            List<String> columnNames = new ArrayList<>(editor.columnNames());
+            for (String columnName : columnNames) {
+                Column column = editor.columnWithName(columnName);
+                if (column.jdbcType() == Types.TIMESTAMP) {
+                    editor.addColumn(
+                            column.edit()
+                                    .length(column.scale().orElse(Column.UNSET_INT_VALUE))
+                                    .scale(null)
+                                    .create()
+                    );
+                }
+                // NUMBER columns without scale value have it set to -127 instead of null;
+                // let's rectify that
+                else if (column.jdbcType() == OracleTypes.NUMBER) {
+                    column.scale()
+                            .filter(s -> s == ORACLE_UNSET_SCALE)
+                            .ifPresent(s -> {
+                                editor.addColumn(
+                                        column.edit()
+                                                .scale(null)
+                                                .create()
+                                );
+                            });
+                }
+            }
+            snapshotContext.tables.overwriteTable(editor.create());
         }
     }
 
