@@ -10,7 +10,7 @@ import io.debezium.antlr.AntlrDdlParserListener;
 import io.debezium.antlr.DataTypeResolver;
 import io.debezium.connector.oracle.OracleValueConverters;
 import io.debezium.connector.oracle.OracleValuePreConverter;
-import io.debezium.connector.oracle.logminer.valueholder.LmRowLCR;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcr;
 import io.debezium.connector.oracle.antlr.listener.OracleDmlParserListener;
 import io.debezium.ddl.parser.oracle.generated.PlSqlLexer;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
@@ -25,7 +25,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
  */
 public class OracleDmlParser extends AntlrDdlParser<PlSqlLexer, PlSqlParser> {
 
-    private LmRowLCR rowLCR;
+    private LogMinerRowLcr rowLCR;
     protected String catalogName;
     protected String schemaName;
     private OracleValueConverters converters;
@@ -40,12 +40,11 @@ public class OracleDmlParser extends AntlrDdlParser<PlSqlLexer, PlSqlParser> {
         this.preConverter = preConverter;
     }
 
-    // todo, it is the place to store it?
-    public LmRowLCR getDmlChange(){
+    public LogMinerRowLcr getDmlChange(){
        return rowLCR;
     }
 
-    public void setRowLCR(LmRowLCR rowLCR) {
+    public void setRowLCR(LogMinerRowLcr rowLCR) {
         this.rowLCR = rowLCR;
     }
 
@@ -63,7 +62,7 @@ public class OracleDmlParser extends AntlrDdlParser<PlSqlLexer, PlSqlParser> {
         return parser.unit_statement();
     }
 
-    @Override // todo hmmm? should we extend this from Ddl?
+    @Override
     protected AntlrDdlParserListener createParseTreeWalkerListener() {
         return new OracleDmlParserListener(catalogName, schemaName, this);
     }

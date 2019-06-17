@@ -5,10 +5,10 @@
  */
 package io.debezium.connector.oracle.antlr.listener;
 
-import io.debezium.connector.oracle.logminer.valueholder.LmColumnValue;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerColumnValue;
 import io.debezium.connector.oracle.logminer.valueholder.ColumnValueHolder;
-import io.debezium.connector.oracle.logminer.valueholder.LmDefaultRowLCR;
-import io.debezium.connector.oracle.logminer.valueholder.LmRowLCR;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerDefaultRowLcr;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcr;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
 import io.debezium.data.Envelope;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
@@ -78,10 +78,10 @@ public class InsertParserListener extends BaseDmlParserListener<Integer> {
 
     @Override
     public void exitSingle_table_insert(PlSqlParser.Single_table_insertContext ctx) {
-        List<LmColumnValue> actualNewValues = newColumnValues.values()
+        List<LogMinerColumnValue> actualNewValues = newColumnValues.values()
                 .stream().map(ColumnValueHolder::getColumnValue).collect(Collectors.toList());
-        LmRowLCR newRecord = new LmDefaultRowLCR(Envelope.Operation.CREATE, actualNewValues, Collections.emptyList());
-        parser.setRowLCR(newRecord);// todo, what is the way to emit it?
+        LogMinerRowLcr newRecord = new LogMinerDefaultRowLcr(Envelope.Operation.CREATE, actualNewValues, Collections.emptyList());
+        parser.setRowLCR(newRecord);
         //parser.signalChangeEvent();
         super.exitSingle_table_insert(ctx);
     }

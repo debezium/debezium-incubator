@@ -29,7 +29,7 @@ import io.debezium.util.IoUtil;
  */
 public class OracleDdlParserTest {
 
-    private static final String TABLE_NAME = "DEBEZIUM";
+    private static final String TABLE_NAME = "TEST";
 
     private OracleDdlParser parser;
     private Tables tables;
@@ -48,7 +48,7 @@ public class OracleDdlParserTest {
         Table table = tables.forTable(new TableId(null, null, TABLE_NAME));
 
         assertThat(tables.size()).isEqualTo(1);
-        assertThat(table.retrieveColumnNames()).containsExactly("ID", "COL1", "COL2", "COL3", "COL4", "COL5", "COL6", "COL7", "COL8", "COL9", "COL10");
+        assertThat(table.retrieveColumnNames()).containsExactly("ID", "COL1", "COL2", "COL3", "COL4", "COL5", "COL6", "COL8", "COL9", "COL10");
         // ID, primary key
         assertThat(table.columnWithName("ID").position()).isEqualTo(1);
         assertThat(table.isPrimaryKeyColumn("ID"));
@@ -65,8 +65,6 @@ public class OracleDdlParserTest {
         testColumn(table, "COL5", true, Types.NCHAR, "NCHAR", 1, 0, true, null);
         // float(126)
         testColumn(table, "COL6", true, Types.FLOAT, "FLOAT", 126, 0, true, null);
-        // date
-        testColumn(table, "COL7", true, Types.TIMESTAMP, "DATE", -1,  null, true, null);
         // timestamp
         testColumn(table, "COL8", true, Types.TIMESTAMP, "TIMESTAMP", 6, null, true, null);
         // blob
@@ -79,7 +77,7 @@ public class OracleDdlParserTest {
         String ddl = "alter table " + TABLE_NAME + " add (col21 varchar2(20), col22 number(19));";
         parser.parse(ddl, tables);
         Table alteredTable = tables.forTable(new TableId(null, null, TABLE_NAME));
-        assertThat(alteredTable.retrieveColumnNames()).containsExactly("ID", "COL1", "COL2", "COL3", "COL4", "COL5", "COL6", "COL7", "COL8", "COL9", "COL10", "COL21", "COL22");
+        assertThat(alteredTable.retrieveColumnNames()).containsExactly("ID", "COL1", "COL2", "COL3", "COL4", "COL5", "COL6", "COL8", "COL9", "COL10", "COL21", "COL22");
         // varchar2(255)
         testColumn(alteredTable, "COL21", true, Types.VARCHAR, "VARCHAR2", 20, null, true, null);
         testColumn(alteredTable, "COL22", true, Types.NUMERIC, "NUMBER", 19, 0, true, null);
@@ -95,13 +93,13 @@ public class OracleDdlParserTest {
         ddl = "alter table " + TABLE_NAME + " add (col23 varchar2(20) not null);";
         parser.parse(ddl, tables);
         alteredTable = tables.forTable(new TableId(null, null, TABLE_NAME));
-        assertThat(alteredTable.retrieveColumnNames()).containsExactly("ID", "COL1", "COL2", "COL3", "COL4", "COL5", "COL6", "COL7", "COL8", "COL9", "COL10", "COL21", "COL22", "COL23");
+        assertThat(alteredTable.retrieveColumnNames()).containsExactly("ID", "COL1", "COL2", "COL3", "COL4", "COL5", "COL6", "COL8", "COL9", "COL10", "COL21", "COL22", "COL23");
         testColumn(alteredTable, "COL23", false, Types.VARCHAR, "VARCHAR2", 20, null, false, null);
 
         ddl = "alter table " + TABLE_NAME + " drop (col22, col23);";
         parser.parse(ddl, tables);
         alteredTable = tables.forTable(new TableId(null, null, TABLE_NAME));
-        assertThat(alteredTable.retrieveColumnNames()).containsExactly("ID", "COL1", "COL2", "COL3", "COL4", "COL5", "COL6", "COL7", "COL8", "COL9", "COL10", "COL21");
+        assertThat(alteredTable.retrieveColumnNames()).containsExactly("ID", "COL1", "COL2", "COL3", "COL4", "COL5", "COL6", "COL8", "COL9", "COL10", "COL21");
 
         ddl = "drop table " + TABLE_NAME +";";
         parser.parse(ddl, tables);
@@ -165,9 +163,7 @@ public class OracleDdlParserTest {
         assertThat(column.typeName()).isEqualTo(typeName);
         assertThat(column.length()).isEqualTo(length);
         Optional<Integer> oScale = column.scale();
-        if (oScale.isPresent()){
-            assertThat(oScale.get()).isEqualTo(scale);
-        }
+        oScale.ifPresent(integer -> assertThat(integer).isEqualTo(scale));
         assertThat(column.hasDefaultValue()).isEqualTo(hasDefault);
         if (column.hasDefaultValue() && column.defaultValue() != null) {
             assertThat(defaultValue.equals(column.defaultValue()));

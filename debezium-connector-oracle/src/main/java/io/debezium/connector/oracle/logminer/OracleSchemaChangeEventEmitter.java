@@ -7,7 +7,7 @@ package io.debezium.connector.oracle.logminer;
 
 import io.debezium.connector.oracle.BaseOracleSchemaChangeEventEmitter;
 import io.debezium.connector.oracle.OracleOffsetContext;
-import io.debezium.connector.oracle.logminer.valueholder.LmDDLLCR;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerDdlLcr;
 import io.debezium.pipeline.spi.SchemaChangeEventEmitter;
 import io.debezium.relational.TableId;
 
@@ -16,12 +16,12 @@ import io.debezium.relational.TableId;
  */
 public class OracleSchemaChangeEventEmitter extends BaseOracleSchemaChangeEventEmitter {
 
-    public OracleSchemaChangeEventEmitter(OracleOffsetContext offsetContext, TableId tableId, LmDDLLCR ddlLcr) {
+    public OracleSchemaChangeEventEmitter(OracleOffsetContext offsetContext, TableId tableId, LogMinerDdlLcr ddlLcr) {
         super(offsetContext,
                 tableId,
                 ddlLcr.getSourceDatabaseName(),
                 ddlLcr.getObjectOwner(),
-                ddlLcr.getDDLText(),
+                ddlLcr.getDdlText(),
                 ddlLcr.getCommandType());
     }
 }

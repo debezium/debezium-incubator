@@ -7,8 +7,8 @@ package io.debezium.connector.oracle;
 
 import io.debezium.connector.oracle.antlr.OracleDdlParser;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
-import io.debezium.connector.oracle.logminer.valueholder.LmColumnValue;
-import io.debezium.connector.oracle.logminer.valueholder.LmRowLCR;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerColumnValue;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcr;
 import io.debezium.data.Envelope;
 import io.debezium.relational.Tables;
 import io.debezium.util.IoUtil;
@@ -32,15 +32,18 @@ public class OracleDmlParserTest {
     private OracleDdlParser ddlParser;
     private OracleDmlParser dmlParser;
     private Tables tables;
-    private static final String TABLE_NAME = "DEBEZIUM";
+    private static final String TABLE_NAME = "TEST";
+    private static final String CATALOG_NAME = "ORCLPDB1";
+    private static final String SCHEMA_NAME = "DEBEZIUM";
+    private static final String FULL_TABLE_NAME = SCHEMA_NAME + "\".\"" + TABLE_NAME;
 
     @Before
     public void setUp(){
         OracleValueConverters converters = new OracleValueConverters(null);
         OracleValuePreConverter preConverter = new OracleValuePreConverter();
 
-        ddlParser = new OracleDdlParser(true, null, null);
-        dmlParser = new OracleDmlParser(true, null, null, converters,
+        ddlParser = new OracleDdlParser(true, CATALOG_NAME, SCHEMA_NAME);
+        dmlParser = new OracleDmlParser(true, CATALOG_NAME, SCHEMA_NAME, converters,
                 preConverter);
         tables = new Tables();
     }
@@ -51,21 +54,20 @@ public class OracleDmlParserTest {
         String createStatement = IoUtil.read(IoUtil.getResourceAsStream("ddl/create_table.sql", null, getClass(), null, null));
         ddlParser.parse(createStatement, tables);
 
-        String dml = "insert into \"DEBEZIUM\"(\"ID\",\"COL1\",\"COL2\",\"COL3\",\"COL4\",\"COL5\",\"COL6\",\"COL7\",\"COL8\"," +
-                "\"COL9\",\"COL10\") values ('5','4','tExt','text',NULL,NULL,NULL,NULL,NULL,EMPTY_BLOB(),EMPTY_CLOB());";
+        String dml = "insert into \"" + FULL_TABLE_NAME + "\"(\"ID\",\"COL1\",\"COL2\",\"COL3\",\"COL4\",\"COL5\",\"COL6\",\"COL8\"," +
+                "\"COL9\",\"COL10\") values ('5','4','tExt','text',NULL,NULL,NULL,NULL,EMPTY_BLOB(),EMPTY_CLOB());";
         dmlParser.parse(dml, tables);
-        LmRowLCR record = dmlParser.getDmlChange();
-        List<LmColumnValue> oldValues = record.getOldValues();
+        LogMinerRowLcr record = dmlParser.getDmlChange();
+        List<LogMinerColumnValue> oldValues = record.getOldValues();
         assertThat(oldValues.size()).isEqualTo(0);
 
-        List<LmColumnValue> newValues = record.getNewValues();
+        List<LogMinerColumnValue> newValues = record.getNewValues();
 
-        Iterator<LmColumnValue> iterator = newValues.iterator();
+        Iterator<LogMinerColumnValue> iterator = newValues.iterator();
         assertThat(iterator.next().getColumnData()).isEqualTo(new BigDecimal(5));
         assertThat(iterator.next().getColumnData()).isEqualTo(BigDecimal.valueOf(400,2));
         assertThat(iterator.next().getColumnData()).isEqualTo("tExt");
         assertThat(iterator.next().getColumnData()).isEqualTo("text");
-        assertThat(iterator.next().getColumnData()).isNull();
         assertThat(iterator.next().getColumnData()).isNull();
         assertThat(iterator.next().getColumnData()).isNull();
         assertThat(iterator.next().getColumnData()).isNull();
@@ -75,9 +77,9 @@ public class OracleDmlParserTest {
 //        assertThat(iterator.next().getColumnData()).isNull();
 
 
-        dml = "delete from " + TABLE_NAME +
-                " where id = 6 and col1 = 2 and col2 = 'text' and col3 = 'tExt' and col4 is null and col5 is null " +
-                " and col6 is null and col7 is null and col8 is null and col9 is null and col10 is null";
+        dml = "delete from \"" + FULL_TABLE_NAME +
+                "\" where id = 6 and col1 = 2 and col2 = 'text' and col3 = 'tExt' and col4 is null and col5 is null " +
+                " and col6 is null and col8 is null and col9 is null and col10 is null";
         dmlParser.parse(dml, tables);
         record = dmlParser.getDmlChange();
         assertThat(record.getCommandType() == Envelope.Operation.DELETE);
@@ -85,9 +87,9 @@ public class OracleDmlParserTest {
         assertThat(newValues.size()).isEqualTo(0);
 
         oldValues = record.getOldValues();
-        assertThat(oldValues.size()).isEqualTo(11);
-        String concatenatedColumnNames = oldValues.stream().map(LmColumnValue::getColumnName).collect(Collectors.joining());
-        assertThat("IDCOL1COL2COL3COL4COL5COL6COL7COL8COL9COL10".equals(concatenatedColumnNames));
+        assertThat(oldValues.size()).isEqualTo(10);
+        String concatenatedColumnNames = oldValues.stream().map(LogMinerColumnValue::getColumnName).collect(Collectors.joining());
+        assertThat("IDCOL1COL2COL3COL4COL5COL6COL8COL9COL10".equals(concatenatedColumnNames));
 
         iterator = oldValues.iterator();
         assertThat(iterator.next().getColumnData()).isEqualTo(new BigDecimal(6));
@@ -100,29 +102,31 @@ public class OracleDmlParserTest {
         assertThat(iterator.next().getColumnData()).isNull();
         assertThat(iterator.next().getColumnData()).isNull();
         assertThat(iterator.next().getColumnData()).isNull();
-        assertThat(iterator.next().getColumnData()).isNull();
     }
 
     @Test
     public void shouldParseUpdateTable()  throws Exception {
+
         String createStatement = IoUtil.read(IoUtil.getResourceAsStream("ddl/create_table.sql", null, getClass(), null, null));
         ddlParser.parse(createStatement, tables);
 
-        String dml = "update " + TABLE_NAME + " set col1 = 9, col2 = 'diFFerent', col3 = 'anotheR', col4 = '123', col6 = 5.2, " +
-                "col7 = '2019-02-28 07:49:26', col8 = '2019-02-28 07:49:26.157000' " +
-                "where ID = 5 and COL1 = 6 and COL2 = 'text' " +
-                "and COL3 = 'text' and COL4 IS NULL and COL5 IS NULL and COL6 IS NULL " +
-                "and COL7 = TIMESTAMP ' 2019-02-27 18:08:52' and COL8 = TIMESTAMP ' 2019-02-27 18:08:52.650000';";
+        String dml = "update \"" + FULL_TABLE_NAME + "\" set \"col1\" = '9', col2 = 'diFFerent', col3 = 'anotheR', col4 = '123', col6 = 5.2, " +
+                "col8 = TO_TIMESTAMP('14-MAY-19 02.28.32.302000 AM') " +
+                "where ID = 5 and COL1 = 6 and \"COL2\" = 'text' " +
+                "and COL3 = 'text' and COL4 IS NULL and \"COL5\" IS NULL and COL6 IS NULL " +
+                "and COL8 = TO_TIMESTAMP('14-MAY-19 02.28.32.302000 AM');";
+
+//        String dml = "update \"DEBEZIUM\".\"TEST\" set \"DUMMY\" = '5' where \"DUAL_GKEY\" = '1' and \"DUMMY\" = '6' and ROWID = 'AAAURzAAVAAAG8DAAA';";
         dmlParser.parse(dml, tables);
-        LmRowLCR record = dmlParser.getDmlChange();
+        LogMinerRowLcr record = dmlParser.getDmlChange();
 
         // validate
         assertThat(record.getCommandType() == Envelope.Operation.UPDATE);
-        List<LmColumnValue> newValues = record.getNewValues();
-        assertThat(newValues.size()).isEqualTo(7);
-        String concatenatedNames = newValues.stream().map(LmColumnValue::getColumnName).collect(Collectors.joining());
-        assertThat("COL1COL2COL3COL4COL6COL7COL8".equals(concatenatedNames));
-        for (LmColumnValue newValue : newValues){
+        List<LogMinerColumnValue> newValues = record.getNewValues();
+        assertThat(newValues.size()).isEqualTo(6);
+        String concatenatedNames = newValues.stream().map(LogMinerColumnValue::getColumnName).collect(Collectors.joining());
+        assertThat("COL1COL2COL3COL4COL6COL8".equals(concatenatedNames));
+        for (LogMinerColumnValue newValue : newValues){
             String columnName = newValue.getColumnName();
             switch (columnName){
                 case "COL1":
@@ -138,27 +142,23 @@ public class OracleDmlParserTest {
                     assertThat(newValue.getColumnData()).isEqualTo("123");
                     break;
                 case "COL6":
-                    // todo, please review which one is expected value format
+                    // todo, which one is expected value format
 //                    assertThat(newValue.getColumnData()).isEqualTo(5.2);
                     assertThat(((Struct)newValue.getColumnData()).get("scale")).isEqualTo(1);
                     assertThat(((byte[])((Struct)newValue.getColumnData()).get("value"))[0]).isEqualTo((byte) 52);
                     break;
-                case "COL7":
-                    assertThat(newValue.getColumnData()).isInstanceOf(Long.class);
-                    assertThat(newValue.getColumnData()).isEqualTo(1551340166000L);
-                    break;
                 case "COL8":
                     assertThat(newValue.getColumnData()).isInstanceOf(Long.class);
-                    assertThat(newValue.getColumnData()).isEqualTo(1551340166157000L);
+                    assertThat(newValue.getColumnData()).isEqualTo(1557800912302000L);
                     break;
             }
         }
 
-        List<LmColumnValue> oldValues = record.getOldValues();
-        assertThat(oldValues.size()).isEqualTo(9);
-        concatenatedNames = oldValues.stream().map(LmColumnValue::getColumnName).collect(Collectors.joining());
-        assertThat("IDCOL1COL2COL3COL4COL6COL7COL8".equals(concatenatedNames));
-        for (LmColumnValue oldValue : oldValues){
+        List<LogMinerColumnValue> oldValues = record.getOldValues();
+        assertThat(oldValues.size()).isEqualTo(8);
+        concatenatedNames = oldValues.stream().map(LogMinerColumnValue::getColumnName).collect(Collectors.joining());
+        assertThat("IDCOL1COL2COL3COL4COL6COL8".equals(concatenatedNames));
+        for (LogMinerColumnValue oldValue : oldValues){
             String columnName = oldValue.getColumnName();
             switch (columnName){
                 case "COL1":
@@ -179,13 +179,9 @@ public class OracleDmlParserTest {
                 case "COL6":
                     assertThat(oldValue.getColumnData()).isNull();
                     break;
-                case "COL7":
-                    assertThat(oldValue.getColumnData()).isInstanceOf(Long.class);
-                    assertThat(oldValue.getColumnData()).isEqualTo(1551290932000L);
-                    break;
                 case "COL8":
                     assertThat(oldValue.getColumnData()).isInstanceOf(Long.class);
-                    assertThat(oldValue.getColumnData()).isEqualTo(1551290932650000L);
+                    assertThat(oldValue.getColumnData()).isEqualTo(1557800912302000L);
                     break;
                 case "ID":
                     assertThat(oldValue.getColumnData()).isEqualTo(new BigDecimal(5));

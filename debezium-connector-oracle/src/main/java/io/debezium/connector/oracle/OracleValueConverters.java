@@ -14,6 +14,7 @@ import java.time.ZonedDateTime;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.debezium.jdbc.JdbcConnection;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
@@ -42,14 +43,18 @@ public class OracleValueConverters extends JdbcValueConverters {
 
     private static final Pattern INTERVAL_DAY_SECOND_PATTERN = Pattern.compile("([+\\-])?(\\d+) (\\d+):(\\d+):(\\d+).(\\d+)");
 
-    private final OracleConnection connection;
+    private final JdbcConnection connection;
 
-    public OracleValueConverters(OracleConnection connection) {
+    public OracleValueConverters(JdbcConnection connection) {
         this.connection = connection;
     }
 
     @Override
     public SchemaBuilder schemaBuilder(Column column) {
+        if (column == null) { //todo: this is happening on ROWID pseudo column, we will address it
+            logger.warn("column is null");
+            return null;
+        }
         logger.debug("Building schema for column {} of type {} named {} with constraints ({},{})",
                 column.name(),
                 column.jdbcType(),
@@ -257,7 +262,7 @@ public class OracleValueConverters extends JdbcValueConverters {
         return convertDecimal(column, fieldDefn, data);
     }
 
-    protected Object convertNumericAsTinyInt(Column column, Field fieldDefn, Object data) {
+    private Object convertNumericAsTinyInt(Column column, Field fieldDefn, Object data) {
         if (data instanceof NUMBER) {
             try {
                 data = ((NUMBER) data).byteValue();
@@ -270,7 +275,7 @@ public class OracleValueConverters extends JdbcValueConverters {
         return convertTinyInt(column, fieldDefn, data);
     }
 
-    protected Object convertNumericAsSmallInt(Column column, Field fieldDefn, Object data) {
+    private Object convertNumericAsSmallInt(Column column, Field fieldDefn, Object data) {
         if (data instanceof NUMBER) {
             try {
                 data = ((NUMBER) data).shortValue();
@@ -283,7 +288,7 @@ public class OracleValueConverters extends JdbcValueConverters {
         return super.convertSmallInt(column, fieldDefn, data);
     }
 
-    protected Object convertNumericAsInteger(Column column, Field fieldDefn, Object data) {
+    private Object convertNumericAsInteger(Column column, Field fieldDefn, Object data) {
         if (data instanceof NUMBER) {
             try {
                 data = ((NUMBER) data).intValue();
@@ -296,7 +301,7 @@ public class OracleValueConverters extends JdbcValueConverters {
         return super.convertInteger(column, fieldDefn, data);
     }
 
-    protected Object convertNumericAsBigInteger(Column column, Field fieldDefn, Object data) {
+    private Object convertNumericAsBigInteger(Column column, Field fieldDefn, Object data) {
         if (data instanceof NUMBER) {
             try {
                 data = ((NUMBER) data).longValue();
@@ -328,7 +333,7 @@ public class OracleValueConverters extends JdbcValueConverters {
         });
     }
 
-    protected Object convertVariableScale(Column column, Field fieldDefn, Object data) {
+    private Object convertVariableScale(Column column, Field fieldDefn, Object data) {
         data = convertNumeric(column, fieldDefn, data); // provides default value
 
         if (data == null) {
@@ -344,7 +349,7 @@ public class OracleValueConverters extends JdbcValueConverters {
         return handleUnknownData(column, fieldDefn, data);
     }
 
-    protected Object fromOracleTimeClasses(Column column, Object data) {
+    private Object fromOracleTimeClasses(Column column, Object data) {
         try {
             if (data instanceof TIMESTAMP) {
                 data = ((TIMESTAMP) data).timestampValue();
@@ -389,7 +394,7 @@ public class OracleValueConverters extends JdbcValueConverters {
         return super.convertTimestampWithZone(column, fieldDefn, fromOracleTimeClasses(column, data));
     }
 
-    protected Object convertIntervalYearMonth(Column column, Field fieldDefn, Object data) {
+    private Object convertIntervalYearMonth(Column column, Field fieldDefn, Object data) {
         return convertValue(column, fieldDefn, data, NumberConversions.DOUBLE_FALSE, (r) -> {
             if (data instanceof Number) {
                 // we expect to get back from the plugin a double value
@@ -406,7 +411,7 @@ public class OracleValueConverters extends JdbcValueConverters {
                 for (int i = 1; i < interval.length(); i++) {
                     if (interval.charAt(i) == '-') {
                         final int year = sign * Integer.parseInt(interval.substring(start, i));
-                        final int month = sign * Integer.parseInt(interval.substring(i + 1, interval.length()));
+                        final int month = sign * Integer.parseInt(interval.substring(i + 1));
                         r.deliver(MicroDuration.durationMicros(year, month, 0, 0,
                                 0, 0, MicroDuration.DAYS_PER_MONTH_AVG));
                     }
@@ -415,7 +420,7 @@ public class OracleValueConverters extends JdbcValueConverters {
         });
     }
 
-    protected Object convertIntervalDaySecond(Column column, Field fieldDefn, Object data) {
+    private Object convertIntervalDaySecond(Column column, Field fieldDefn, Object data) {
         return convertValue(column, fieldDefn, data, NumberConversions.DOUBLE_FALSE, (r) -> {
             if (data instanceof Number) {
                 // we expect to get back from the plugin a double value

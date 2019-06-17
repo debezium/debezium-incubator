@@ -12,7 +12,7 @@ import io.debezium.relational.Table;
 import io.debezium.util.Clock;
 
 /**
- * Base class to emit change data based on a single LmRowLCR or RowLCR event.
+ * Base class to emit change data based on a single LogMinerRowLcr or RowLCR event.
  */
 public abstract class BaseChangeRecordEmitter<T> extends RelationalChangeRecordEmitter {
 

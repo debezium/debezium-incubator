@@ -5,22 +5,7 @@
  */
 package io.debezium.connector.oracle;
 
-import java.sql.Clob;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Savepoint;
-import java.sql.Statement;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.debezium.connector.oracle.logminer.LogMinerHelper;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.SnapshotProgressListener;
 import io.debezium.pipeline.source.spi.StreamingChangeEventSource;
@@ -32,6 +17,20 @@ import io.debezium.relational.TableId;
 import io.debezium.schema.SchemaChangeEvent;
 import io.debezium.schema.SchemaChangeEvent.SchemaChangeEventType;
 import io.debezium.util.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.Clob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Savepoint;
+import java.sql.Statement;
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A {@link StreamingChangeEventSource} for Oracle.
@@ -84,7 +83,20 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
 
     @Override
     protected Set<TableId> getAllTableIds(SnapshotContext ctx) throws Exception {
-        return jdbcConnection.readTableNames(ctx.catalogName, null, null, new String[] {"TABLE"} );
+        Set<TableId> tableIds = new HashSet<>();
+        String catalogName = ctx.catalogName;
+        try (PreparedStatement statement = jdbcConnection.connection().prepareStatement("select owner, table_name  from dba_tables")){
+            ResultSet result = statement.executeQuery();
+            while (result.next()){
+                String schemaName = result.getString(1);
+                String tableName = result.getString(2);
+                TableId tableId = new TableId(catalogName, schemaName, tableName);
+                tableIds.add(tableId);
+            }
+        }
+        return tableIds;
+        // this very slow approach(commented out), it took 30 minutes on an instance with 600 tables
+        //return jdbcConnection.readTableNames(ctx.catalogName, null, null, new String[] {"TABLE"} );
     }
 
     @Override
@@ -114,7 +126,8 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
         Optional<Long> latestTableDdlScn = Optional.empty();
         try {
             latestTableDdlScn = getLatestTableDdlScn(ctx);
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             // this may happen if the DDL is older than the retention policy and no corresponding SCN could be found
             LOGGER.warn("No snapshot found based on specified time");
         }
@@ -125,26 +138,14 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
         // SCN of "now" represents the same timestamp as a newly created table that should be captured; in that case
         // we'd get a ORA-01466 when running the flashback query for doing the snapshot
         do {
-            currentScn = getCurrentScn(ctx);
+            currentScn = LogMinerHelper.getCurrentScn(jdbcConnection.connection());
         }
         while(areSameTimestamp(latestTableDdlScn.orElse(null), currentScn));
 
         ctx.offset = OracleOffsetContext.create()
-                .logicalName(connectorConfig.getLogicalName())
+                .logicalName(connectorConfig)
                 .scn(currentScn)
                 .build();
-    }
-
-    private long getCurrentScn(SnapshotContext ctx) throws SQLException {
-        try(Statement statement = jdbcConnection.connection().createStatement();
-                ResultSet rs = statement.executeQuery("select CURRENT_SCN from V$DATABASE")) {
-
-            if (!rs.next()) {
-                throw new IllegalStateException("Couldn't get SCN");
-            }
-
-            return rs.getLong(1);
-        }
     }
 
     /**
@@ -179,7 +180,7 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
             lastDdlScnQuery.append(" (owner = '" + table.schema() + "' AND object_name = '" + table.table() + "') OR");
         }
 
-        String query = lastDdlScnQuery.substring(0, lastDdlScnQuery.length() - 3).toString();
+        String query = lastDdlScnQuery.substring(0, lastDdlScnQuery.length() - 3);
         try(Statement statement = jdbcConnection.connection().createStatement();
                 ResultSet rs = statement.executeQuery(query)) {
 
@@ -240,9 +241,10 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
     }
 
     @Override
-    protected ChangeRecordEmitter getChangeRecordEmitter(SnapshotContext snapshotContext, Object[] row) {
+    protected ChangeRecordEmitter getChangeRecordEmitter(SnapshotContext snapshotContext, TableId tableId, Object[] row) {
         // TODO can this be done in a better way than doing it as a side-effect here?
         ((OracleOffsetContext) snapshotContext.offset).setSourceTime(Instant.ofEpochMilli(clock.currentTimeInMillis()));
+        ((OracleOffsetContext) snapshotContext.offset).setTableId(tableId);
         return new SnapshotChangeRecordEmitter(snapshotContext.offset, row, clock);
     }
 

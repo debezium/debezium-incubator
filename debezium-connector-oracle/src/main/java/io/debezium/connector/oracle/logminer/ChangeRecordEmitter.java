@@ -6,23 +6,29 @@
 package io.debezium.connector.oracle.logminer;
 
 import io.debezium.connector.oracle.BaseChangeRecordEmitter;
-import io.debezium.connector.oracle.logminer.valueholder.LmColumnValue;
-import io.debezium.connector.oracle.logminer.valueholder.LmRowLCR;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerColumnValue;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcr;
 import io.debezium.data.Envelope.Operation;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.relational.Table;
 import io.debezium.util.Clock;
 
+import java.util.Arrays;
+import java.util.List;
+
 /**
- * Emits change record based on a single {@link LmRowLCR} event.
+ * Emits change record based on a single {@link LogMinerRowLcr} event.
  */
-public class ChangeRecordEmitter extends BaseChangeRecordEmitter<LmColumnValue> {
+public class ChangeRecordEmitter extends BaseChangeRecordEmitter<LogMinerColumnValue> {
 
-    private LmRowLCR lcr;
+    private LogMinerRowLcr lcr;
+    protected final Table table;
 
-    public ChangeRecordEmitter(OffsetContext offset, LmRowLCR lcr, Table table, Clock clock) {
+
+    public ChangeRecordEmitter(OffsetContext offset, LogMinerRowLcr lcr, Table table, Clock clock) {
         super(offset, table, clock);
         this.lcr = lcr;
+        this.table = table;
     }
 
     @Override
@@ -32,21 +38,24 @@ public class ChangeRecordEmitter extends BaseChangeRecordEmitter<LmColumnValue> 
 
     @Override
     protected Object[] getOldColumnValues() {
-        return getColumnValues((LmColumnValue[]) lcr.getOldValues().toArray());
+        List<LogMinerColumnValue> valueList =  lcr.getOldValues();
+        LogMinerColumnValue[] result = Arrays.copyOf(valueList.toArray(), valueList.size(), LogMinerColumnValue[].class );
+        return getColumnValues(result);
     }
 
     @Override
     protected Object[] getNewColumnValues() {
-        return getColumnValues((LmColumnValue[]) lcr.getNewValues().toArray());
+        List<LogMinerColumnValue> valueList =  lcr.getNewValues();
+        LogMinerColumnValue[] result = Arrays.copyOf(valueList.toArray(), valueList.size(), LogMinerColumnValue[].class );
+        return getColumnValues(result);
     }
 
     @Override
-    protected String getColumnName(LmColumnValue columnValue) {
+    protected String getColumnName(LogMinerColumnValue columnValue) {
         return columnValue.getColumnName();
     }
 
-    @Override
-    protected Object getColumnData(LmColumnValue columnValue) {
+    protected Object getColumnData(LogMinerColumnValue columnValue) {
         return columnValue.getColumnData();
     }
 }

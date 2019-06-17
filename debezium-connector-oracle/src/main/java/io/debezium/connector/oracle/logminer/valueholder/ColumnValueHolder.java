@@ -6,7 +6,7 @@
 package io.debezium.connector.oracle.logminer.valueholder;
 
 /**
- * This class is a wrapper class which holds LmColumnValue
+ * This class is a wrapper class which holds LogMinerColumnValue
  * and the indicator if the column was processed by a parser listener.
  * The "processed" is "true" means a listener has parsed a value.
  * The "false" value means the this value was not parsed yet
@@ -16,13 +16,13 @@ package io.debezium.connector.oracle.logminer.valueholder;
 public class ColumnValueHolder {
 
     private boolean processed;
-    private final LmColumnValue columnValue;
+    private final LogMinerColumnValue columnValue;
 
-    public ColumnValueHolder(LmColumnValue columnValue) {
+    public ColumnValueHolder(LogMinerColumnValue columnValue) {
         this.columnValue = columnValue;
     }
 
-    public LmColumnValue getColumnValue() {
+    public LogMinerColumnValue getColumnValue() {
         return columnValue;
     }
 

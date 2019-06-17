@@ -21,7 +21,7 @@ abstract class BaseDmlStringParserListener extends BaseDmlParserListener<String>
 
     /**
      * Logical expressions are trees and (column name, value) pairs are nested in this tree.
-     * This methods extracts those pairs and store them in List<columnValue> oldValues
+     * This methods extracts those pairs and store them in List<LogMinerColumnValue> oldValues
      * This method is used by VALUES parsers of update and delete statements.
      *
      * @param logicalExpression expression tree
@@ -32,15 +32,22 @@ abstract class BaseDmlStringParserListener extends BaseDmlParserListener<String>
         if (count == 0){
 
             String name = logicalExpression.getStart().getText().toUpperCase();
+            String stripedName = ParserListenerUtils.stripeQuotes(name);
 
-            Column column = table.columnWithName(name);
-            String value = logicalExpression.getStop().getText();
+            Column column = table.columnWithName(stripedName);
+            String value = logicalExpression.getText().substring(name.length() + 1);
+            String nullValue = logicalExpression.getStop().getText();
+            if ("null".equalsIgnoreCase(nullValue)) {
+                value = nullValue;
+            }
             value = removeApostrophes(value);
-            Object valueObject = convertValueToSchemaType(column, value, converters, preConverter);
 
-            ColumnValueHolder columnValueHolder = oldColumnValues.get(name);
-            columnValueHolder.setProcessed(true);
-            columnValueHolder.getColumnValue().setColumnData(valueObject);
+            ColumnValueHolder columnValueHolder = oldColumnValues.get(stripedName);
+            if (columnValueHolder != null) { //todo this happens for ROWID pseudo column. Figure it out
+                Object valueObject = convertValueToSchemaType(column, value, converters, preConverter);
+                columnValueHolder.setProcessed(true);
+                columnValueHolder.getColumnValue().setColumnData(valueObject);
+            }
 
         }
         for (int i = 0; i<count; i++) {

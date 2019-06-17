@@ -5,17 +5,14 @@
  */
 package io.debezium.connector.oracle;
 
-import io.debezium.connector.oracle.xstream.LcrPosition;
-import io.debezium.connector.oracle.xstream.OracleVersion;
-import org.apache.kafka.common.config.ConfigDef;
-import org.apache.kafka.common.config.ConfigDef.Importance;
-import org.apache.kafka.common.config.ConfigDef.Type;
-import org.apache.kafka.common.config.ConfigDef.Width;
-
 import io.debezium.config.CommonConnectorConfig;
 import io.debezium.config.Configuration;
 import io.debezium.config.EnumeratedValue;
 import io.debezium.config.Field;
+import io.debezium.connector.AbstractSourceInfo;
+import io.debezium.connector.SourceInfoStructMaker;
+import io.debezium.connector.oracle.xstream.LcrPosition;
+import io.debezium.connector.oracle.xstream.OracleVersion;
 import io.debezium.document.Document;
 import io.debezium.heartbeat.Heartbeat;
 import io.debezium.jdbc.JdbcConfiguration;
@@ -25,6 +22,12 @@ import io.debezium.relational.TableId;
 import io.debezium.relational.Tables.TableFilter;
 import io.debezium.relational.history.HistoryRecordComparator;
 import io.debezium.relational.history.KafkaDatabaseHistory;
+import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigDef.Importance;
+import org.apache.kafka.common.config.ConfigDef.Type;
+import org.apache.kafka.common.config.ConfigDef.Width;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Connector configuration for Oracle.
@@ -37,6 +40,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
     // TODO pull up to RelationalConnectorConfig
     public static final String DATABASE_CONFIG_PREFIX = "database.";
     private static final int DEFAULT_ROWS_FETCH_SIZE = 2000;
+    private static final Logger LOGGER = LoggerFactory.getLogger(OracleConnectorConfig.class);
 
     public static final Field DATABASE_NAME = Field.create(DATABASE_CONFIG_PREFIX + JdbcConfiguration.DATABASE)
             .withDisplayName("Database name")
@@ -54,6 +58,14 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             .withImportance(Importance.HIGH)
             .withDescription("Name of the pluggable database when working with a multi-tenant set-up. "
                     + "The CDB name must be given via " + DATABASE_NAME.name() + " in this case.");
+
+
+    public static final Field SCHEMA_NAME = Field.create(DATABASE_CONFIG_PREFIX + "schema")
+            .withDisplayName("Schema name")
+            .withType(Type.STRING)
+            .withWidth(Width.MEDIUM)
+            .withImportance(Importance.HIGH)
+            .withDescription("Name of the connection user to the database ");
 
     public static final Field XSTREAM_SERVER_NAME = Field.create(DATABASE_CONFIG_PREFIX + "out.server.name")
             .withDisplayName("XStream out server name")
@@ -123,7 +135,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             Heartbeat.HEARTBEAT_TOPICS_PREFIX,
             TABLENAME_CASE_INSENSITIVE,
             ORACLE_VERSION,
-            ROWS_FETCH_SIZE,
+            SCHEMA_NAME,
             CONNECTOR_ADAPTER
     );
 
@@ -134,6 +146,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
 
     private final boolean tablenameCaseInsensitive;
     private final OracleVersion oracleVersion;
+    private final String schemaName;
 
     public OracleConnectorConfig(Configuration config) {
         super(config, config.getString(RelationalDatabaseConnectorConfig.SERVER_NAME), new SystemTablesPredicate());
@@ -144,6 +157,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         this.snapshotMode = SnapshotMode.parse(config.getString(SNAPSHOT_MODE));
         this.tablenameCaseInsensitive = config.getBoolean(TABLENAME_CASE_INSENSITIVE);
         this.oracleVersion = OracleVersion.parse(config.getString(ORACLE_VERSION));
+        this.schemaName = config.getString(SCHEMA_NAME);
     }
 
     public static ConfigDef configDef() {
@@ -189,11 +203,16 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         return oracleVersion;
     }
 
+    public String getSchemaName(){
+        return schemaName;
+    }
+
     @Override
     protected HistoryRecordComparator getHistoryRecordComparator() {
         return new HistoryRecordComparator() {
             @Override
             protected boolean isPositionAtOrBefore(Document recorded, Document desired) {
+                LOGGER.warn("temporary logging: we are trying to compare LCR position in the history"); // todo
                 final LcrPosition recordedPosition = LcrPosition.valueOf(recorded.getString(SourceInfo.LCR_POSITION_KEY));
                 final LcrPosition desiredPosition = LcrPosition.valueOf(desired.getString(SourceInfo.LCR_POSITION_KEY));
                 final Long recordedScn = recordedPosition != null ? recordedPosition.getScn() : recorded.getLong(SourceInfo.SCN_KEY);
@@ -362,5 +381,10 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
                     !t.schema().toLowerCase().equals("wmsys") &&
                     !t.schema().toLowerCase().equals("xdb");
         }
+    }
+
+    @Override
+    protected SourceInfoStructMaker<? extends AbstractSourceInfo> getSourceInfoStructMaker(Version version) {
+        return new OracleSourceInfoStructMaker(Module.name(), Module.version(), this);
     }
 }

@@ -21,14 +21,20 @@ class ParserListenerUtils {
      */
     static String getTableName(final PlSqlParser.Tableview_nameContext tableview_name) {
         if (tableview_name.id_expression() != null) {
-            return tableview_name.id_expression().getText();
+            return stripeQuotes(tableview_name.id_expression().getText());
         } else {
-            return tableview_name.identifier().id_expression().getText();
+            return stripeQuotes(tableview_name.identifier().id_expression().getText());
         }
     }
 
     public static String getColumnName(final PlSqlParser.Column_nameContext ctx) {
-        return ctx.identifier().id_expression().getText();
+        return stripeQuotes(ctx.identifier().id_expression().getText());
     }
 
+    static String stripeQuotes(String text){
+        if (text != null && text.indexOf("\"") == 0 && text.lastIndexOf("\"") == text.length()-1){
+            return text.substring(1, text.length() -1);
+        }
+        return text;
+    }
 }

@@ -13,21 +13,17 @@ import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.history.FileDatabaseHistory;
 import io.debezium.util.Testing;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.sql.SQLException;
 
 public class TestHelper {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TestHelper.class);
-
     public static final Path DB_HISTORY_PATH = Testing.Files.createTestingPath("file-db-history-connect.txt").toAbsolutePath();
 
     public static final String CONNECTOR_USER = "c##xstrm";
 
-    private static JdbcConfiguration defaultJdbcConfig() {
+    public static JdbcConfiguration defaultJdbcConfig() {
         return JdbcConfiguration.copy(Configuration.fromSystemProperties("database."))
                 .withDefault(JdbcConfiguration.HOSTNAME, "localhost")
                 .withDefault(JdbcConfiguration.PORT, 1521)
@@ -53,6 +49,7 @@ public class TestHelper {
                 .with(OracleConnectorConfig.PDB_NAME, "ORCLPDB1")
                 .with(OracleConnectorConfig.XSTREAM_SERVER_NAME, "dbzxout")
                 .with(OracleConnectorConfig.DATABASE_HISTORY, FileDatabaseHistory.class)
+                .with(OracleConnectorConfig.SCHEMA_NAME, "DEBEZIUM")
                 .with(FileDatabaseHistory.FILE_PATH, DB_HISTORY_PATH);
     }
 
@@ -60,7 +57,7 @@ public class TestHelper {
         Configuration config = defaultConfig().build();
         Configuration jdbcConfig = config.subset("database.", true);
 
-        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory(config));
+        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
 
         String pdbName = new OracleConnectorConfig(config).getPdbName();
 
@@ -69,6 +66,18 @@ public class TestHelper {
         }
 
         return jdbcConnection;
+    }
+
+    /**
+     * Database level connection.
+     * this is PDB level connector with LogMiner adapter
+     * @return OracleConnection
+     */
+    public static OracleConnection logMinerPdbConnection() {
+        Configuration jdbcConfig = testJdbcConfig().edit()
+                .with(OracleConnectorConfig.CONNECTOR_ADAPTER, "LogMiner")
+                .build();
+        return new OracleConnection(jdbcConfig, new OracleConnectionFactory());
     }
 
     /**
@@ -97,7 +106,7 @@ public class TestHelper {
                 .build();
     }
 
-    private static Configuration.Builder testConfig() {
+    public static Configuration.Builder testConfig() {
         JdbcConfiguration jdbcConfiguration = testJdbcConfig();
         Configuration.Builder builder = Configuration.create();
 
@@ -123,7 +132,7 @@ public class TestHelper {
         Configuration config = testConfig().build();
         Configuration jdbcConfig = config.subset("database.", true);
 
-        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory(config));
+        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
         try {
             jdbcConnection.setAutoCommit(false);
         }
@@ -144,7 +153,7 @@ public class TestHelper {
         Configuration config = adminConfig().build();
         Configuration jdbcConfig = config.subset("database.", true);
 
-        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory(config));
+        OracleConnection jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
         try {
             jdbcConnection.setAutoCommit(false);
         }

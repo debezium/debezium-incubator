@@ -6,7 +6,7 @@
 package io.debezium.connector.oracle.antlr.listener;
 
 import io.debezium.connector.oracle.logminer.valueholder.ColumnValueHolder;
-import io.debezium.connector.oracle.logminer.valueholder.LmDefaultColumnValue;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerDefaultColumnValue;
 import io.debezium.connector.oracle.OracleValueConverters;
 import io.debezium.connector.oracle.OracleValuePreConverter;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
@@ -56,7 +56,7 @@ abstract class BaseDmlParserListener<T> extends PlSqlParserBaseListener {
      */
     void init(PlSqlParser.Dml_table_expression_clauseContext ctx) {
         String tableName  = getTableName(ctx.tableview_name());
-        table = parser.databaseTables().forTable(catalogName, schemaName, stripeQuotes(tableName));
+        table = parser.databaseTables().forTable(catalogName, schemaName, tableName);
         if (table == null) {
             throw new ParsingException(null, "Trying to parse a table, which does not exist.");
         }
@@ -64,9 +64,9 @@ abstract class BaseDmlParserListener<T> extends PlSqlParserBaseListener {
             Column column = table.columns().get(i);
             int type = column.jdbcType();
             T key = getKey(column, i);
-            String name = column.name().toUpperCase();
-            newColumnValues.put(key, new ColumnValueHolder(new LmDefaultColumnValue(name, type)));
-            oldColumnValues.put(key, new ColumnValueHolder(new LmDefaultColumnValue(name, type)));
+            String name = stripeQuotes(column.name().toUpperCase());
+            newColumnValues.put(key, new ColumnValueHolder(new LogMinerDefaultColumnValue(name, type)));
+            oldColumnValues.put(key, new ColumnValueHolder(new LogMinerDefaultColumnValue(name, type)));
         }
     }
 

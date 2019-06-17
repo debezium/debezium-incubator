@@ -118,6 +118,13 @@ public class OracleValuePreConverter { // todo this is a clone of MySqlDefaultVa
             value = EPOCH_TIMESTAMP;
         }
 
+        // todo make it better, get rid of unused methods and merge with converter
+        String dateText;
+        if (value.toLowerCase().startsWith("to_timestamp")) {
+            dateText = value.substring("to_timestamp".length()+2, value.length()-2);
+            return LocalDateTime.from(timestampFormat(column.length()).parse(dateText.trim()));
+        }
+
         return LocalDateTime.from(timestampFormat(column.length()).parse(value.trim()));
     }
 
@@ -151,26 +158,6 @@ public class OracleValuePreConverter { // todo this is a clone of MySqlDefaultVa
      */
     private Object convertToDuration(Column column, String value) {
         return Duration.between(LocalTime.MIN, LocalTime.from(timeFormat(column.length()).parse(value)));
-    }
-
-    /**
-     * Converts a string object for an expected JDBC type of {@link Types#INTEGER}.
-     *
-     * @param value the string object to be converted into a {@link Types#INTEGER} type;
-     * @return the converted value;
-     */
-    private Object convertToInteger(String value) {
-        return Integer.valueOf(value);
-    }
-
-    /**
-     * Converts a string object for an expected JDBC type of {@link Types#INTEGER}.
-     *
-     * @param value the string object to be converted into a {@link Types#INTEGER} type;
-     * @return the converted value;
-     */
-    private Object convertToBigInt(String value) {
-        return Long.valueOf(value);
     }
 
     /**
@@ -228,16 +215,6 @@ public class OracleValuePreConverter { // todo this is a clone of MySqlDefaultVa
     }
 
     /**
-     * Converts a string object for an expected JDBC type of {@link Types#SMALLINT}.
-     *
-     * @param value the string object to be converted into a {@link Types#SMALLINT} type;
-     * @return the converted value;
-     */
-    private Object convertToSmallInt(String value) {
-        return Short.valueOf(value);
-    }
-
-    /**
      * Converts a string object for an expected JDBC type of {@link Types#BOOLEAN}.
      * @param value the string object to be converted into a {@link Types#BOOLEAN} type;
      *
@@ -261,8 +238,8 @@ public class OracleValuePreConverter { // todo this is a clone of MySqlDefaultVa
     }
 
     private DateTimeFormatter timestampFormat(int length) {
-        final DateTimeFormatterBuilder dtf = new DateTimeFormatterBuilder()
-                .appendPattern("yyyy-MM-dd HH:mm:ss");
+        final DateTimeFormatterBuilder dtf = new DateTimeFormatterBuilder().parseCaseInsensitive()
+                .appendPattern("dd-MMM-yy hh.mm.ss.SSSSSS a");
         if (length !=-1) {
             dtf.appendFraction(ChronoField.MICRO_OF_SECOND, 0, length, true);
         }

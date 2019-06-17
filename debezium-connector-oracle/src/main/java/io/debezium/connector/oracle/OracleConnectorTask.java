@@ -39,7 +39,7 @@ public class OracleConnectorTask extends BaseSourceTask {
         RUNNING, STOPPED
     }
 
-    private final AtomicReference<State> state = new AtomicReference<State>(State.STOPPED);
+    private final AtomicReference<State> state = new AtomicReference<>(State.STOPPED);
 
     private volatile OracleTaskContext taskContext;
     private volatile ChangeEventQueue<DataChangeEvent> queue;
@@ -66,11 +66,11 @@ public class OracleConnectorTask extends BaseSourceTask {
         SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create(LOGGER);
 
         Configuration jdbcConfig = config.subset("database.", true);
-        jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory(config));
+        jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
         this.schema = new OracleDatabaseSchema(connectorConfig, schemaNameAdjuster, topicSelector, jdbcConnection);
         this.schema.initializeStorage();
 
-        OffsetContext previousOffset = getPreviousOffset(new OracleOffsetContext.Loader(connectorConfig.getLogicalName()));
+        OffsetContext previousOffset = getPreviousOffset(new OracleOffsetContext.Loader(connectorConfig));
         if (previousOffset != null) {
             schema.recover(previousOffset);
         }

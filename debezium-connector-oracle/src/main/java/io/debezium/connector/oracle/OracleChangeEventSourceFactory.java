@@ -6,6 +6,8 @@
 package io.debezium.connector.oracle;
 
 import io.debezium.config.Configuration;
+import io.debezium.connector.oracle.logminer.LogMinerStreamingChangeEventSource;
+import io.debezium.connector.oracle.xstream.XstreamStreamingChangeEventSource;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.ChangeEventSourceFactory;
@@ -51,7 +53,7 @@ public class OracleChangeEventSourceFactory implements ChangeEventSourceFactory 
         OracleConnectorConfig.ConnectorAdapter adapter  =
                 OracleConnectorConfig.ConnectorAdapter.parse(config.getString(CONNECTOR_ADAPTER));
         if (adapter == OracleConnectorConfig.ConnectorAdapter.XSTREAM) {
-            return new io.debezium.connector.oracle.xstream.OracleStreamingChangeEventSource(
+            return new XstreamStreamingChangeEventSource(
                     configuration,
                     (OracleOffsetContext) offsetContext,
                     jdbcConnection,
@@ -61,12 +63,11 @@ public class OracleChangeEventSourceFactory implements ChangeEventSourceFactory 
                     schema
             );
         }
-        return new io.debezium.connector.oracle.logminer.OracleStreamingChangeEventSource(
+        return new LogMinerStreamingChangeEventSource(
                 configuration,
                 (OracleOffsetContext) offsetContext,
                 jdbcConnection,
                 dispatcher,
-                errorHandler,
                 clock,
                 schema
         );

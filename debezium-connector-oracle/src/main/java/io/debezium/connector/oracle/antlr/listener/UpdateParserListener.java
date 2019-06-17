@@ -7,9 +7,9 @@ package io.debezium.connector.oracle.antlr.listener;
 
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
 import io.debezium.connector.oracle.logminer.valueholder.ColumnValueHolder;
-import io.debezium.connector.oracle.logminer.valueholder.LmColumnValue;
-import io.debezium.connector.oracle.logminer.valueholder.LmDefaultRowLCR;
-import io.debezium.connector.oracle.logminer.valueholder.LmRowLCR;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerColumnValue;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerDefaultRowLcr;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcr;
 import io.debezium.data.Envelope;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
 import io.debezium.relational.Column;
@@ -23,13 +23,13 @@ import static io.debezium.antlr.AntlrDdlParser.getText;
 /**
  * This class parses UPDATE statements.
  * on the original query:
- * update debezium set test = '7' where test1 = '6' (we have 3 records with such value)
+ * update debezium set test = '7' where test1 = '6' (let's assume we have 3 records with such value)
  *
  * logMiner with supply:
  *
- * update "debezium" set "TEST" = '7' where "DUMMY" = '1' and "TEST" = '6' and "TEST1" = '1' and "TEST2" = '1'
- * update "debezium" set "TEST" = '7' where "DUMMY" = '2' and "TEST" = '6' and "TEST1" = '1' and "TEST2" = '1'
- * update "debezium" set "TEST" = '7' where "DUMMY" = '3' and "TEST" = '6' and "TEST1" = '1' and "TEST2" = '1'
+ * update "debezium" set "TEST" = '7' where "DUMMY" = '1' and "TEST" = '2' and "TEST1" = '6' and "TEST2" = '1'
+ * update "debezium" set "TEST" = '7' where "DUMMY" = '2' and "TEST" = '2' and "TEST1" = '6' and "TEST2" = '1'
+ * update "debezium" set "TEST" = '7' where "DUMMY" = '3' and "TEST" = '2' and "TEST1" = '6' and "TEST2" = '1'
  *
  */
 public class UpdateParserListener extends BaseDmlStringParserListener {
@@ -57,13 +57,18 @@ public class UpdateParserListener extends BaseDmlStringParserListener {
                     "Statement: " + getText(ctx));
         }
         String columnName = ctx.column_name().getText().toUpperCase();
-        String value = ctx.expression().getStop().getText();
+        String stripedName = ParserListenerUtils.stripeQuotes(columnName);
+        String value = ctx.getText().substring(columnName.length() + 1);
+        String nullValue = ctx.expression().getStop().getText();
+        if ("null".equalsIgnoreCase(nullValue)) {
+            value = nullValue;
+        }
         value = removeApostrophes(value);
 
-        Column column = table.columnWithName(columnName);
+        Column column = table.columnWithName(stripedName);
         Object valueObject = convertValueToSchemaType(column, value, converters, preConverter);
 
-        ColumnValueHolder columnValueHolder = newColumnValues.get(columnName);
+        ColumnValueHolder columnValueHolder = newColumnValues.get(stripedName);
         columnValueHolder.setProcessed(true);
         columnValueHolder.getColumnValue().setColumnData(valueObject);
 
@@ -72,12 +77,12 @@ public class UpdateParserListener extends BaseDmlStringParserListener {
 
     @Override
     public void exitUpdate_statement(PlSqlParser.Update_statementContext ctx) {
-        List<LmColumnValue> actualNewValues = newColumnValues.values().stream()
+        List<LogMinerColumnValue> actualNewValues = newColumnValues.values().stream()
                 .filter(ColumnValueHolder::isProcessed).map(ColumnValueHolder::getColumnValue).collect(Collectors.toList());
-        List<LmColumnValue> actualOldValues = oldColumnValues.values().stream()
+        List<LogMinerColumnValue> actualOldValues = oldColumnValues.values().stream()
                 .filter(ColumnValueHolder::isProcessed).map(ColumnValueHolder::getColumnValue).collect(Collectors.toList());
-        LmRowLCR newRecord = new LmDefaultRowLCR(Envelope.Operation.UPDATE, actualNewValues, actualOldValues);
-        parser.setRowLCR(newRecord);// todo, what is the way to emit it?
+        LogMinerRowLcr newRecord = new LogMinerDefaultRowLcr(Envelope.Operation.UPDATE, actualNewValues, actualOldValues);
+        parser.setRowLCR(newRecord);
         super.exitUpdate_statement(ctx);
     }
 }

@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
  */
 class LcrEventHandler implements XStreamLCRCallbackHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(OracleStreamingChangeEventSource.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(XstreamStreamingChangeEventSource.class);
 
     private final ErrorHandler errorHandler;
     private final EventDispatcher<TableId> dispatcher;
