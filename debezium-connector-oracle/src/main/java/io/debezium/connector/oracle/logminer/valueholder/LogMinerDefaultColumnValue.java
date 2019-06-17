@@ -9,13 +9,13 @@ package io.debezium.connector.oracle.logminer.valueholder;
  * This class mimics the API of oracle.streams.DefaultColumnValue implementation of oracle.streams.ColumnValue interface
  *
  */
-public class LmDefaultColumnValue implements LmColumnValue {
+public class LogMinerDefaultColumnValue implements LogMinerColumnValue {
 
     private String columnName;
     private Object columnData;
     private int columnType;
 
-    public LmDefaultColumnValue(String columnName, int columnType) {
+    public LogMinerDefaultColumnValue(String columnName, int columnType) {
         this.columnName = columnName;
         this.columnType = columnType;
     }

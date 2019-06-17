@@ -9,7 +9,8 @@ package io.debezium.connector.oracle.logminer.valueholder;
  * This interface mimics API of oracle.streams.ColumnValue interface
  * it does not cover LOB which should be handled in chunks
  */
-public interface LmColumnValue {
+public interface LogMinerColumnValue {
+
     /**
      * @return value of the database record
      * with exception of LOB types

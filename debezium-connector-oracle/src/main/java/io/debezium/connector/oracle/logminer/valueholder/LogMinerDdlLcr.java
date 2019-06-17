@@ -9,11 +9,11 @@ package io.debezium.connector.oracle.logminer.valueholder;
  * This class mimics some API of oracle.streams.DDLLCR interface
  *
  */
-public interface LmDDLLCR extends LmLCR {
+public interface LogMinerDdlLcr extends LogMinerLcr {
     /**
      * @return text of the DDL statement
      */
-    String getDDLText();
+    String getDdlText();
 
     /**
      * @return string such as "CREATE TABLE", "ALTER TABLE", "DROP TABLE"

@@ -12,24 +12,48 @@ import java.util.List;
  * This interface mimics the API of oracle.streams.RowLCR interface
  *
  */
-public interface LmRowLCR extends LmLCR {
+public interface LogMinerRowLcr extends LogMinerLcr {
     /**
      * This getter
      * @return old(current) values of the database record.
      * They represent values in WHERE clauses
      */
-    List<LmColumnValue> getOldValues();
+    List<LogMinerColumnValue> getOldValues();
 
     /**
      * this getter
      * @return new values to be applied to the database record
      * Those values are applicable for INSERT and UPDATE statements
      */
-    List<LmColumnValue> getNewValues();
+    List<LogMinerColumnValue> getNewValues();
 
     /**
      * this getter
      * @return Envelope.Operation enum
      */
     Envelope.Operation getCommandType();
+
+    /**
+     * the commit scn obtained from a Log Miner entry
+     * @return it's value
+     */
+    long getActualCommitScn();
+
+    /**
+     * sets commit scn obtained from a Log Miner entry
+     * @param actualCommitScn the value
+     */
+    void setActualCommitScn(long actualCommitScn);
+
+    /**
+     * the scn obtained from a Log Miner entry
+     * @return it's value
+     */
+    long getActualScn();
+
+    /**
+     * sets scn obtained from a Log Miner entry
+     * @param actualScn it's value
+     */
+    void setActualScn(long actualScn);
 }
