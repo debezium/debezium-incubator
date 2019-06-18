@@ -475,7 +475,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         // received from Postgres
         Configuration config = builder
                 .with(Heartbeat.HEARTBEAT_INTERVAL, "1")
-                .with(OracleConnectorConfig.TABLE_WHITELIST, "ORCLPDB\\.DEBEZIUM\\.DBZ800B")
+                .with(OracleConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.DBZ800B")
                 .build();
 
         start(OracleConnector.class, config);
