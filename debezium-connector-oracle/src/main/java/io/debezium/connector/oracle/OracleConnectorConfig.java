@@ -96,7 +96,10 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         .withDisplayName("Oracle version, 11 or 12+")
         .withEnum(OracleVersion.class, OracleVersion.V12Plus)
         .withImportance(Importance.LOW)
-        .withDescription("For default oracle 12+, use default pos_version value v2, for oracle 11, use pos_version value v1.");
+        .withDescription("For default Oracle 12+, use default pos_version value v2, for Oracle 11, use pos_version value v1.");
+
+    public static final Field SERVER_NAME = RelationalDatabaseConnectorConfig.SERVER_NAME
+            .withValidation(CommonConnectorConfig::validateServerNameIsDifferentFromHistoryTopicName);
 
     public static final Field CONNECTOR_ADAPTER = Field.create(DATABASE_CONFIG_PREFIX + "connection.adapter")
             .withDisplayName("Connector adapter")
@@ -118,7 +121,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
      * The set of {@link Field}s defined as part of this configuration.
      */
     public static Field.Set ALL_FIELDS = Field.setOf(
-            RelationalDatabaseConnectorConfig.SERVER_NAME,
+            SERVER_NAME,
             DATABASE_NAME,
             PDB_NAME,
             XSTREAM_SERVER_NAME,
@@ -149,7 +152,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
     private final String schemaName;
 
     public OracleConnectorConfig(Configuration config) {
-        super(config, config.getString(RelationalDatabaseConnectorConfig.SERVER_NAME), new SystemTablesPredicate());
+        super(config, config.getString(SERVER_NAME), new SystemTablesPredicate());
 
         this.databaseName = config.getString(DATABASE_NAME);
         this.pdbName = config.getString(PDB_NAME);
@@ -165,6 +168,8 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
 
         Field.group(config, "Oracle", RelationalDatabaseConnectorConfig.SERVER_NAME, DATABASE_NAME, PDB_NAME,
                 XSTREAM_SERVER_NAME, SNAPSHOT_MODE, CONNECTOR_ADAPTER);
+        Field.group(config, "Oracle", SERVER_NAME, DATABASE_NAME, PDB_NAME,
+                XSTREAM_SERVER_NAME, SNAPSHOT_MODE);
         Field.group(config, "History Storage", KafkaDatabaseHistory.BOOTSTRAP_SERVERS,
                 KafkaDatabaseHistory.TOPIC, KafkaDatabaseHistory.RECOVERY_POLL_ATTEMPTS,
                 KafkaDatabaseHistory.RECOVERY_POLL_INTERVAL_MS, HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY);
@@ -212,7 +217,6 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         return new HistoryRecordComparator() {
             @Override
             protected boolean isPositionAtOrBefore(Document recorded, Document desired) {
-                LOGGER.warn("temporary logging: we are trying to compare LCR position in the history"); // todo
                 final LcrPosition recordedPosition = LcrPosition.valueOf(recorded.getString(SourceInfo.LCR_POSITION_KEY));
                 final LcrPosition desiredPosition = LcrPosition.valueOf(desired.getString(SourceInfo.LCR_POSITION_KEY));
                 final Long recordedScn = recordedPosition != null ? recordedPosition.getScn() : recorded.getLong(SourceInfo.SCN_KEY);

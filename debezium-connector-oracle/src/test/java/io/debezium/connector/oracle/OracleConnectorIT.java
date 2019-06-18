@@ -102,7 +102,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         assertThat(record1.sourceOffset().get(SNAPSHOT_COMPLETED_KEY)).isEqualTo(false);
 
         Struct source = (Struct) ((Struct) record1.value()).get("source");
-        assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo(true);
+        assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo("true");
 
         SourceRecord record2 = testTableRecords.get(1);
         VerifyRecord.isValidRead(record2, "ID", 2);
@@ -116,7 +116,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         assertThat(record2.sourceOffset().get(SNAPSHOT_COMPLETED_KEY)).isEqualTo(true);
 
         source = (Struct) ((Struct) record2.value()).get("source");
-        assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo(true);
+        assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo("last");
     }
 
     public void shouldContinueWithStreamingAfterSnapshot() throws Exception {
@@ -141,7 +141,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         assertThat(after.get("ID")).isEqualTo(1);
 
         Struct source = (Struct) ((Struct) record1.value()).get("source");
-        assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo(true);
+        assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo("true");
         assertThat(source.get(SourceInfo.SCN_KEY)).isNotNull();
         assertThat(source.get(SourceInfo.SERVER_NAME_KEY)).isEqualTo("server1");
         assertThat(source.get(SourceInfo.DEBEZIUM_VERSION_KEY)).isNotNull();
@@ -177,7 +177,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         assertThat(record3.sourceOffset().containsKey(SNAPSHOT_COMPLETED_KEY)).isFalse();
 
         source = (Struct) ((Struct) record3.value()).get("source");
-        assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo(false);
+        assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo("false");
         assertThat(source.get(SourceInfo.SCN_KEY)).isNotNull();
         assertThat(source.get(SourceInfo.SERVER_NAME_KEY)).isEqualTo("server1");
         assertThat(source.get(SourceInfo.DEBEZIUM_VERSION_KEY)).isNotNull();
@@ -209,7 +209,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         assertThat(after.get("ID")).isEqualTo(1);
 
         Struct source = (Struct) ((Struct) record1.value()).get("source");
-        assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo(true);
+        assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo("true");
         assertThat(source.get(SourceInfo.SCN_KEY)).isNotNull();
         assertThat(source.get(SourceInfo.SERVER_NAME_KEY)).isEqualTo("server1");
         assertThat(source.get(SourceInfo.DEBEZIUM_VERSION_KEY)).isNotNull();
@@ -263,7 +263,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
             assertThat(record3.sourceOffset().containsKey(SourceInfo.SCN_KEY)).isFalse();
 
             source = (Struct) ((Struct) record3.value()).get("source");
-            assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo(false);
+            assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo("false");
             assertThat(source.get(SourceInfo.SCN_KEY)).isNotNull();
             assertThat(source.get(SourceInfo.LCR_POSITION_KEY)).isNotNull();
             assertThat(source.get(SourceInfo.SERVER_NAME_KEY)).isEqualTo("server1");
@@ -426,6 +426,48 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         assertThat(before.get("REGISTERED")).isEqualTo(toMicroSecondsSinceEpoch(LocalDateTime.of(2018, 3, 23, 0, 0, 0)));
 
         VerifyRecord.isValidTombstone(testTableRecords.get(6));
+    }
+
+    @FixFor("DBZ-835")
+    public void deleteWithoutTombstone() throws Exception {
+        Configuration config = TestHelper.defaultConfig()
+                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
+                .with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+                .with(OracleConnectorConfig.TOMBSTONES_ON_DELETE, false)
+                .build();
+
+        start(OracleConnector.class, config);
+        assertConnectorIsRunning();
+
+        Thread.sleep(1000);
+
+        int expectedRecordCount = 0;
+        connection.execute("INSERT INTO debezium.customer VALUES (1, 'Billie-Bob', 1234.56, TO_DATE('2018/02/22', 'yyyy-mm-dd'))");
+        connection.execute("COMMIT");
+        expectedRecordCount += 1;
+
+        connection.execute("DELETE debezium.customer WHERE id = 1");
+        connection.execute("COMMIT");
+        expectedRecordCount += 1; // deletion, no tombstone
+
+        connection.execute("INSERT INTO debezium.customer VALUES (2, 'Billie-Bob', 1234.56, TO_DATE('2018/02/22', 'yyyy-mm-dd'))");
+        connection.execute("COMMIT");
+        expectedRecordCount += 1;
+
+        SourceRecords records = consumeRecordsByTopic(expectedRecordCount);
+
+        List<SourceRecord> testTableRecords = records.recordsForTopic("server1.DEBEZIUM.CUSTOMER");
+        assertThat(testTableRecords).hasSize(expectedRecordCount);
+
+        // delete
+        VerifyRecord.isValidDelete(testTableRecords.get(1), "ID", 1);
+        final Struct before = ((Struct) testTableRecords.get(1).value()).getStruct("before");
+        assertThat(before.get("ID")).isEqualTo(1);
+        assertThat(before.get("NAME")).isEqualTo("Billie-Bob");
+        assertThat(before.get("SCORE")).isEqualTo(BigDecimal.valueOf(1234.56));
+        assertThat(before.get("REGISTERED")).isEqualTo(toMicroSecondsSinceEpoch(LocalDateTime.of(2018, 2, 22, 0, 0, 0)));
+
+        VerifyRecord.isValidInsert(testTableRecords.get(2), "ID", 2);
     }
 
     public void shouldReadChangeStreamForTableCreatedWhileStreaming() throws Exception {

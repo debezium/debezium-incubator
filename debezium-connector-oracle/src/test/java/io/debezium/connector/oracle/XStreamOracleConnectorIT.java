@@ -66,4 +66,9 @@ public class XStreamOracleConnectorIT extends OracleConnectorIT {
     public void shouldReceiveHeartbeatAlsoWhenChangingNonWhitelistedTable() throws Exception {
         super.shouldReceiveHeartbeatAlsoWhenChangingNonWhitelistedTable();
     }
+
+    @Test
+    public void deleteWithoutTombstone() throws Exception {
+        super.deleteWithoutTombstone();
+    }
 }
