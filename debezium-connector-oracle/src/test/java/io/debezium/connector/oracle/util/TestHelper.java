@@ -173,6 +173,17 @@ public class TestHelper {
         }
     }
 
+    public static void dropMaterializedView(OracleConnection connection, String view) {
+        try {
+            connection.execute("drop materialized view " + view);
+        }
+        catch (SQLException e) {
+            if (!e.getMessage().contains("table or view does not exist")) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     public static int defaultMessageConsumerPollTimeout() {
         return 120;
     }

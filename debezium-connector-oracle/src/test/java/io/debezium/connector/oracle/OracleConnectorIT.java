@@ -574,6 +574,48 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         VerifyRecord.isValidInsert(records.get(2), "ID", 2);
     }
 
+    @Test
+    @FixFor("DBZ-1345")
+    public void shouldNotSnapshotMaterializedViews() throws Exception {
+        TestHelper.dropMaterializedView(connection, "debezium.dbz1345mv");
+        TestHelper.dropTable(connection, "debezium.dbz1345");
+
+        // Create table and materialized view.
+        connection.execute("CREATE TABLE debezium.dbz1345 (id NUMBER(9) NOT NULL, aaa VARCHAR2(100), PRIMARY KEY (id) )");
+        connection.execute("INSERT INTO debezium.dbz1345 VALUES (1, 'AAA')");
+        connection.execute("INSERT INTO debezium.dbz1345 VALUES (2, 'BBB')");
+        connection.execute("CREATE MATERIALIZED VIEW debezium.dbz1345mv BUILD IMMEDIATE REFRESH FAST ON COMMIT AS SELECT id, aaa FROM debezium.dbz1345");
+        connection.execute("COMMIT");
+
+        // Start connector and begin snapshot
+        Configuration config = TestHelper.defaultConfig()
+                .with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+                .build();
+
+        // If materialized views get fetched with the snapshot, the connector won't start.
+        start(OracleConnector.class, config);
+        assertConnectorIsRunning();
+
+        Thread.sleep(1000);
+
+        SourceRecords records = consumeRecordsByTopic(2);
+
+        List<SourceRecord> testTableRecords = records.recordsForTopic("server1.DEBEZIUM.dbz1345");
+        assertThat(testTableRecords).hasSize(2);
+
+        // insert
+        VerifyRecord.isValidInsert(testTableRecords.get(0), "ID", 1);
+        Struct after = (Struct) ((Struct) testTableRecords.get(0).value()).get("after");
+        assertThat(after.get("ID")).isEqualTo(1);
+        assertThat(after.get("AAA")).isEqualTo("AAA");
+
+        // insert
+        VerifyRecord.isValidInsert(testTableRecords.get(1), "ID", 2);
+        after = (Struct) ((Struct) testTableRecords.get(0).value()).get("after");
+        assertThat(after.get("ID")).isEqualTo(1);
+        assertThat(after.get("AAA")).isEqualTo("BBB");
+    }
+
     private void verifyHeartbeatRecord(SourceRecord heartbeat) {
         assertEquals("__debezium-heartbeat.server1", heartbeat.topic());
 
