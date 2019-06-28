@@ -9,12 +9,13 @@ import io.debezium.data.Envelope;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This class mimics the API of oracle.streams.DefaultRowLCR class (LCR stands for logical change record)
  *
  */
-public class LogMinerDefaultRowLcr implements LogMinerRowLcr {
+public class LogMinerRowLcrImpl implements LogMinerRowLcr {
 
     private Envelope.Operation commandType;
     private List<LogMinerColumnValue> newLmColumnValues;
@@ -27,7 +28,7 @@ public class LogMinerDefaultRowLcr implements LogMinerRowLcr {
     private long actualCommitScn;
     private long actualScn;
 
-    public LogMinerDefaultRowLcr(Envelope.Operation commandType, List<LogMinerColumnValue> newLmColumnValues, List<LogMinerColumnValue> oldLmColumnValues) {
+    public LogMinerRowLcrImpl(Envelope.Operation commandType, List<LogMinerColumnValue> newLmColumnValues, List<LogMinerColumnValue> oldLmColumnValues) {
         this.commandType = commandType;
         this.newLmColumnValues = newLmColumnValues;
         this.oldLmColumnValues = oldLmColumnValues;
@@ -117,6 +118,35 @@ public class LogMinerDefaultRowLcr implements LogMinerRowLcr {
         this.actualScn = actualScn;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LogMinerRowLcrImpl that = (LogMinerRowLcrImpl) o;
+        return commandType == that.commandType &&
+                Objects.equals(newLmColumnValues, that.newLmColumnValues) &&
+                Objects.equals(oldLmColumnValues, that.oldLmColumnValues);
+    }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(commandType, newLmColumnValues, oldLmColumnValues);
+    }
+
+    @Override
+    public String toString() {
+        return "LogMinerRowLcrImpl{" +
+                "commandType=" + commandType +
+                ", newLmColumnValues=" + newLmColumnValues +
+                ", oldLmColumnValues=" + oldLmColumnValues +
+                ", objectOwner='" + objectOwner + '\'' +
+                ", objectName='" + objectName + '\'' +
+                ", sourceTime=" + sourceTime +
+                ", transactionId='" + transactionId + '\'' +
+                ", databaseName='" + databaseName + '\'' +
+                ", actualCommitScn=" + actualCommitScn +
+                ", actualScn=" + actualScn +
+                '}';
+    }
 }
 

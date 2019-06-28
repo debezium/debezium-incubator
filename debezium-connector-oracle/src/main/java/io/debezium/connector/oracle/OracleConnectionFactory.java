@@ -27,9 +27,8 @@ public class OracleConnectionFactory implements ConnectionFactory {
 
         OracleConnectorConfig oracleConnectorConfig = new OracleConnectorConfig(config);
         String adapterString = config.getString("connection.adapter");
-        OracleConnectorConfig.ConnectorAdapter adapter  = adapterString == null ?
-                OracleConnectorConfig.ConnectorAdapter.parse(config.getString(OracleConnectorConfig.CONNECTOR_ADAPTER)) :
-                OracleConnectorConfig.ConnectorAdapter.parse(adapterString);
+        adapterString =  adapterString == null ?  config.getString(OracleConnectorConfig.CONNECTOR_ADAPTER) : adapterString;
+        OracleConnectorConfig.ConnectorAdapter adapter = OracleConnectorConfig.ConnectorAdapter.parse(adapterString);
         if (adapter == OracleConnectorConfig.ConnectorAdapter.LOG_MINER) {
             driverType = "thin";
         }

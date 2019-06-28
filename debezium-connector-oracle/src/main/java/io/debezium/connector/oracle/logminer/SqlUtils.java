@@ -21,6 +21,12 @@ public class SqlUtils {
     static final String LATEST_SCN_FROM_ARCHIVED_LOG = "select max(NEXT_CHANGE#) from v$archived_log";
     static final String ALL_ARCHIVED_LOGS_NAMES_FOR_OFFSET = "select name as file_name, next_change# as next_change from v$archived_log where first_change# between ? and ? and status = 'A' and standby_dest='NO' order by next_change asc";
 
+    static final String NLS_SESSION_PARAMETERS = "ALTER SESSION SET "
+            + "  NLS_DATE_FORMAT = 'YYYY-MM-DD HH24:MI:SS'"
+            + "  NLS_TIMESTAMP_FORMAT = 'YYYY-MM-DD HH24:MI:SS.FF'"
+            + "  NLS_TIMESTAMP_TZ_FORMAT = 'YYYY-MM-DD HH24:MI:SS.FF TZH:TZM'"
+            + "  NLS_NUMERIC_CHARACTERS = '.,'";
+
     /**
      * This returns statement to build log miner view for online redo log files
      * @param startScn mine from
@@ -99,7 +105,7 @@ public class SqlUtils {
      */
     public static String queryLogMinerContents(String schemaName)  {
         return "SELECT SCN, COMMIT_SCN, OPERATION, USERNAME, SRC_CON_NAME, SQL_REDO, SEG_TYPE, " +
-                        "STATUS, OPERATION_CODE, TABLE_NAME, TIMESTAMP, COMMIT_TIMESTAMP, XID, XIDSQN " +
+                        "STATUS, OPERATION_CODE, TABLE_NAME, TIMESTAMP, COMMIT_TIMESTAMP, XID, XIDSQN, CSF " +
                         "FROM v$logmnr_contents " +
                         "WHERE " +
                         "username = '"+ schemaName.toUpperCase() +"' " +
@@ -108,7 +114,7 @@ public class SqlUtils {
                         "AND " +
                         "(commit_scn >= ? " +
                 " OR scn >= ?)"; // OR scn stands for DDL
-        // todo ROW_ID, CSF?
+        // todo ROW_ID?
     }
 
     /**

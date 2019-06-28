@@ -44,7 +44,7 @@ public class XStreamOracleConnectorIT extends OracleConnectorIT {
 
     @Test
     public void shouldStreamAfterRestart() throws Exception {
-        super.shouldStreamAfterRestart();
+        super.shouldStreamAfterRestart(0L);
     }
 
     @Test
@@ -54,7 +54,7 @@ public class XStreamOracleConnectorIT extends OracleConnectorIT {
 
     @Test
     public void shouldReadChangeStreamForExistingTable() throws Exception {
-        super.shouldReadChangeStreamForExistingTable();
+    super.shouldReadChangeStreamForExistingTable(1000L);
     }
 
     @Test

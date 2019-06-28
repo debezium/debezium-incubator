@@ -7,6 +7,7 @@ package io.debezium.connector.oracle;
 
 import io.debezium.connector.oracle.antlr.OracleDdlParser;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
+import io.debezium.connector.oracle.logminer.OracleChangeRecordValueConverter;
 import io.debezium.connector.oracle.logminer.valueholder.LogMinerColumnValue;
 import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcr;
 import io.debezium.data.Envelope;
@@ -39,12 +40,10 @@ public class OracleDmlParserTest {
 
     @Before
     public void setUp(){
-        OracleValueConverters converters = new OracleValueConverters(null);
-        OracleValuePreConverter preConverter = new OracleValuePreConverter();
+        OracleChangeRecordValueConverter converters = new OracleChangeRecordValueConverter(null);
 
         ddlParser = new OracleDdlParser(true, CATALOG_NAME, SCHEMA_NAME);
-        dmlParser = new OracleDmlParser(true, CATALOG_NAME, SCHEMA_NAME, converters,
-                preConverter);
+        dmlParser = new OracleDmlParser(true, CATALOG_NAME, SCHEMA_NAME, converters);
         tables = new Tables();
     }
 
@@ -65,7 +64,7 @@ public class OracleDmlParserTest {
 
         Iterator<LogMinerColumnValue> iterator = newValues.iterator();
         assertThat(iterator.next().getColumnData()).isEqualTo(new BigDecimal(5));
-        assertThat(iterator.next().getColumnData()).isEqualTo(BigDecimal.valueOf(400,2));
+        assertThat(iterator.next().getColumnData()).isEqualTo(BigDecimal.valueOf(4,0));
         assertThat(iterator.next().getColumnData()).isEqualTo("tExt");
         assertThat(iterator.next().getColumnData()).isEqualTo("text");
         assertThat(iterator.next().getColumnData()).isNull();
@@ -93,7 +92,7 @@ public class OracleDmlParserTest {
 
         iterator = oldValues.iterator();
         assertThat(iterator.next().getColumnData()).isEqualTo(new BigDecimal(6));
-        assertThat(iterator.next().getColumnData()).isEqualTo(BigDecimal.valueOf(200,2));
+        assertThat(iterator.next().getColumnData()).isEqualTo(BigDecimal.valueOf(2,0));
         assertThat(iterator.next().getColumnData()).isEqualTo("text");
         assertThat(iterator.next().getColumnData()).isEqualTo("tExt");
         assertThat(iterator.next().getColumnData()).isNull();
@@ -123,14 +122,14 @@ public class OracleDmlParserTest {
         // validate
         assertThat(record.getCommandType() == Envelope.Operation.UPDATE);
         List<LogMinerColumnValue> newValues = record.getNewValues();
-        assertThat(newValues.size()).isEqualTo(6);
+        assertThat(newValues.size()).isEqualTo(10);
         String concatenatedNames = newValues.stream().map(LogMinerColumnValue::getColumnName).collect(Collectors.joining());
-        assertThat("COL1COL2COL3COL4COL6COL8".equals(concatenatedNames));
+        assertThat("IDCOL1COL2COL3COL4COL5COL6COL8COL9COL10".equals(concatenatedNames));
         for (LogMinerColumnValue newValue : newValues){
             String columnName = newValue.getColumnName();
             switch (columnName){
                 case "COL1":
-                    assertThat(newValue.getColumnData()).isEqualTo(BigDecimal.valueOf(900,2));
+                    assertThat(newValue.getColumnData()).isEqualTo(BigDecimal.valueOf(9,0));
                     break;
                 case "COL2":
                     assertThat(newValue.getColumnData()).isEqualTo("diFFerent");
@@ -143,13 +142,13 @@ public class OracleDmlParserTest {
                     break;
                 case "COL6":
                     // todo, which one is expected value format
-//                    assertThat(newValue.getColumnData()).isEqualTo(5.2);
+                   //assertThat(newValue.getColumnData()).isEqualTo(5.2);
                     assertThat(((Struct)newValue.getColumnData()).get("scale")).isEqualTo(1);
                     assertThat(((byte[])((Struct)newValue.getColumnData()).get("value"))[0]).isEqualTo((byte) 52);
                     break;
                 case "COL8":
                     assertThat(newValue.getColumnData()).isInstanceOf(Long.class);
-                    assertThat(newValue.getColumnData()).isEqualTo(1557800912302000L);
+                    assertThat(newValue.getColumnData()).isEqualTo(1557826112302L);
                     break;
             }
         }
@@ -162,7 +161,7 @@ public class OracleDmlParserTest {
             String columnName = oldValue.getColumnName();
             switch (columnName){
                 case "COL1":
-                    assertThat(oldValue.getColumnData()).isEqualTo(BigDecimal.valueOf(600,2));
+                    assertThat(oldValue.getColumnData()).isEqualTo(BigDecimal.valueOf(6,0));
                     break;
                 case "COL2":
                     assertThat(oldValue.getColumnData()).isEqualTo("text");
@@ -181,7 +180,7 @@ public class OracleDmlParserTest {
                     break;
                 case "COL8":
                     assertThat(oldValue.getColumnData()).isInstanceOf(Long.class);
-                    assertThat(oldValue.getColumnData()).isEqualTo(1557800912302000L);
+                    assertThat(oldValue.getColumnData()).isEqualTo(1557826112302L); //TODO investigate correct timestamp conversion
                     break;
                 case "ID":
                     assertThat(oldValue.getColumnData()).isEqualTo(new BigDecimal(5));

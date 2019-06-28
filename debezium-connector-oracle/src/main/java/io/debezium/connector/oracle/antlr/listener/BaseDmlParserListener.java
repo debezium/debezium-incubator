@@ -5,11 +5,11 @@
  */
 package io.debezium.connector.oracle.antlr.listener;
 
-import io.debezium.connector.oracle.logminer.valueholder.ColumnValueHolder;
-import io.debezium.connector.oracle.logminer.valueholder.LogMinerDefaultColumnValue;
-import io.debezium.connector.oracle.OracleValueConverters;
-import io.debezium.connector.oracle.OracleValuePreConverter;
+
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
+import io.debezium.connector.oracle.logminer.OracleChangeRecordValueConverter;
+import io.debezium.connector.oracle.logminer.valueholder.ColumnValueHolder;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerColumnValueImpl;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParserBaseListener;
 import io.debezium.relational.Column;
@@ -32,8 +32,8 @@ abstract class BaseDmlParserListener<T> extends PlSqlParserBaseListener {
     protected String catalogName;
     protected String schemaName;
     protected Table table;
-    final OracleValueConverters converters;
-    final OracleValuePreConverter preConverter;
+    final OracleChangeRecordValueConverter converter;
+
     protected OracleDmlParser parser;
 
     Map<T, ColumnValueHolder> newColumnValues = new LinkedHashMap<>();
@@ -43,8 +43,7 @@ abstract class BaseDmlParserListener<T> extends PlSqlParserBaseListener {
         this.parser = parser;
         this.catalogName = catalogName;
         this.schemaName = schemaName;
-        this.converters = parser.getConverters();
-        this.preConverter = parser.getPreConverter();
+        this.converter = parser.getConverters();
     }
 
     // Defines the key of the Map of ColumnValueHolder. It could be String or Integer
@@ -65,8 +64,8 @@ abstract class BaseDmlParserListener<T> extends PlSqlParserBaseListener {
             int type = column.jdbcType();
             T key = getKey(column, i);
             String name = stripeQuotes(column.name().toUpperCase());
-            newColumnValues.put(key, new ColumnValueHolder(new LogMinerDefaultColumnValue(name, type)));
-            oldColumnValues.put(key, new ColumnValueHolder(new LogMinerDefaultColumnValue(name, type)));
+            newColumnValues.put(key, new ColumnValueHolder(new LogMinerColumnValueImpl(name, type)));
+            oldColumnValues.put(key, new ColumnValueHolder(new LogMinerColumnValueImpl(name, type)));
         }
     }
 
@@ -75,13 +74,11 @@ abstract class BaseDmlParserListener<T> extends PlSqlParserBaseListener {
      *
      * @param column column Object
      * @param value value object
-     * @param converters given converters
-     * @param preConverter given pre-converter
-     * @return object as the result of this conversion. It could be null if converters cannot build the schema
-     * or if converters or value are null
+     * @param converters given converter
+     * @return object as the result of this conversion. It could be null if converter cannot build the schema
+     * or if converter or value are null
      */
-    Object convertValueToSchemaType(Column column, String value, OracleValueConverters converters,
-                                    OracleValuePreConverter preConverter) {
+    Object convertValueToSchemaType(Column column, Object value, OracleChangeRecordValueConverter converters) {
         if (converters != null && value != null) {
             final SchemaBuilder schemaBuilder = converters.schemaBuilder(column);
             if (schemaBuilder == null) {
@@ -90,10 +87,8 @@ abstract class BaseDmlParserListener<T> extends PlSqlParserBaseListener {
             final Schema schema = schemaBuilder.build();
             final Field field = new Field(column.name(), 1, schema);
             final ValueConverter valueConverter = converters.converter(column, field);
-            // do the preliminary conversion
-            Object valueObject = preConverter.convert(column, value);
-            // and now convert to the value to be sent
-            return valueConverter.convert(valueObject);
+
+            return valueConverter.convert(value);
         }
         return null;
     }

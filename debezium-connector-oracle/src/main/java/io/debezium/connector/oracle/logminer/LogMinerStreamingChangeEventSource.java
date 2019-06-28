@@ -8,8 +8,6 @@ package io.debezium.connector.oracle.logminer;
 import io.debezium.connector.oracle.OracleConnectorConfig;
 import io.debezium.connector.oracle.OracleDatabaseSchema;
 import io.debezium.connector.oracle.OracleOffsetContext;
-import io.debezium.connector.oracle.OracleValueConverters;
-import io.debezium.connector.oracle.OracleValuePreConverter;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
 import io.debezium.connector.oracle.logminer.valueholder.LogMinerLcr;
 import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcr;
@@ -18,6 +16,7 @@ import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.StreamingChangeEventSource;
 import io.debezium.relational.TableId;
 import io.debezium.util.Clock;
+import io.debezium.util.Metronome;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +24,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Iterator;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -59,41 +58,17 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
         this.offsetContext = offsetContext;
         this.tablenameCaseInsensitive = connectorConfig.getTablenameCaseInsensitive();
         //this.posVersion = connectorConfig.getOracleVersion().getPosVersion();
-        OracleValueConverters converters = new OracleValueConverters(jdbcConnection);
-        OracleValuePreConverter preConverter = new OracleValuePreConverter();
+        OracleChangeRecordValueConverter converters = new OracleChangeRecordValueConverter(jdbcConnection);
 
         this.connectorConfig = connectorConfig;
 
-        OracleDmlParser dmlParser = new OracleDmlParser(true, connectorConfig.getPdbName(),
-                connectorConfig.getSchemaName(),
-                converters,
-                preConverter);
+        OracleDmlParser dmlParser = new OracleDmlParser(true, connectorConfig.getPdbName(), connectorConfig.getSchemaName(),
+                converters);
         logMinerProcessor = new LogMinerProcessor(schema, dmlParser);
     }
 
     /**
-     * The workflow is:
-     * 1. Mine archived log
-     *   Check if current offset SCN corresponds to an archived log and mine it.
-     * - fetch archived logs info which are older than the offset SCN
-     * - Loop them while current offset is in an archived log file.
-     *   Each iteration might take time and during this processing more archives could be created.
-     * NOTE.  Currently if DDL occurred after a log file was archived, the archived log mining may fail due to the data dictionary changes.
-     *          We set mining option having data dictionary in online catalog for this step.
-     *          This is due to the performance and to avoid "no log file" exception.
-     *          todo We will investigate it further
-     * Inside the loop:
-     * - add a batch for mining analysis
-     * - build mining view
-     * - get changes, dispatch them
-     * - delete processed archived logs from mining analysis, update offset
-     * NOTE.  Processing of an archived files batch may take > 1 minute.
-     *          The longer the connector is down, the longer "catch up" time is required.
-     * 2. Build data dictionary objects in online redo log files. Add all online redo log files for mining
-     * 3. Fetch changes from this view, dispatch them
-     * NOTE. Steps 2 and 3 also take time and new archived log(s) could be created
-     * todo address this scenario
-     * 4. Close resources
+     * This is the loop to get changes from LogMiner
      *
      * @param context change event source context
      * @throws InterruptedException an exception
@@ -102,72 +77,43 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
     public void execute(ChangeEventSourceContext context) throws InterruptedException {
 
         ResultSet res = null;
-        long startScn;
 
         try (Connection connection = jdbcConnection.connection();
-             PreparedStatement fetchChangesFromMiningView = connection.prepareStatement(SqlUtils.queryLogMinerContents(connectorConfig.getSchemaName()))) {
-            // 1. Mine archived logs
-            while (true) {
-
-                startScn = offsetContext.getScn(); // last processes Scn
-                Map<String, Long> archivedLogFiles = LogMinerHelper.getArchivedLogFiles(startScn, connection);
-                if (archivedLogFiles.isEmpty()) {
-                    LOGGER.info("All archived log files were processed successfully");
-                    break;
-                }
-
-                for (Iterator<Map.Entry<String, Long>> archivedFile = archivedLogFiles.entrySet().iterator(); archivedFile.hasNext();) {
-                    ResultSet resultset = LogMinerHelper.getArchivedChanges(connection, batchSize, connectorConfig.getSchemaName(), archivedFile);
-                    dispatchChanges(resultset);
-                    resultset.close();
-                }
-
-                // delete archived log from mining
-                for (Map.Entry<String, Long> archivedFile : archivedLogFiles.entrySet()) {
-                    LogMinerHelper.removeArchiveLogFile(archivedFile.getKey(), connection);
-                    offsetContext.setScn(archivedFile.getValue());
-                }
+             PreparedStatement fetchChangesFromMiningView =
+                     connection.prepareStatement(SqlUtils.queryLogMinerContents(connectorConfig.getSchemaName()))) {
+            long lastProcessedScn = offsetContext.getScn(); // last processes Scn
+            long oldestScnInOnlineRedo = LogMinerHelper.getFirstOnlineLogScn(connection);
+            if (lastProcessedScn < oldestScnInOnlineRedo) {
+                throw new RuntimeException("Online REDO LOG files don't contain the offset SCN. Clean offset info and start over");
             }
-            // 2. Configure Log Miner to mine online logs
+
+            LogMinerHelper.setNlsSessionParameters(jdbcConnection);
+
+            // 1. Configure Log Miner to mine online logs
             LogMinerHelper.buildDataDictionary(connection);// todo should we renew it after a DDL?
             LogMinerHelper.addOnlineRedoLogFilesForMining(connection);
 
-            // 3. Querying LogMinerRowLcr(s) from Log miner while running
-
+            // 2. Querying LogMinerRowLcr(s) from Log miner while running
             while (context.isRunning()) {
-                LOGGER.trace("Receiving LogMinerLcr");
+                LOGGER.trace("Receiving a change from LogMiner");
 
-                startScn = offsetContext.getScn();
+                lastProcessedScn = offsetContext.getScn();
                 long currentScn = LogMinerHelper.getCurrentScn(connection);
-                LOGGER.debug("\nstart, startScn: " + startScn + ", endScn: " + currentScn);
-
-                LogMinerHelper.startOnlineMining(connection, startScn, currentScn);
-
-                fetchChangesFromMiningView.setLong(1, startScn);
-                fetchChangesFromMiningView.setLong(2, startScn);
-
-                // todo this is temporary debugging info, will be removed. Once we observed a missed DML. This should help to trace if reproducible.
-//                String checkQuery = "select member, log.status, log.first_change# from v$log log, v$logfile  f  where log.group#=f.group# order by 1 asc";
-                String checkQuery = "select member, log.status, log.first_change# from v$log log, v$logfile  f  where log.group#=f.group# and log.status='CURRENT'";
-                PreparedStatement st = connection.prepareStatement(checkQuery);
-                ResultSet result = st.executeQuery();
-                while (result.next()){
-                    String fileName = result.getString(1);
-                    String status  = result.getString(2);
-                    long changeScn = result.getLong(3);
-                    LOGGER.debug("before= filename = " + fileName + ", status: " + status + " SCN= " + changeScn);
+                LOGGER.debug("\nstart, lastProcessedScn: " + lastProcessedScn + ", endScn: " + currentScn);
+                if (lastProcessedScn == currentScn) {
+                    LOGGER.debug("No changes to process...pausing for a second");
+                    Metronome metronome = Metronome.sleeper(Duration.ofSeconds(1L), clock);
+                    metronome.pause();
                 }
 
+                LogMinerHelper.startOnlineMining(connection, lastProcessedScn, currentScn);
+
+                fetchChangesFromMiningView.setLong(1, lastProcessedScn);
+                fetchChangesFromMiningView.setLong(2, lastProcessedScn);
+
+                debugInfo(connection, "before");
                 res = fetchChangesFromMiningView.executeQuery();
-
-                // todo remove
-                result = st.executeQuery();
-                while (result.next()){
-                    String fileName = result.getString(1);
-                    String status  = result.getString(2);
-                    long changeScn = result.getLong(3);
-                    LOGGER.debug("after= filename = " + fileName + ", status: " + status + " SCN= " + changeScn);
-                }
+                debugInfo(connection, "after");
 
                 dispatchChanges(res);
                 offsetContext.setScn(currentScn);
@@ -177,7 +123,7 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
         } catch (Throwable e) {
             throw new RuntimeException(e);
         } finally {
-            // 4. disconnect
+            // 3. disconnect
             try (Connection connection = jdbcConnection.connection()) {
                 LogMinerHelper.endMining(connection);
             } catch (SQLException e) {
@@ -213,11 +159,11 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
             long actualScn = logMinerRowLcr.getActualScn();
             offsetContext.setScn(actualScn);
             //offsetContext.setLcrPosition(new LcrPosition());
-            offsetContext.setTransactionId(logMinerRowLcr.getTransactionId());// todo this is't included into the SourceRecord
+            offsetContext.setTransactionId(logMinerRowLcr.getTransactionId());
             offsetContext.setSourceTime(logMinerRowLcr.getSourceTime().toInstant());
             offsetContext.setTableId(getTableId(logMinerRowLcr));
             try {
-                LOGGER.debug("Processing DML event {}", logMinerRowLcr);
+                LOGGER.debug("Processing DML event {} scn {}", logMinerRowLcr, actualScn);
                 TableId tableId = getTableId(logMinerRowLcr);
                 dispatcher.dispatchDataChangeEvent(
                         tableId,
@@ -235,5 +181,22 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
         } else {
             return new TableId(lcr.getSourceDatabaseName().toLowerCase(), lcr.getObjectOwner(), lcr.getObjectName().toLowerCase());
         }
+    }
+
+    // todo this is temporary debugging info, will be removed. Once we observed a missed DML. This should help to trace if reproducible.
+    private void debugInfo(Connection connection, String info) throws SQLException {
+        //String checkQuery = "select member, log.status, log.first_change# from v$log log, v$logfile  f  where log.group#=f.group# order by 1 asc";
+        String checkQuery = "select member, log.status, log.first_change# from v$log log, v$logfile  f  where log.group#=f.group# and log.status='CURRENT'";
+
+        PreparedStatement st = connection.prepareStatement(checkQuery);
+        ResultSet result = st.executeQuery();
+        while (result.next()) {
+            String fileName = result.getString(1);
+            String status = result.getString(2);
+            long changeScn = result.getLong(3);
+            LOGGER.debug(info + "= filename = " + fileName + ", status: " + status + " SCN= " + changeScn);
+        }
+        st.close();
+        result.close();
     }
 }

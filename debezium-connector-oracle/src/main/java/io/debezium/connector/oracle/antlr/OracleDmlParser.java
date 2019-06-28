@@ -8,10 +8,9 @@ package io.debezium.connector.oracle.antlr;
 import io.debezium.antlr.AntlrDdlParser;
 import io.debezium.antlr.AntlrDdlParserListener;
 import io.debezium.antlr.DataTypeResolver;
-import io.debezium.connector.oracle.OracleValueConverters;
-import io.debezium.connector.oracle.OracleValuePreConverter;
-import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcr;
 import io.debezium.connector.oracle.antlr.listener.OracleDmlParserListener;
+import io.debezium.connector.oracle.logminer.OracleChangeRecordValueConverter;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcr;
 import io.debezium.ddl.parser.oracle.generated.PlSqlLexer;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
 import io.debezium.relational.SystemVariables;
@@ -28,16 +27,13 @@ public class OracleDmlParser extends AntlrDdlParser<PlSqlLexer, PlSqlParser> {
     private LogMinerRowLcr rowLCR;
     protected String catalogName;
     protected String schemaName;
-    private OracleValueConverters converters;
-    private OracleValuePreConverter preConverter;
+    private OracleChangeRecordValueConverter converter;
 
-    public OracleDmlParser(boolean throwErrorsFromTreeWalk, final String catalogName, final String schemaName,
-                           OracleValueConverters converters, OracleValuePreConverter preConverter) {
+    public OracleDmlParser(boolean throwErrorsFromTreeWalk, final String catalogName, final String schemaName, OracleChangeRecordValueConverter converter) {
         super(throwErrorsFromTreeWalk);
         this.catalogName = catalogName;
         this.schemaName = schemaName;
-        this.converters = converters;
-        this.preConverter = preConverter;
+        this.converter = converter;
     }
 
     public LogMinerRowLcr getDmlChange(){
@@ -92,11 +88,7 @@ public class OracleDmlParser extends AntlrDdlParser<PlSqlLexer, PlSqlParser> {
         return null;
     }
 
-    public OracleValueConverters getConverters(){
-        return converters;
-    }
-
-    public OracleValuePreConverter getPreConverter() {
-        return preConverter;
+    public OracleChangeRecordValueConverter getConverters(){
+        return converter;
     }
 }

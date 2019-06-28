@@ -250,6 +250,8 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         records = consumeRecordsByTopic(expectedRecordCount);
         testTableRecords = records.recordsForTopic("server1.DEBEZIUM.CUSTOMER");
         assertThat(testTableRecords).hasSize(expectedRecordCount);
+        final Configuration configuration = builder.build();
+        final String adapter = configuration.getString(OracleConnectorConfig.CONNECTOR_ADAPTER);
 
         for (int i = 0; i < expectedRecordCount; i++) {
             SourceRecord record3 = testTableRecords.get(i);
@@ -259,13 +261,19 @@ public class OracleConnectorIT extends AbstractConnectorTest {
 
             assertThat(record3.sourceOffset().containsKey(SourceInfo.SNAPSHOT_KEY)).isFalse();
             assertThat(record3.sourceOffset().containsKey(SNAPSHOT_COMPLETED_KEY)).isFalse();
-            assertThat(record3.sourceOffset().containsKey(SourceInfo.LCR_POSITION_KEY)).isTrue();
-            assertThat(record3.sourceOffset().containsKey(SourceInfo.SCN_KEY)).isFalse();
+
+            if (!"LogMiner".equalsIgnoreCase(adapter)) {
+                assertThat(record3.sourceOffset().containsKey(SourceInfo.LCR_POSITION_KEY)).isTrue();
+                assertThat(record3.sourceOffset().containsKey(SourceInfo.SCN_KEY)).isFalse();
+            }
 
             source = (Struct) ((Struct) record3.value()).get("source");
             assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo("false");
             assertThat(source.get(SourceInfo.SCN_KEY)).isNotNull();
-            assertThat(source.get(SourceInfo.LCR_POSITION_KEY)).isNotNull();
+            if (!"LogMiner".equalsIgnoreCase(adapter)) {
+                assertThat(source.get(SourceInfo.LCR_POSITION_KEY)).isNotNull();
+            }
+
             assertThat(source.get(SourceInfo.SERVER_NAME_KEY)).isEqualTo("server1");
             assertThat(source.get(SourceInfo.DEBEZIUM_VERSION_KEY)).isNotNull();
             assertThat(source.get(SourceInfo.TXID_KEY)).isNotNull();
@@ -273,7 +281,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         }
     }
 
-    public void shouldStreamAfterRestart() throws Exception {
+    public void shouldStreamAfterRestart(long sleepTime) throws Exception {
 
         // Testing.Print.enable();
         int expectedRecordCount = 0;
@@ -284,6 +292,8 @@ public class OracleConnectorIT extends AbstractConnectorTest {
 
         start(OracleConnector.class, builder.build());
         assertConnectorIsRunning();
+
+        Thread.sleep(sleepTime);
 
         SourceRecords records = consumeRecordsByTopic(expectedRecordCount);
         List<SourceRecord> testTableRecords = records.recordsForTopic("server1.DEBEZIUM.CUSTOMER");
@@ -303,6 +313,8 @@ public class OracleConnectorIT extends AbstractConnectorTest {
 
         start(OracleConnector.class, builder.build());
         assertConnectorIsRunning();
+
+        Thread.sleep(sleepTime);
 
         assertTxBatch(expectedRecordCount, 300);
         sendTxBatch(expectedRecordCount, 400);
@@ -342,14 +354,14 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         sendTxBatch(expectedRecordCount, 200);
     }
 
-    public void shouldReadChangeStreamForExistingTable() throws Exception {
+    public void shouldReadChangeStreamForExistingTable(long sleepTime) throws Exception {
         Configuration config = builder.with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
                 .build();
 
         start(OracleConnector.class, config);
         assertConnectorIsRunning();
 
-        Thread.sleep(1000);
+        Thread.sleep(sleepTime);
 
         int expectedRecordCount = 0;
         connection.execute("INSERT INTO debezium.customer VALUES (1, 'Billie-Bob', 1234.56, TO_DATE('2018/02/22', 'yyyy-mm-dd'))");
@@ -549,6 +561,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         assertThat(key.get("serverName")).isEqualTo("server1");
     }
 
+    //TODO investigate the right conversion for timestamp
     private long toMicroSecondsSinceEpoch(LocalDateTime localDateTime) {
         return localDateTime.toEpochSecond(ZoneOffset.UTC) * MICROS_PER_SECOND;
     }

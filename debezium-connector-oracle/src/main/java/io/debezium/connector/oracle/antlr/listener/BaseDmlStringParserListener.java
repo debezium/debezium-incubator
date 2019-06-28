@@ -44,7 +44,7 @@ abstract class BaseDmlStringParserListener extends BaseDmlParserListener<String>
 
             ColumnValueHolder columnValueHolder = oldColumnValues.get(stripedName);
             if (columnValueHolder != null) { //todo this happens for ROWID pseudo column. Figure it out
-                Object valueObject = convertValueToSchemaType(column, value, converters, preConverter);
+                Object valueObject = convertValueToSchemaType(column, value, converter);
                 columnValueHolder.setProcessed(true);
                 columnValueHolder.getColumnValue().setColumnData(valueObject);
             }

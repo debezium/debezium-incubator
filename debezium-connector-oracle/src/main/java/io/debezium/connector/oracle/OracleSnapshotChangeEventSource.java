@@ -85,7 +85,7 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
     protected Set<TableId> getAllTableIds(SnapshotContext ctx) throws Exception {
         Set<TableId> tableIds = new HashSet<>();
         String catalogName = ctx.catalogName;
-        try (PreparedStatement statement = jdbcConnection.connection().prepareStatement("select owner, table_name  from dba_tables")){
+        try (PreparedStatement statement = jdbcConnection.connection().prepareStatement("select owner, table_name  from dba_tables")){//todo replace with user_tables
             ResultSet result = statement.executeQuery();
             while (result.next()){
                 String schemaName = result.getString(1);

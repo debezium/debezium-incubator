@@ -5,6 +5,7 @@
  */
 package io.debezium.connector.oracle.logminer;
 
+import io.debezium.jdbc.JdbcConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -147,7 +148,9 @@ public class LogMinerHelper {
 
         // mining
         PreparedStatement getChangesQuery = conn.prepareStatement(SqlUtils.queryLogMinerArchivedContents(schemaName));
-        return getChangesQuery.executeQuery();
+        ResultSet result = getChangesQuery.executeQuery();
+        getChangesQuery.close();
+        return result;
     }
 
     /**
@@ -185,8 +188,9 @@ public class LogMinerHelper {
         res = ps.executeQuery();
         while (res.next()) {
             allLogs.put(res.getString(1), res.getLong(2));
-            LOGGER.info("Log file to mine: " + res.getString(1) +  ",next change= " + res.getLong(2));
+            LOGGER.info("Log file to mine: " + res.getString(1) + ",next change= " + res.getLong(2));
         }
+        ps.close();
         res.close();
         return allLogs;
     }
@@ -204,6 +208,16 @@ public class LogMinerHelper {
         executeCallableStatement(connection, removeLogFileFromMining);
         LOGGER.debug(removeLogFileFromMining + " was removed from mining");
 
+    }
+
+    /**
+     * Sets NLS parameters for mining session.
+     *
+     * @param connection container level database connection
+     * @throws SQLException if anything unexpected happens
+     */
+    public static void setNlsSessionParameters(JdbcConnection connection) throws SQLException {
+        connection.executeWithoutCommitting(SqlUtils.NLS_SESSION_PARAMETERS);
     }
 
     /**
@@ -234,6 +248,7 @@ public class LogMinerHelper {
         ResultSet res = s.executeQuery(SqlUtils.OLDEST_ARCHIVED_CHANGE);
         res.next();
         long firstScnOfOnlineLog = res.getLong(1);
+        s.close();
         res.close();
         return firstScnOfOnlineLog;
     }

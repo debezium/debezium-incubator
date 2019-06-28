@@ -8,8 +8,8 @@ package io.debezium.connector.oracle.antlr.listener;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
 import io.debezium.connector.oracle.logminer.valueholder.ColumnValueHolder;
 import io.debezium.connector.oracle.logminer.valueholder.LogMinerColumnValue;
-import io.debezium.connector.oracle.logminer.valueholder.LogMinerDefaultRowLcr;
 import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcr;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcrImpl;
 import io.debezium.data.Envelope;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
 import io.debezium.relational.Column;
@@ -22,7 +22,7 @@ import static io.debezium.antlr.AntlrDdlParser.getText;
 
 /**
  * This class parses UPDATE statements.
- * on the original query:
+ * For the original query:
  * update debezium set test = '7' where test1 = '6' (let's assume we have 3 records with such value)
  *
  * logMiner with supply:
@@ -47,6 +47,7 @@ public class UpdateParserListener extends BaseDmlStringParserListener {
     public void enterUpdate_statement(PlSqlParser.Update_statementContext ctx) {
         init(ctx.general_table_ref().dml_table_expression_clause());
         parseRecursively(ctx.where_clause().expression().logical_expression());
+        cloneOldToNewColumnValues();
         super.enterUpdate_statement(ctx);
     }
 
@@ -63,10 +64,10 @@ public class UpdateParserListener extends BaseDmlStringParserListener {
         if ("null".equalsIgnoreCase(nullValue)) {
             value = nullValue;
         }
-        value = removeApostrophes(value);
+       Object stripedValue = removeApostrophes(value);
 
         Column column = table.columnWithName(stripedName);
-        Object valueObject = convertValueToSchemaType(column, value, converters, preConverter);
+        Object valueObject = convertValueToSchemaType(column, stripedValue, converter);
 
         ColumnValueHolder columnValueHolder = newColumnValues.get(stripedName);
         columnValueHolder.setProcessed(true);
@@ -81,8 +82,18 @@ public class UpdateParserListener extends BaseDmlStringParserListener {
                 .filter(ColumnValueHolder::isProcessed).map(ColumnValueHolder::getColumnValue).collect(Collectors.toList());
         List<LogMinerColumnValue> actualOldValues = oldColumnValues.values().stream()
                 .filter(ColumnValueHolder::isProcessed).map(ColumnValueHolder::getColumnValue).collect(Collectors.toList());
-        LogMinerRowLcr newRecord = new LogMinerDefaultRowLcr(Envelope.Operation.UPDATE, actualNewValues, actualOldValues);
+        LogMinerRowLcr newRecord = new LogMinerRowLcrImpl(Envelope.Operation.UPDATE, actualNewValues, actualOldValues);
         parser.setRowLCR(newRecord);
         super.exitUpdate_statement(ctx);
+    }
+
+    //initialize new column values with old column values.
+    private void cloneOldToNewColumnValues() {
+        for (Column column : table.columns()) {
+            final ColumnValueHolder oldColumnValue = oldColumnValues.get(column.name());
+            final ColumnValueHolder newColumnValue = newColumnValues.get(column.name());
+            newColumnValue.setProcessed(true);
+            newColumnValue.getColumnValue().setColumnData(oldColumnValue.getColumnValue().getColumnData());
+        }
     }
 }

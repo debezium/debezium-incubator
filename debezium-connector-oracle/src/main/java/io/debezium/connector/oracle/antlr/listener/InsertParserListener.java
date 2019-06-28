@@ -7,7 +7,7 @@ package io.debezium.connector.oracle.antlr.listener;
 
 import io.debezium.connector.oracle.logminer.valueholder.LogMinerColumnValue;
 import io.debezium.connector.oracle.logminer.valueholder.ColumnValueHolder;
-import io.debezium.connector.oracle.logminer.valueholder.LogMinerDefaultRowLcr;
+import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcrImpl;
 import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcr;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
 import io.debezium.data.Envelope;
@@ -69,7 +69,7 @@ public class InsertParserListener extends BaseDmlParserListener<Integer> {
 
             String valueText = value.logical_expression().getText();
             valueText = removeApostrophes(valueText);
-            Object valueObject = convertValueToSchemaType(column, valueText, converters, preConverter);
+            Object valueObject = convertValueToSchemaType(column, valueText, converter);
 
             columnObject.getColumnValue().setColumnData(valueObject);
         }
@@ -80,7 +80,7 @@ public class InsertParserListener extends BaseDmlParserListener<Integer> {
     public void exitSingle_table_insert(PlSqlParser.Single_table_insertContext ctx) {
         List<LogMinerColumnValue> actualNewValues = newColumnValues.values()
                 .stream().map(ColumnValueHolder::getColumnValue).collect(Collectors.toList());
-        LogMinerRowLcr newRecord = new LogMinerDefaultRowLcr(Envelope.Operation.CREATE, actualNewValues, Collections.emptyList());
+        LogMinerRowLcr newRecord = new LogMinerRowLcrImpl(Envelope.Operation.CREATE, actualNewValues, Collections.emptyList());
         parser.setRowLCR(newRecord);
         //parser.signalChangeEvent();
         super.exitSingle_table_insert(ctx);

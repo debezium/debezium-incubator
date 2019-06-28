@@ -38,13 +38,13 @@ public class LogMinerProcessor {
 
         List<LogMinerRowLcr> changes = new ArrayList<>();
         while(res.next()) {
-
             long actualScn = res.getLong(1);
             long actualCommitScn = res.getLong(2);
             String operation = res.getString(3);
             String userName = res.getString(4);
             String pdbName = res.getString(5);
-            String sql = res.getString(6);
+            String redo_sql = res.getString(6);
+            StringBuilder sqlBuilder = new StringBuilder(redo_sql);
             Long segmentType = res.getLong(7);
             Long status = res.getLong(8);
             Long operationCode = res.getLong(9);
@@ -53,6 +53,13 @@ public class LogMinerProcessor {
             Timestamp commitTime = res.getTimestamp(12);
             byte[] txId = res.getBytes(13);
             Long txSequenceNumber = res.getLong(14);
+            int csf = res.getInt(15);
+            while (csf == 1) {
+                res.next();
+                csf = res.getInt(15);
+                sqlBuilder.append(res.getString(6));
+            }
+            String sql = sqlBuilder.toString();
 
             boolean tableParsed = false;
             for  (TableId tableId : schema.getTables().tableIds()) {
