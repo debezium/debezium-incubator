@@ -5,16 +5,14 @@
  */
 package io.debezium.connector.oracle;
 
-import java.sql.SQLException;
-import java.util.Arrays;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.debezium.util.HexConverter;
 import io.debezium.util.Strings;
 import oracle.streams.StreamsException;
-import oracle.streams.XStreamUtility;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * The logical encapsulation of raw LCR byte array.
@@ -33,7 +31,7 @@ public class LcrPosition implements Comparable<LcrPosition> {
         this.rawPosition = rawPosition;
         this.stringFromat = HexConverter.convertToHexString(rawPosition);
         try {
-            scn = XStreamUtility.getSCNFromPosition(rawPosition).longValue();
+            scn = OracleXStreamUtility.getSCNFromPosition(rawPosition).longValue();
         }
         catch (SQLException | StreamsException e) {
             throw new RuntimeException(e);
