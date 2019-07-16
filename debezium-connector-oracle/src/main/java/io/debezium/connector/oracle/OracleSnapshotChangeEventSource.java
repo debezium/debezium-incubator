@@ -83,18 +83,7 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
 
     @Override
     protected Set<TableId> getAllTableIds(SnapshotContext ctx) throws Exception {
-        Set<TableId> tableIds = new HashSet<>();
-        String catalogName = ctx.catalogName;
-        try (PreparedStatement statement = jdbcConnection.connection().prepareStatement("select owner, table_name  from dba_tables")){//todo replace with user_tables
-            ResultSet result = statement.executeQuery();
-            while (result.next()){
-                String schemaName = result.getString(1);
-                String tableName = result.getString(2);
-                TableId tableId = new TableId(catalogName, schemaName, tableName);
-                tableIds.add(tableId);
-            }
-        }
-        return tableIds;
+        return jdbcConnection.getAllTableIds(ctx.catalogName,connectorConfig.getSchemaName(), false);
         // this very slow approach(commented out), it took 30 minutes on an instance with 600 tables
         //return jdbcConnection.readTableNames(ctx.catalogName, null, null, new String[] {"TABLE"} );
     }
@@ -206,6 +195,7 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
                 throw new InterruptedException("Interrupted while reading structure of schema " + schema);
             }
 
+            // todo: slow, don't use metadata for Oracle
             jdbcConnection.readSchema(
                     snapshotContext.tables,
                     snapshotContext.catalogName,
@@ -215,6 +205,12 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
                     false
             );
         }
+    }
+
+    //@Override // todo uncomment Override when we submit a PR to the core to implement conditional snapshot with "as of scn"
+    protected String enhanceOverriddenSelect(SnapshotContext snapshotContext, String overriddenSelect){
+        long snapshotOffset = (Long) snapshotContext.offset.getOffset().get("scn");
+        return overriddenSelect.replaceAll("#scn#", " AS OF SCN " + snapshotOffset);
     }
 
     @Override

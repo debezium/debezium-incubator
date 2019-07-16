@@ -53,11 +53,6 @@ public class CreateTableParserListener extends PlSqlParserBaseListener {
     public void exitCreate_table(PlSqlParser.Create_tableContext ctx) {
         Table table = getTable();
         assert table != null;
-        //todo how do we add pseudo columns if we need them.
-        /*ColumnEditor columnEditor = Column.editor().name("ROWID");
-        columnEditor.jdbcType(Types.VARCHAR)
-                .type("VARCHAR2").length(100);
-        tableEditor.addColumn(columnEditor.create());*/
 
         parser.runIfNotNull(() -> {
             listeners.remove(columnDefinitionParserListener);
@@ -75,7 +70,6 @@ public class CreateTableParserListener extends PlSqlParserBaseListener {
             ColumnEditor columnEditor = Column.editor().name(columnName);
             if (columnDefinitionParserListener == null) {
                 columnDefinitionParserListener = new ColumnDefinitionParserListener(tableEditor, columnEditor, parser.dataTypeResolver());
-                // todo: this explicit call is for the first column, should it be fixed?
                 columnDefinitionParserListener.enterColumn_definition(ctx);
                 listeners.add(columnDefinitionParserListener);
             } else {

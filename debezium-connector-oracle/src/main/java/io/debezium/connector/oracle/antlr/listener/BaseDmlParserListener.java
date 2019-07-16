@@ -33,6 +33,7 @@ abstract class BaseDmlParserListener<T> extends PlSqlParserBaseListener {
     protected String schemaName;
     protected Table table;
     final OracleChangeRecordValueConverter converter;
+    protected String alias;
 
     protected OracleDmlParser parser;
 

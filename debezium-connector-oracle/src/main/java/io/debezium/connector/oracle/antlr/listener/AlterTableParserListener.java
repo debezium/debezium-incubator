@@ -70,7 +70,6 @@ public class AlterTableParserListener extends PlSqlParserBaseListener {
         parser.runIfNotNull(() -> {
             listeners.remove(columnDefinitionParserListener);
             parser.databaseTables().overwriteTable(tableEditor.create());
-            //parser.signalAlterTable(tableEditor.tableId(), null, ctx.getParent());// todo?
         }, tableEditor);
         super.exitAlter_table(ctx);
     }

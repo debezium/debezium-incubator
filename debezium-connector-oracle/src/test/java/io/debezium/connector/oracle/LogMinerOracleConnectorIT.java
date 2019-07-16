@@ -64,12 +64,12 @@ public class LogMinerOracleConnectorIT extends OracleConnectorIT {
 
     }
 
-    @Test   //TODO failing DDL parsing not functional yet
+    @Test   //todo failing DDL parsing not functional yet
     public void shouldReadChangeStreamForTableCreatedWhileStreaming() throws Exception {
         //super.shouldReadChangeStreamForTableCreatedWhileStreaming();
     }
 
-    @Test //TODO failing DDL parsing not functional yet
+    @Test //todo failing DDL parsing not functional yet
     public void shouldReceiveHeartbeatAlsoWhenChangingNonWhitelistedTable() throws Exception {
         //super.shouldReceiveHeartbeatAlsoWhenChangingNonWhitelistedTable();
     }

@@ -108,15 +108,6 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             .withImportance(Importance.HIGH)
             .withDescription("There are two adapters: XStream and LogMiner.");
 
-    // todo remove this after merging changes on sqlserver
-    public static final Field ROWS_FETCH_SIZE = Field.create("rows.fetch.size")
-            .withDisplayName("Result set fetch size")
-            .withType(Type.INT)
-            .withWidth(Width.MEDIUM)
-            .withImportance(Importance.MEDIUM)
-            .withDefault(DEFAULT_ROWS_FETCH_SIZE)
-            .withDescription("The maximum number of DB rows that should be loaded into memory while performing a snapshot")
-            .withValidation(Field::isPositiveLong);
     /**
      * The set of {@link Field}s defined as part of this configuration.
      */

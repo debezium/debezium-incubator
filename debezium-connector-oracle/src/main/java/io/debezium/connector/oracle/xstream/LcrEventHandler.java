@@ -99,7 +99,7 @@ class LcrEventHandler implements XStreamLCRCallbackHandler {
 
         dispatcher.dispatchDataChangeEvent(
                 tableId,
-                new ChangeRecordEmitter(offsetContext, lcr, schema.tableFor(tableId), clock)
+                new XStreamChangeRecordEmitter(offsetContext, lcr, schema.tableFor(tableId), clock)
         );
     }
 
@@ -112,7 +112,7 @@ class LcrEventHandler implements XStreamLCRCallbackHandler {
 
         dispatcher.dispatchSchemaChangeEvent(
                 tableId,
-                new OracleSchemaChangeEventEmitter(offsetContext, tableId, ddlLcr)
+                new XStreamSchemaChangeEventEmitter(offsetContext, tableId, ddlLcr)
         );
     }
 

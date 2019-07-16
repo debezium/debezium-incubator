@@ -3,25 +3,27 @@
  *
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
-package io.debezium.connector.oracle.logminer;
+package io.debezium.connector.oracle.xstream;
 
 import io.debezium.connector.oracle.BaseOracleSchemaChangeEventEmitter;
 import io.debezium.connector.oracle.OracleOffsetContext;
-import io.debezium.connector.oracle.logminer.valueholder.LogMinerDdlLcr;
 import io.debezium.pipeline.spi.SchemaChangeEventEmitter;
 import io.debezium.relational.TableId;
+import oracle.streams.DDLLCR;
 
 /**
- * {@link SchemaChangeEventEmitter} implementation based on Oracle LogMiner utility.
+ * {@link SchemaChangeEventEmitter} implementation based on Oracle.
+ *
+ * @author Gunnar Morling
  */
-public class OracleSchemaChangeEventEmitter extends BaseOracleSchemaChangeEventEmitter {
+public class XStreamSchemaChangeEventEmitter extends BaseOracleSchemaChangeEventEmitter {
 
-    public OracleSchemaChangeEventEmitter(OracleOffsetContext offsetContext, TableId tableId, LogMinerDdlLcr ddlLcr) {
+    public XStreamSchemaChangeEventEmitter(OracleOffsetContext offsetContext, TableId tableId, DDLLCR ddlLcr) {
         super(offsetContext,
                 tableId,
                 ddlLcr.getSourceDatabaseName(),
                 ddlLcr.getObjectOwner(),
-                ddlLcr.getDdlText(),
+                ddlLcr.getDDLText(),
                 ddlLcr.getCommandType());
     }
 }

@@ -46,9 +46,27 @@ public class UpdateParserListener extends BaseDmlStringParserListener {
     @Override
     public void enterUpdate_statement(PlSqlParser.Update_statementContext ctx) {
         init(ctx.general_table_ref().dml_table_expression_clause());
-        parseRecursively(ctx.where_clause().expression().logical_expression());
-        cloneOldToNewColumnValues();
+        isUpdate = true;
         super.enterUpdate_statement(ctx);
+    }
+
+    @Override
+    public void enterTable_alias(PlSqlParser.Table_aliasContext ctx) {
+        alias = ctx.getText().toUpperCase();
+    }
+
+    /**
+     * this method could be invoked by delete, insert or update statements, but we should act on update only
+     * @param ctx where clause context
+     */
+    @Override
+    public void enterWhere_clause(PlSqlParser.Where_clauseContext ctx) {
+        if (isUpdate) {
+            parseRecursively(ctx.expression().logical_expression());
+            cloneOldToNewColumnValues();
+        }
+        isUpdate = false;
+        super.enterWhere_clause(ctx);
     }
 
     @Override
@@ -58,7 +76,8 @@ public class UpdateParserListener extends BaseDmlStringParserListener {
                     "Statement: " + getText(ctx));
         }
         String columnName = ctx.column_name().getText().toUpperCase();
-        String stripedName = ParserListenerUtils.stripeQuotes(columnName);
+        String stripedName = ParserListenerUtils.stripeAlias(columnName, alias);
+        stripedName = ParserListenerUtils.stripeQuotes(stripedName);
         String value = ctx.getText().substring(columnName.length() + 1);
         String nullValue = ctx.expression().getStop().getText();
         if ("null".equalsIgnoreCase(nullValue)) {
@@ -87,13 +106,18 @@ public class UpdateParserListener extends BaseDmlStringParserListener {
         super.exitUpdate_statement(ctx);
     }
 
-    //initialize new column values with old column values.
+    /**
+     * Initialize new column values with old column values.
+     * It does not override new values which were processed already in where clause parsing
+     */
     private void cloneOldToNewColumnValues() {
         for (Column column : table.columns()) {
-            final ColumnValueHolder oldColumnValue = oldColumnValues.get(column.name());
             final ColumnValueHolder newColumnValue = newColumnValues.get(column.name());
-            newColumnValue.setProcessed(true);
-            newColumnValue.getColumnValue().setColumnData(oldColumnValue.getColumnValue().getColumnData());
+            if (!newColumnValue.isProcessed()) {
+                final ColumnValueHolder oldColumnValue = oldColumnValues.get(column.name());
+                newColumnValue.setProcessed(true);
+                newColumnValue.getColumnValue().setColumnData(oldColumnValue.getColumnValue().getColumnData());
+            }
         }
     }
 }

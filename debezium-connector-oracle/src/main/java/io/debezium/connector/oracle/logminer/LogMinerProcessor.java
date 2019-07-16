@@ -54,65 +54,76 @@ public class LogMinerProcessor {
             byte[] txId = res.getBytes(13);
             Long txSequenceNumber = res.getLong(14);
             int csf = res.getInt(15);
+            String segOwner = res.getString(16);
+            String segName = res.getString(17);
+            int sequence = res.getInt(18);
+            int lobLimit = 40000;// todo : we can make it configurable or use chunk approach, similar to XStream
             while (csf == 1) {
                 res.next();
+                if (lobLimit-- == 0) {
+                    LOGGER.warn("LOB value for SCN= {} was truncated due to the connector limitation of {} MB", actualScn, 4*lobLimit/1000  );
+                    break;
+                }
                 csf = res.getInt(15);
                 sqlBuilder.append(res.getString(6));
             }
             String sql = sqlBuilder.toString();
 
+            // Commit
+            if (operationCode == 7) {
+                LOGGER.info("COMMIT, transactionId = {}, actualScn= {}, committed SCN= {}, userName= {},segOwner={}, segName={}, sequence={}",
+                        txId, actualScn,actualCommitScn,userName,segOwner,segName,sequence);
+                continue;
+            }
+
             boolean tableParsed = false;
             for  (TableId tableId : schema.getTables().tableIds()) {
-                if (tableId.table().toLowerCase().contains(tableName.toLowerCase())){
+                if (tableName!= null && tableId.table().toLowerCase().contains(tableName.toLowerCase())){
                     tableParsed = true;
                     break;
                 }
             }
 
             if(!tableParsed){
-                LOGGER.debug("table " + tableName + " is not in the whitelist, skipped");
+                LOGGER.debug("table {} is not in the whitelist, skipped", tableName);
                 continue;
-            }
-
-            //TCL
-            if (operationCode == 7 || operationCode == 36) {
-                LOGGER.info("TCL, actualScn= " + actualScn + " - " + operation + " - " + sql);
-                // todo
             }
 
             // DDL
             if (operationCode == 5) {
-                LOGGER.info("DDL, actualScn= " + actualScn + " - " + operation + " - " + sql);
+                LOGGER.info("DDL, transactionId = {}, actualScn= {}, committed SCN= {}, userName= {},segOwner={}, segName={}, sequence={}",
+                        txId, actualScn,actualCommitScn,userName,segOwner,segName,sequence);
                 // todo parse, add to the collection.
             }
 
+
             // DML (insert,delete,update,commit,rollback)
             if (operationCode == 1 || operationCode == 2 || operationCode == 3) {
-                LOGGER.info("DML, actualScn= " + actualScn + " - " + operation + " - " + sql);
+                LOGGER.info("DML, transactionId = {}, actualScn= {}, committed SCN= {}, operation: {}, SQL: {}, userName= {}, segOwner={}, segName={}, sequence={}",
+                        txId, actualScn,actualCommitScn,operation,sql,userName,segOwner,segName,sequence);
                 try {
 
                     dmlParser.parse(sql, schema.getTables());
                     LogMinerRowLcr rowLcr = dmlParser.getDmlChange();
                     if (rowLcr == null) {
-                        LOGGER.error("Following statement cannot be parsed: " + sql);
+                        LOGGER.error("Following statement was not parsed: {}", sql);
                         continue;
                     }
-                    rowLcr.setObjectOwner(userName);
-                    rowLcr.setSourceTime(commitTime);
-                    rowLcr.setSourceDatabaseName(pdbName);
                     String transactionId = DatatypeConverter.printHexBinary(txId);
+                    LOGGER.debug("rowLcr:  username = {},change time={}, trID={},actualCommitScn={}, actualScn={}", userName, changeTime, transactionId, actualCommitScn, actualScn);
+                    rowLcr.setObjectOwner(userName);
+                    rowLcr.setSourceTime(changeTime);
+                    rowLcr.setSourceDatabaseName(pdbName);
                     rowLcr.setTransactionId(transactionId);
                     rowLcr.setObjectName(tableName);
 
                     rowLcr.setActualCommitScn(actualCommitScn);
                     rowLcr.setActualScn(actualScn);
-                    LOGGER.debug("rowLcr:  username ="+ userName+",commit time="+commitTime+
-                            ", trID="+transactionId+",actualCommitScn="+actualCommitScn+", actualScn="+actualScn);
 
                     changes.add(rowLcr);
 
                 } catch (Exception e) {
-                    LOGGER.error("Following statement: " + sql + " cannot be parsed due to the : " + e);
+                    LOGGER.error("Following statement: {} cannot be parsed due to the : {}",sql, e.getMessage());
                 }
             }
         }

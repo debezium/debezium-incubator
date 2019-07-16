@@ -37,4 +37,13 @@ class ParserListenerUtils {
         }
         return text;
     }
+
+    // todo make it better
+    static String stripeAlias(String text, String alias){
+        int index = text.indexOf(alias + ".");
+        if (text != null && index >= 0){
+            return text.substring(alias.length() + 1);
+        }
+        return text;
+    }
 }

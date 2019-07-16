@@ -15,7 +15,7 @@ package io.debezium.connector.oracle.logminer.valueholder;
  */
 public class ColumnValueHolder {
 
-    private boolean processed; // todo with new knowledge of parsing new values, maybe we don't need it
+    private boolean processed;
     private final LogMinerColumnValue columnValue;
 
     public ColumnValueHolder(LogMinerColumnValue columnValue) {

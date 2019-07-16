@@ -40,7 +40,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
-import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -79,10 +78,12 @@ public class OracleChangeRecordValueConverter extends JdbcValueConverters {
         this.connection = connection;
     }
 
+    // todo some methods are just a clones from OracleVAlueConverters, remove or implement differently
+
     @Override
     public SchemaBuilder schemaBuilder(Column column) {
-        if (column == null) { //todo: this is happening on ROWID pseudo column, we will address it
-            logger.warn("column is null");
+        if (column == null) { //todo: we will address it if happens
+            logger.warn("Column is null, investigate");
             return null;
         }
         logger.debug("Building schema for column {} of type {} named {} with constraints ({},{})",
@@ -111,6 +112,12 @@ public class OracleChangeRecordValueConverter extends JdbcValueConverters {
             case OracleTypes.INTERVALYM:
             case OracleTypes.INTERVALDS:
                 return MicroDuration.builder();
+            case OracleTypes.STRUCT:
+                 return SchemaBuilder.string();
+            case Types.CLOB:
+                return SchemaBuilder.string();
+            case Types.BLOB:
+                return SchemaBuilder.bytes();
             default:
                 return super.schemaBuilder(column);
         }
@@ -154,6 +161,8 @@ public class OracleChangeRecordValueConverter extends JdbcValueConverters {
             case Types.VARCHAR:
             case Types.NCHAR:
             case Types.NVARCHAR:
+            case OracleTypes.STRUCT:
+            case Types.CLOB:
                 return data -> convertString(column, fieldDefn, data);
             case OracleTypes.BINARY_FLOAT:
                 return data -> convertFloat(column, fieldDefn, data);
@@ -189,26 +198,17 @@ public class OracleChangeRecordValueConverter extends JdbcValueConverters {
      */
     private Object convertToLocalDateTime(Column column, Field fieldDefn, Object value) {
 
-        // todo make it better, get rid of unused methods and merge with converter
+        // todo make it better
         String dateText;
         if (value instanceof String) {
             String valueString = (String) value;
             if (valueString.toLowerCase().startsWith("to_timestamp")) {
                 dateText = valueString.substring("to_timestamp".length() + 2, valueString.length() - 2);
-                LocalDateTime dateTime = LocalDateTime.from(timestampFormat(column.length()).parse(dateText.trim()));
+                LocalDateTime dateTime = LocalDateTime.from(TIMESTAMP_FORMATTER.parse(dateText.trim()));
                 return  dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
             }
         }
         return value;
-    }
-
-    private DateTimeFormatter timestampFormat(int length) {
-        final DateTimeFormatterBuilder dtf = new DateTimeFormatterBuilder().parseCaseInsensitive()
-                .appendPattern("dd-MMM-yy hh.mm.ss.SSSSSS a");
-        if (length != -1) {
-            dtf.appendFraction(ChronoField.MICRO_OF_SECOND, 0, length, true);
-        }
-        return dtf.toFormatter();
     }
 
     private ValueConverter getNumericConverter(Column column, Field fieldDefn) {

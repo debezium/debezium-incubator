@@ -74,6 +74,11 @@ public class OracleValueConverters extends JdbcValueConverters {
             case OracleTypes.INTERVALYM:
             case OracleTypes.INTERVALDS:
                 return MicroDuration.builder();
+            case Types.STRUCT:
+            case Types.CLOB:
+                return SchemaBuilder.string();
+            case Types.BLOB:
+                return SchemaBuilder.bytes();
             default:
                 return super.schemaBuilder(column);
         }
@@ -117,6 +122,8 @@ public class OracleValueConverters extends JdbcValueConverters {
             case Types.VARCHAR:
             case Types.NCHAR:
             case Types.NVARCHAR:
+            case Types.STRUCT:
+            case Types.CLOB:
                 return data -> convertString(column, fieldDefn, data);
             case OracleTypes.BINARY_FLOAT:
                 return data -> convertFloat(column, fieldDefn, data);
