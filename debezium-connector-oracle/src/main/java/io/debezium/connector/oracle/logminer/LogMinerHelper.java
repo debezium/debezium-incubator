@@ -84,7 +84,7 @@ public class LogMinerHelper {
                 option = "DBMS_LOGMNR.ADDFILE";
             }
             String addLogFileStatement = SqlUtils.getAddLogFileStatement(option, fileName);
-            LOGGER.debug("log file= " + fileName + ", option: " + option);
+            LOGGER.debug("log file = {}, option: {} ", fileName, option);
             executeCallableStatement(connection, addLogFileStatement);
         }
     }
@@ -104,8 +104,31 @@ public class LogMinerHelper {
     public static void startOnlineMining(Connection connection, Long startScn, Long endScn) throws SQLException {
         String statement = SqlUtils.getStartLogMinerStatement(startScn, endScn);
         executeCallableStatement(connection, statement);
-        // todo dbms_logmnr.STRING_LITERALS_IN_STMT? DBMS_LOGMNR.NO_ROWID_IN_STMT?
-        // todo If the archive is bad, logmnr will not be able to access it:
+        // todo dbms_logmnr.STRING_LITERALS_IN_STMT?
+        // todo If the log file is corrupter bad, logmnr will not be able to access it, what to do?
+    }
+
+    /**
+     * This method query the database to get CURRENT online redo log file
+     * @param connection connection to reuse
+     * @return full redo log file name, including path
+     * @throws SQLException this would be something fatal
+     */
+    public static String getCurrentRedoLogFile(Connection connection) throws SQLException {
+        String checkQuery = "select f.member " +
+                "from v$log log, v$logfile f  where log.group#=f.group# and log.status='CURRENT'";
+
+        String fileName = "";
+        PreparedStatement st = connection.prepareStatement(checkQuery);
+        ResultSet result = st.executeQuery();
+        while (result.next()) {
+            fileName = result.getString(1);
+            LOGGER.debug(" fileName: {} ",  fileName);
+        }
+        st.close();
+        result.close();
+
+        return fileName;
     }
 
     /**
@@ -139,8 +162,8 @@ public class LogMinerHelper {
 
         while (batchSize > 0 && archivedFileIterator.hasNext()) {
             String name = archivedFileIterator.next().getKey();
-            addArchivedRedoLogFileForMining(conn, name);
-            LOGGER.debug(archivedFileIterator + " was added for mining");
+            addRedoLogFileForMining(conn, name);
+            LOGGER.debug("{} was added for mining", archivedFileIterator);
             batchSize--;
         }
 
@@ -188,7 +211,7 @@ public class LogMinerHelper {
         res = ps.executeQuery();
         while (res.next()) {
             allLogs.put(res.getString(1), res.getLong(2));
-            LOGGER.info("Log file to mine: " + res.getString(1) + ",next change= " + res.getLong(2));
+            LOGGER.info("Log file to mine: {}, next change = {} ", res.getString(1),res.getLong(2));
         }
         ps.close();
         res.close();
@@ -196,17 +219,17 @@ public class LogMinerHelper {
     }
 
     /**
-     * After mining archived log files, we should remove them from the analysis.
+     * After a switch, we should remove it from the analysis.
      * NOTE. It does not physically remove the log file.
      *
      * @param logFileName file to delete from the analysis
      * @param connection  container level database connection
      * @throws SQLException fatal exception, cannot continue further
      */
-    public static void removeArchiveLogFile(String logFileName, Connection connection) throws SQLException {
+    public static void removeLogFileFromMining(String logFileName, Connection connection) throws SQLException {
         String removeLogFileFromMining = SqlUtils.getRemoveLogFileFromMiningStatement(logFileName);
         executeCallableStatement(connection, removeLogFileFromMining);
-        LOGGER.debug(removeLogFileFromMining + " was removed from mining");
+        LOGGER.debug("{} was removed from mining", removeLogFileFromMining);
 
     }
 
@@ -231,7 +254,7 @@ public class LogMinerHelper {
         try {
             executeCallableStatement(connection, stopMining);
         } catch (SQLException e) {
-            LOGGER.error("Cannot end mining session properly due to the: " + e.getMessage());
+            LOGGER.error("Cannot end mining session properly due to the:{} ", e.getMessage());
         }
     }
 
@@ -254,16 +277,16 @@ public class LogMinerHelper {
     }
 
     /**
-     * A method to add archived log file for mining
+     * A method to add log file for mining
      *
      * @param connection Database connection
-     * @param fileName   Archived Redo log file name
+     * @param fileName   Redo log file name
      * @throws SQLException fatal exception
      */
-    private static void addArchivedRedoLogFileForMining(Connection connection, String fileName) throws SQLException {
+    public static void addRedoLogFileForMining(Connection connection, String fileName) throws SQLException {
         final String addLogFileStatement = SqlUtils.getAddLogFileStatement("DBMS_LOGMNR.ADDFILE", fileName);
         executeCallableStatement(connection, addLogFileStatement);
-        LOGGER.debug("Archived redo log file= " + fileName + " added for mining");
+        LOGGER.debug("Redo log file= {} added for mining", fileName);
     }
 
 
@@ -281,7 +304,9 @@ public class LogMinerHelper {
     }
 
     /**
-     * This method returns online redo log file names
+     * This method returns online redo log file names which are in ACTIVE, INACTIVE or CURRENT states
+     * UNUSED will be ignored.
+     * This is because UNUSED files cannot be added for mining
      *
      * @param connection container level database connection
      * @return List of redo log file names

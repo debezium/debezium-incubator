@@ -40,4 +40,12 @@ public class LogMinerColumnValueImpl implements LogMinerColumnValue {
         this.columnData = columnData;
     }
 
+    @Override
+    public String toString() {
+        return "LogMinerColumnValueImpl{" +
+                "columnName='" + columnName + '\'' +
+                ", columnData=" + columnData +
+                ", columnType=" + columnType +
+                '}';
+    }
 }

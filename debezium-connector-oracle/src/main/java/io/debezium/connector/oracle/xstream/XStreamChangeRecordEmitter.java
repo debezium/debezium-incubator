@@ -18,11 +18,11 @@ import oracle.streams.RowLCR;
  *
  * @author Gunnar Morling
  */
-public class ChangeRecordEmitter extends BaseChangeRecordEmitter<ColumnValue> {
+public class XStreamChangeRecordEmitter extends BaseChangeRecordEmitter<ColumnValue> {
 
     private final RowLCR lcr;
 
-    public ChangeRecordEmitter(OffsetContext offset, RowLCR lcr, Table table, Clock clock) {
+    public XStreamChangeRecordEmitter(OffsetContext offset, RowLCR lcr, Table table, Clock clock) {
         super(offset, table, clock);
         this.lcr = lcr;
     }

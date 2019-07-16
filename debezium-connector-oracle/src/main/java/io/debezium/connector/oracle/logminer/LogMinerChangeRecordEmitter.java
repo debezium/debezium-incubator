@@ -19,13 +19,13 @@ import java.util.List;
 /**
  * Emits change record based on a single {@link LogMinerRowLcr} event.
  */
-public class ChangeRecordEmitter extends BaseChangeRecordEmitter<LogMinerColumnValue> {
+public class LogMinerChangeRecordEmitter extends BaseChangeRecordEmitter<LogMinerColumnValue> {
 
     private LogMinerRowLcr lcr;
     protected final Table table;
 
 
-    public ChangeRecordEmitter(OffsetContext offset, LogMinerRowLcr lcr, Table table, Clock clock) {
+    public LogMinerChangeRecordEmitter(OffsetContext offset, LogMinerRowLcr lcr, Table table, Clock clock) {
         super(offset, table, clock);
         this.lcr = lcr;
         this.table = table;

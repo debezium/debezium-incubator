@@ -11,14 +11,14 @@ package io.debezium.connector.oracle.logminer;
 public class SqlUtils {
 
     static final String BUILD_DICTIONARY = "BEGIN DBMS_LOGMNR_D.BUILD (options => DBMS_LOGMNR_D.STORE_IN_REDO_LOGS); END;";
-    static final String ONLINE_LOG_FILENAME = "SELECT MEMBER FROM V$LOGFILE";
+    static final String ONLINE_LOG_FILENAME = "SELECT F.MEMBER FROM V$LOGFILE F, V$LOG R WHERE F.GROUP# = R.GROUP# AND R.STATUS <> 'UNUSED'";
     static final String CURRENT_SCN = "select CURRENT_SCN from V$DATABASE";
     static final String START_LOGMINER_FOR_ARCHIVE_STATEMENT = "BEGIN sys.dbms_logmnr.start_logmnr(" +
             "OPTIONS => DBMS_LOGMNR.DICT_FROM_ONLINE_CATALOG + DBMS_LOGMNR.COMMITTED_DATA_ONLY); END;";
     static final String END_LOGMNR = "BEGIN SYS.DBMS_LOGMNR.END_LOGMNR(); END;";
     static final String OLDEST_FIRST_CHANGE = "select min(first_change#) from V$LOG";
     static final String OLDEST_ARCHIVED_CHANGE = "select min(first_change#) from v$archived_log";
-    static final String LATEST_SCN_FROM_ARCHIVED_LOG = "select max(NEXT_CHANGE#) from v$archived_log";
+    static final String LATEST_SCN_FROM_ARCHIVED_LOG = "select max(NEXT_CHANGE#) from v$archived_log";// todo replace with ARCHIVELOG_CHANGE# from v$database
     static final String ALL_ARCHIVED_LOGS_NAMES_FOR_OFFSET = "select name as file_name, next_change# as next_change from v$archived_log where first_change# between ? and ? and status = 'A' and standby_dest='NO' order by next_change asc";
 
     static final String NLS_SESSION_PARAMETERS = "ALTER SESSION SET "
@@ -39,7 +39,8 @@ public class SqlUtils {
                 "endScn => '" + endScn + "', " +
                 "OPTIONS => DBMS_LOGMNR.DICT_FROM_REDO_LOGS + " +
                 "DBMS_LOGMNR.DDL_DICT_TRACKING + " +
-                "DBMS_LOGMNR.COMMITTED_DATA_ONLY); " +
+                "DBMS_LOGMNR.NO_ROWID_IN_STMT);" +
+//                "DBMS_LOGMNR.COMMITTED_DATA_ONLY); " +
                 "END;";
     }
 
@@ -103,18 +104,20 @@ public class SqlUtils {
      * @param schemaName user name
      * @return the query
      */
-    public static String queryLogMinerContents(String schemaName)  {
+    public static String queryLogMinerContents(String schemaName, String logMinerUser)  {
         return "SELECT SCN, COMMIT_SCN, OPERATION, USERNAME, SRC_CON_NAME, SQL_REDO, SEG_TYPE, " +
-                        "STATUS, OPERATION_CODE, TABLE_NAME, TIMESTAMP, COMMIT_TIMESTAMP, XID, XIDSQN, CSF " +
+                        "STATUS, OPERATION_CODE, TABLE_NAME, TIMESTAMP, COMMIT_TIMESTAMP, XID, XIDSQN, CSF, " +
+                "seg_owner, SEG_NAME, SEQUENCE# " +
                         "FROM v$logmnr_contents " +
                         "WHERE " +
-                        "username = '"+ schemaName.toUpperCase() +"' " +
-//                        " AND OPERATION_CODE in (1,2,3,5,7, 36) " +// 5 - DDL
+                        // currently we expect that someone else may change the schema and we want to capture those
+//                        "username = '"+ schemaName.toUpperCase() +"' AND " +
+                        "OPERATION_CODE in (1,2,3,5) " +// 5 - DDL
                         "AND seg_owner = '"+ schemaName.toUpperCase() +"' " +
                         "AND " +
-                        "(commit_scn >= ? " +
-                " OR scn >= ?)"; // OR scn stands for DDL
-        // todo ROW_ID?
+//                        "(commit_scn >= ? " +
+                " scn > ? or (OPERATION_CODE in (7,36) and username not in ('SYS','SYSTEM','"+logMinerUser.toUpperCase()+"'))";
+        // todo remove XIDSQN, introduce named indexes for the ResultSet, filter non whitelisted tables
     }
 
     /**

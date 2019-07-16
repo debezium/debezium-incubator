@@ -5,13 +5,13 @@
  */
 package io.debezium.connector.oracle.logminer;
 
+import io.debezium.connector.oracle.OracleConnection;
 import io.debezium.connector.oracle.OracleConnectorConfig;
 import io.debezium.connector.oracle.OracleDatabaseSchema;
 import io.debezium.connector.oracle.OracleOffsetContext;
 import io.debezium.connector.oracle.antlr.OracleDmlParser;
 import io.debezium.connector.oracle.logminer.valueholder.LogMinerLcr;
 import io.debezium.connector.oracle.logminer.valueholder.LogMinerRowLcr;
-import io.debezium.jdbc.JdbcConnection;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.StreamingChangeEventSource;
 import io.debezium.relational.TableId;
@@ -36,7 +36,7 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LogMinerStreamingChangeEventSource.class);
 
-    private final JdbcConnection jdbcConnection;
+    private final OracleConnection jdbcConnection;
     private final EventDispatcher<TableId> dispatcher;
     private final Clock clock;
     private final OracleDatabaseSchema schema;
@@ -46,11 +46,9 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
     //private final int posVersion;
 
     private OracleConnectorConfig connectorConfig;
-    // todo make it configurable, depending on the PGA limit and the DB CPU number.
-    private int batchSize = 10;
     private final LogMinerProcessor logMinerProcessor;
 
-    public LogMinerStreamingChangeEventSource(OracleConnectorConfig connectorConfig, OracleOffsetContext offsetContext, JdbcConnection jdbcConnection, EventDispatcher<TableId> dispatcher, Clock clock, OracleDatabaseSchema schema) {
+    public LogMinerStreamingChangeEventSource(OracleConnectorConfig connectorConfig, OracleOffsetContext offsetContext, OracleConnection jdbcConnection, EventDispatcher<TableId> dispatcher, Clock clock, OracleDatabaseSchema schema) {
         this.jdbcConnection = jdbcConnection;
         this.dispatcher = dispatcher;
         this.clock = clock;
@@ -62,7 +60,7 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
 
         this.connectorConfig = connectorConfig;
 
-        OracleDmlParser dmlParser = new OracleDmlParser(true, connectorConfig.getPdbName(), connectorConfig.getSchemaName(),
+        OracleDmlParser dmlParser = new OracleDmlParser(true, connectorConfig.getDatabaseName(), connectorConfig.getSchemaName(),
                 converters);
         logMinerProcessor = new LogMinerProcessor(schema, dmlParser);
     }
@@ -80,7 +78,7 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
 
         try (Connection connection = jdbcConnection.connection();
              PreparedStatement fetchChangesFromMiningView =
-                     connection.prepareStatement(SqlUtils.queryLogMinerContents(connectorConfig.getSchemaName()))) {
+                     connection.prepareStatement(SqlUtils.queryLogMinerContents(connectorConfig.getSchemaName(), jdbcConnection.username()))) {
             long lastProcessedScn = offsetContext.getScn(); // last processes Scn
             long oldestScnInOnlineRedo = LogMinerHelper.getFirstOnlineLogScn(connection);
             if (lastProcessedScn < oldestScnInOnlineRedo) {
@@ -90,8 +88,12 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
             LogMinerHelper.setNlsSessionParameters(jdbcConnection);
 
             // 1. Configure Log Miner to mine online logs
-            LogMinerHelper.buildDataDictionary(connection);// todo should we renew it after a DDL?
+            if (connectorConfig.getPdbName() != null) {
+                jdbcConnection.resetSessionToCdb();
+            }
+            LogMinerHelper.buildDataDictionary(connection);
             LogMinerHelper.addOnlineRedoLogFilesForMining(connection);
+            String currentRedoLogFile = LogMinerHelper.getCurrentRedoLogFile(connection);
 
             // 2. Querying LogMinerRowLcr(s) from Log miner while running
             while (context.isRunning()) {
@@ -99,17 +101,23 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
 
                 lastProcessedScn = offsetContext.getScn();
                 long currentScn = LogMinerHelper.getCurrentScn(connection);
-                LOGGER.debug("\nstart, lastProcessedScn: " + lastProcessedScn + ", endScn: " + currentScn);
-                if (lastProcessedScn == currentScn) {
-                    LOGGER.debug("No changes to process...pausing for a second");
-                    Metronome metronome = Metronome.sleeper(Duration.ofSeconds(1L), clock);
-                    metronome.pause();
+                LOGGER.debug("lastProcessedScn: {}, endScn: {}", lastProcessedScn, currentScn);
+
+                String possibleNewCurrentLogFile = LogMinerHelper.getCurrentRedoLogFile(connection);
+
+                // if switching is happening too frequently, increase log file sizes
+                if (!currentRedoLogFile.equals(possibleNewCurrentLogFile)) {
+                    LogMinerHelper.endMining(connection);
+                    LogMinerHelper.buildDataDictionary(connection);
+                    LogMinerHelper.addOnlineRedoLogFilesForMining(connection);
+                    // Oracle does the switch on building data dictionary in redo logs
+                    currentRedoLogFile = LogMinerHelper.getCurrentRedoLogFile(connection);
+                    LOGGER.debug("curent log: "+currentRedoLogFile);
                 }
 
                 LogMinerHelper.startOnlineMining(connection, lastProcessedScn, currentScn);
 
                 fetchChangesFromMiningView.setLong(1, lastProcessedScn);
-                fetchChangesFromMiningView.setLong(2, lastProcessedScn);
 
                 debugInfo(connection, "before");
                 res = fetchChangesFromMiningView.executeQuery();
@@ -127,19 +135,19 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
             try (Connection connection = jdbcConnection.connection()) {
                 LogMinerHelper.endMining(connection);
             } catch (SQLException e) {
-                LOGGER.error("Cannot close Log Miner session gracefully: " + e.getMessage());
+                LOGGER.error("Cannot close Log Miner session gracefully: {}", e.getMessage());
             }
             if (res != null) {
                 try {
                     res.close();
                 } catch (SQLException e) {
-                    LOGGER.error("Cannot close result set due to the :" + e.getMessage());
+                    LOGGER.error("Cannot close result set due to the :{}", e.getMessage());
                 }
             }
             try {
                 jdbcConnection.close();
             } catch (SQLException e) {
-                LOGGER.error("Cannot close JDBC connection: " + e.getMessage());
+                LOGGER.error("Cannot close JDBC connection: {}", e.getMessage());
             }
         }
     }
@@ -151,10 +159,10 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
 
     private void dispatchChanges(ResultSet res) throws SQLException {
 
-        LOGGER.debug("dispatching changes..");
         List<LogMinerRowLcr> changes = logMinerProcessor.process(res);
 
         for (LogMinerRowLcr logMinerRowLcr : changes) {
+            LOGGER.debug("dispatching changes..");
 
             long actualScn = logMinerRowLcr.getActualScn();
             offsetContext.setScn(actualScn);
@@ -167,10 +175,10 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
                 TableId tableId = getTableId(logMinerRowLcr);
                 dispatcher.dispatchDataChangeEvent(
                         tableId,
-                        new ChangeRecordEmitter(offsetContext, logMinerRowLcr, schema.tableFor(tableId), clock)
+                        new LogMinerChangeRecordEmitter(offsetContext, logMinerRowLcr, schema.tableFor(tableId), clock)
                 );
             } catch (InterruptedException e) {
-                LOGGER.error("Following SCN: " + logMinerRowLcr.getActualScn() + " cannot be dispatched due to the : " + e);
+                LOGGER.error("Following SCN: {} cannot be dispatched due to the {}: ",logMinerRowLcr.getActualScn(), e);
             }
         }
     }
@@ -183,10 +191,11 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
         }
     }
 
-    // todo this is temporary debugging info, will be removed. Once we observed a missed DML. This should help to trace if reproducible.
+    // todo this is temporary debugging info,  remove.
     private void debugInfo(Connection connection, String info) throws SQLException {
         //String checkQuery = "select member, log.status, log.first_change# from v$log log, v$logfile  f  where log.group#=f.group# order by 1 asc";
-        String checkQuery = "select member, log.status, log.first_change# from v$log log, v$logfile  f  where log.group#=f.group# and log.status='CURRENT'";
+        String checkQuery = "select f.member, log.status, log.first_change#, f.TYPE, f.status, f.group#, f.IS_RECOVERY_DEST_FILE, log.archived " +
+                "from v$log log, v$logfile f  where log.group#=f.group# and log.status='CURRENT'";
 
         PreparedStatement st = connection.prepareStatement(checkQuery);
         ResultSet result = st.executeQuery();
@@ -194,7 +203,14 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
             String fileName = result.getString(1);
             String status = result.getString(2);
             long changeScn = result.getLong(3);
-            LOGGER.debug(info + "= filename = " + fileName + ", status: " + status + " SCN= " + changeScn);
+            String fileType = result.getString(4);
+            String fileStatus = result.getString(5);
+            Long fileGroup = result.getLong(6);
+            String dest = result.getString(7);
+            String archived = result.getString(8);
+            LOGGER.debug(info + "= filename = " + fileName + ", status: " + status + ", first SCN= " + changeScn +
+                    ", file type: " + fileType + ", file group: " + fileGroup
+                    + ", dest: " + dest + ", archived=" + archived);
         }
         st.close();
         result.close();
