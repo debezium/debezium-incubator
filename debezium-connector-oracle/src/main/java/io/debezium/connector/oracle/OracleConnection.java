@@ -100,8 +100,9 @@ public class OracleConnection extends JdbcConnection {
 
     protected Set<TableId> getAllTableIds(String catalogName, String schemaNamePattern, boolean isView) throws SQLException {
 
-        String query = "select table_name, owner from all_tables t where owner like '%" + schemaNamePattern.toUpperCase() + "%'" +
-                " and exists (select 1 from ALL_SDO_INDEX_INFO i where t.table_name = i.table_name)";
+        String query = "select table_name, owner from all_tables where table_name not in " +
+                "(select SDO_INDEX_TABLE from ALL_SDO_INDEX_INFO where SDO_INDEX_OWNER like '%" + schemaNamePattern.toUpperCase() + "%')" +
+                "and owner like '%" + schemaNamePattern.toUpperCase() + "%'";
         if (isView){
             query = "select view_name, owner from all_views where owner like '%" + schemaNamePattern.toUpperCase() + "%'";
         }
