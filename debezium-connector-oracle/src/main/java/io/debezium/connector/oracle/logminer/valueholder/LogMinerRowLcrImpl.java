@@ -7,6 +7,7 @@ package io.debezium.connector.oracle.logminer.valueholder;
 
 import io.debezium.data.Envelope;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
@@ -24,9 +25,8 @@ public class LogMinerRowLcrImpl implements LogMinerRowLcr {
     private String objectName;
     private Timestamp sourceTime;
     private String transactionId;
-    private String databaseName;
-    private long actualCommitScn;
-    private long actualScn;
+    private BigDecimal actualCommitScn;
+    private BigDecimal actualScn;
 
     public LogMinerRowLcrImpl(Envelope.Operation commandType, List<LogMinerColumnValue> newLmColumnValues, List<LogMinerColumnValue> oldLmColumnValues) {
         this.commandType = commandType;
@@ -52,11 +52,6 @@ public class LogMinerRowLcrImpl implements LogMinerRowLcr {
     @Override
     public String getTransactionId() {
         return transactionId;
-    }
-
-    @Override
-    public String getSourceDatabaseName() {
-        return databaseName;
     }
 
     @Override
@@ -94,27 +89,23 @@ public class LogMinerRowLcrImpl implements LogMinerRowLcr {
         this.transactionId = id;
     }
 
-    public void setSourceDatabaseName(String name){
-        this.databaseName = name;
-    }
-
     @Override
-    public long getActualCommitScn() {
+    public BigDecimal getActualCommitScn() {
         return actualCommitScn;
     }
 
     @Override
-    public void setActualCommitScn(long actualCommitScn) {
+    public void setActualCommitScn(BigDecimal actualCommitScn) {
         this.actualCommitScn = actualCommitScn;
     }
 
     @Override
-    public long getActualScn() {
+    public BigDecimal getActualScn() {
         return actualScn;
     }
 
     @Override
-    public void setActualScn(long actualScn) {
+    public void setActualScn(BigDecimal actualScn) {
         this.actualScn = actualScn;
     }
 
@@ -143,7 +134,6 @@ public class LogMinerRowLcrImpl implements LogMinerRowLcr {
                 ", objectName='" + objectName + '\'' +
                 ", sourceTime=" + sourceTime +
                 ", transactionId='" + transactionId + '\'' +
-                ", databaseName='" + databaseName + '\'' +
                 ", actualCommitScn=" + actualCommitScn +
                 ", actualScn=" + actualScn +
                 '}';

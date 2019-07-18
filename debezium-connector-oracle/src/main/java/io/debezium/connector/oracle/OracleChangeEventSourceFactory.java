@@ -68,6 +68,7 @@ public class OracleChangeEventSourceFactory implements ChangeEventSourceFactory 
                 (OracleOffsetContext) offsetContext,
                 jdbcConnection,
                 dispatcher,
+                errorHandler,
                 clock,
                 schema
         );

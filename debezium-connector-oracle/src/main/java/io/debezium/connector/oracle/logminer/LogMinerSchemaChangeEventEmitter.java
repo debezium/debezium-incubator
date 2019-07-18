@@ -19,8 +19,8 @@ public class LogMinerSchemaChangeEventEmitter extends BaseOracleSchemaChangeEven
     public LogMinerSchemaChangeEventEmitter(OracleOffsetContext offsetContext, TableId tableId, LogMinerDdlLcr ddlLcr) {
         super(offsetContext,
                 tableId,
-                ddlLcr.getSourceDatabaseName(),
-                ddlLcr.getObjectOwner(),
+                tableId.catalog(),//todo tableId should be enough
+                tableId.schema(), //todo same here
                 ddlLcr.getDdlText(),
                 ddlLcr.getCommandType());
     }

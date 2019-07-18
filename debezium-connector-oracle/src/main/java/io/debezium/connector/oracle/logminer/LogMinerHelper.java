@@ -123,7 +123,7 @@ public class LogMinerHelper {
         ResultSet result = st.executeQuery();
         while (result.next()) {
             fileName = result.getString(1);
-            LOGGER.debug(" fileName: {} ",  fileName);
+            LOGGER.trace(" Current Redo log fileName: {} ",  fileName);
         }
         st.close();
         result.close();

@@ -6,6 +6,8 @@
 package io.debezium.connector.oracle.logminer.valueholder;
 
 import io.debezium.data.Envelope;
+
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -37,23 +39,23 @@ public interface LogMinerRowLcr extends LogMinerLcr {
      * the commit scn obtained from a Log Miner entry
      * @return it's value
      */
-    long getActualCommitScn();
+    BigDecimal getActualCommitScn();
 
     /**
      * sets commit scn obtained from a Log Miner entry
      * @param actualCommitScn the value
      */
-    void setActualCommitScn(long actualCommitScn);
+    void setActualCommitScn(BigDecimal actualCommitScn);
 
     /**
      * the scn obtained from a Log Miner entry
      * @return it's value
      */
-    long getActualScn();
+    BigDecimal getActualScn();
 
     /**
      * sets scn obtained from a Log Miner entry
      * @param actualScn it's value
      */
-    void setActualScn(long actualScn);
+    void setActualScn(BigDecimal actualScn);
 }

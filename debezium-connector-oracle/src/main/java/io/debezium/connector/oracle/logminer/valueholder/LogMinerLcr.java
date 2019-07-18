@@ -27,11 +27,6 @@ public interface LogMinerLcr {
     String getTransactionId();
 
     /**
-     * @return source database name
-     */
-    String getSourceDatabaseName();
-
-    /**
      * @return schema name
      */
     String getObjectOwner();
@@ -73,12 +68,6 @@ public interface LogMinerLcr {
      * @param id unique transaction ID
      */
     void setTransactionId(String id);
-
-    /**
-     * @param name database instance name. In containerized system this is the PDB name.
-     *             In standalone implementation this is the instance name.
-     */
-    void setSourceDatabaseName(String name);
 
 
 }
