@@ -227,7 +227,6 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
                     TableId tableId = RowMapper.getTableId(catalogName, res);
 
                     transactionalBuffer.registerCommitCallback(txId, scn, (timestamp, smallestScn) -> {
-                        offsetContext.setScn(scn.longValue());
                         // update SCN in offset context only if processed SCN less than SCN among other transactions
                         if (smallestScn == null || scn.compareTo(smallestScn) < 0) {
                             offsetContext.setScn(scn.longValue());
@@ -250,15 +249,12 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
     }
 
     private boolean isTableWhitelisted(String tableName) {
-        //todo move this filter to logminer query
-        boolean tableWhitelisted = false;
-        for (TableId tableId : schema.getTables().tableIds()) {
-            if (tableName != null && tableId.table().toLowerCase().contains(tableName.toLowerCase())) {
-                tableWhitelisted = true;
-                break;
-            }
+        if (tableName == null) {
+            return false;
         }
-        return tableWhitelisted;
+        return schema.getTables().tableIds()
+                .stream()
+                .anyMatch(tableId -> tableId.table().toLowerCase().contains(tableName.toLowerCase()));
     }
 
 
