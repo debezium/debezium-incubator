@@ -10,4 +10,5 @@ col8 timestamp,
 col9 blob,
 col10 clob,
 col11 "mdsys"."sdo_geometry",
+col12 number(1,0),
 primary key (id));

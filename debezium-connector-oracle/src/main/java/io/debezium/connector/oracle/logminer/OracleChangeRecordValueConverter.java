@@ -9,9 +9,9 @@ import io.debezium.data.SpecialValueDecimal;
 import io.debezium.data.VariableScaleDecimal;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.jdbc.JdbcValueConverters;
-import io.debezium.jdbc.TemporalPrecisionMode;
 import io.debezium.relational.Column;
 import io.debezium.relational.ValueConverter;
+import io.debezium.time.Date;
 import io.debezium.time.MicroDuration;
 import io.debezium.time.ZonedTimestamp;
 import io.debezium.util.NumberConversions;
@@ -19,6 +19,7 @@ import io.debezium.util.Strings;
 import oracle.jdbc.OracleTypes;
 import oracle.sql.BINARY_DOUBLE;
 import oracle.sql.BINARY_FLOAT;
+import oracle.sql.BLOB;
 import oracle.sql.CHAR;
 import oracle.sql.DATE;
 import oracle.sql.INTERVALDS;
@@ -35,7 +36,6 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -45,6 +45,10 @@ import java.util.regex.Pattern;
 
 import static io.debezium.util.NumberConversions.BYTE_FALSE;
 
+/**
+ * This class is used as a value converter by the DML parser.
+ * todo this class is a replica of OracleValueConverters which is used by XStream and Logminer for snapshot mode
+ */
 public class OracleChangeRecordValueConverter extends JdbcValueConverters {
 
     private static final Pattern INTERVAL_DAY_SECOND_PATTERN = Pattern.compile("([+\\-])?(\\d+) (\\d+):(\\d+):(\\d+).(\\d+)");
@@ -74,7 +78,6 @@ public class OracleChangeRecordValueConverter extends JdbcValueConverters {
     private final JdbcConnection connection;
 
     public OracleChangeRecordValueConverter(JdbcConnection connection) {
-        super(null,TemporalPrecisionMode.ADAPTIVE_TIME_MICROSECONDS, ZoneOffset.UTC, null, null);
         this.connection = connection;
     }
 
@@ -96,8 +99,8 @@ public class OracleChangeRecordValueConverter extends JdbcValueConverters {
 
         switch (column.jdbcType()) {
             // Oracle's float is not float as in Java but a NUMERIC without scale
-            case Types.FLOAT:
-                return VariableScaleDecimal.builder();
+           // case Types.FLOAT:
+           //     return VariableScaleDecimal.builder();
             case Types.NUMERIC:
                 return getNumericSchema(column);
             case OracleTypes.BINARY_FLOAT:
@@ -130,6 +133,11 @@ public class OracleChangeRecordValueConverter extends JdbcValueConverters {
 
             // a negative scale means rounding, e.g. NUMBER(10, -2) would be rounded to hundreds
             if (scale <= 0) {
+                //Boolean represtented as Number(1,0)
+                if (scale == 0 && column.length() == 1) {
+                    return SchemaBuilder.bool();
+                }
+
                 int width = column.length() - scale;
 
                 if (width < 3) {
@@ -171,7 +179,7 @@ public class OracleChangeRecordValueConverter extends JdbcValueConverters {
             case Types.NUMERIC:
                     return getNumericConverter(column, fieldDefn);
             case Types.FLOAT:
-                return data -> convertVariableScale(column, fieldDefn, data);
+                return data -> getFloatConverter(column, fieldDefn, data);
             case OracleTypes.TIMESTAMP:
                   return data -> convertToLocalDateTime(column, fieldDefn, data);
             case OracleTypes.TIMESTAMPTZ:
@@ -205,7 +213,7 @@ public class OracleChangeRecordValueConverter extends JdbcValueConverters {
             if (valueString.toLowerCase().startsWith("to_timestamp")) {
                 dateText = valueString.substring("to_timestamp".length() + 2, valueString.length() - 2);
                 LocalDateTime dateTime = LocalDateTime.from(TIMESTAMP_FORMATTER.parse(dateText.trim()));
-                return  dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                return  dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() * 1000; //timestamp(6) is converted as microTimestamp
             }
         }
         return value;
@@ -216,6 +224,11 @@ public class OracleChangeRecordValueConverter extends JdbcValueConverters {
             Integer scale = column.scale().get();
 
             if (scale <= 0) {
+                //Boolean represtented as Number(1,0)
+                if (scale == 0 && column.length() == 1) {
+                    return data -> convertBoolean(column, fieldDefn, data);
+                }
+
                 int width = column.length() - scale;
 
                 if (width < 3) {
@@ -238,6 +251,13 @@ public class OracleChangeRecordValueConverter extends JdbcValueConverters {
         else {
             return data -> convertVariableScale(column, fieldDefn, data);
         }
+    }
+
+    private Object getFloatConverter(Column column, Field fieldDefn, Object data) {
+       if ( data instanceof String) {
+           return Float.parseFloat((String)data);
+       }
+       return convertVariableScale(column, fieldDefn, data);
     }
 
     @Override
@@ -374,6 +394,23 @@ public class OracleChangeRecordValueConverter extends JdbcValueConverters {
         }
 
         return super.convertBigInt(column, fieldDefn, data);
+    }
+
+    /**
+     * Converts a value object for an expected JDBC type of {@link Types#BOOLEAN}.
+     *
+     * @param column    the column definition describing the {@code data} value; never null
+     * @param fieldDefn the field definition; never null
+     * @param data      the data object to be converted into a {@link Date Kafka Connect date} type; never null
+     * @return the converted value, or null if the conversion could not be made and the column allows nulls
+     * @throws IllegalArgumentException if the value could not be converted but the column does not allow nulls
+     */
+    @Override
+    protected Object convertBoolean(Column column, Field fieldDefn, Object data) {
+        if (data instanceof String) {
+            return Byte.parseByte((String) data) == 0 ? Boolean.FALSE : Boolean.TRUE;
+        }
+        return super.convertBoolean(column, fieldDefn, data);
     }
 
     @Override

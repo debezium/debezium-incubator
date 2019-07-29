@@ -127,8 +127,7 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
                 res = fetchChangesFromMiningView.executeQuery();
                 traceInfo(connection, "after fetching changes");
 
-                if (res.next()) {
-                    res.beforeFirst();
+                if (res.isBeforeFirst()) {
                     processResult(res, context);
                 } else {
                     metronome.pause();
@@ -210,7 +209,7 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
 
             // DML
             if (operationCode == RowMapper.INSERT || operationCode == RowMapper.DELETE || operationCode == RowMapper.UPDATE) {
-                LOGGER.info("DML,  {}", logMessage);
+                LOGGER.info("DML,  {}, sql {}", logMessage, redo_sql);
                 try {
                     dmlParser.parse(redo_sql, schema.getTables());
                     LogMinerRowLcr rowLcr = dmlParser.getDmlChange();
@@ -252,7 +251,7 @@ public class LogMinerStreamingChangeEventSource implements StreamingChangeEventS
         if (tableName == null) {
             return false;
         }
-        return schema.getTables().tableIds()
+        return schema.tableIds()
                 .stream()
                 .anyMatch(tableId -> tableId.table().toLowerCase().contains(tableName.toLowerCase()));
     }
