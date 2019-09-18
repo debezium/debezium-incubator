@@ -114,7 +114,7 @@ public class OracleSnapshotChangeEventSource extends RelationalSnapshotChangeEve
         do {
             currentScn = getCurrentScn(ctx);
         }
-        while(areSameTimestamp(latestTableDdlScn.orElse(null), currentScn));
+        while (areSameTimestamp(latestTableDdlScn.orElse(null), currentScn));
 
         ctx.offset = OracleOffsetContext.create()
                 .logicalName(connectorConfig)
@@ -162,7 +162,7 @@ public class OracleSnapshotChangeEventSource extends RelationalSnapshotChangeEve
                 .append(" FROM all_objects")
                 .append(" WHERE");
 
-        for(TableId table : ctx.capturedTables) {
+        for (TableId table : ctx.capturedTables) {
             lastDdlScnQuery.append(" (owner = '" + table.schema() + "' AND object_name = '" + table.table() + "') OR");
         }
 

@@ -66,7 +66,7 @@ public class OracleStreamingChangeEventSource implements StreamingChangeEventSou
             LcrEventHandler handler = new LcrEventHandler(errorHandler, dispatcher, clock, schema, offsetContext, this.tablenameCaseInsensitive);
 
             // 2. receive events while running
-            while(context.isRunning()) {
+            while (context.isRunning()) {
                 LOGGER.trace("Receiving LCR");
                 xsOut.receiveLCRCallback(handler, XStreamOut.DEFAULT_MODE);
             }
