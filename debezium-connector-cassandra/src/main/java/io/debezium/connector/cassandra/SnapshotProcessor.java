@@ -65,7 +65,9 @@ public class SnapshotProcessor extends AbstractProcessor {
         queue = context.getQueue();
         offsetWriter = context.getOffsetWriter();
         schemaHolder = context.getSchemaHolder();
-        recordMaker = new RecordMaker(context.getCassandraConnectorConfig().tombstonesOnDelete(), new Filters(context.getCassandraConnectorConfig().fieldBlacklist()));
+        recordMaker = new RecordMaker(context.getCassandraConnectorConfig().tombstonesOnDelete(),
+                new Filters(context.getCassandraConnectorConfig().fieldBlacklist()),
+                new SourceInfo(context.getCassandraConnectorConfig()));
         snapshotMode = context.getCassandraConnectorConfig().snapshotMode();
         consistencyLevel = context.getCassandraConnectorConfig().snapshotConsistencyLevel();
     }
@@ -201,10 +203,10 @@ public class SnapshotProcessor extends AbstractProcessor {
                 Row row = rowIter.next();
                 WriteTimeHolder writeTimeHolder = new WriteTimeHolder();
                 RowData after = extractRowData(row, tableMetadata.getColumns(), partitionKeyNames, clusteringKeyNames, writeTimeHolder);
-                SourceInfo source = new SourceInfo(DatabaseDescriptor.getClusterName(), OffsetPosition.defaultOffsetPosition(), keyspaceTable, true, writeTimeHolder.get());
                 // only mark offset if there are no more rows left
                 boolean markOffset = !rowIter.hasNext();
-                recordMaker.insert(source, after, keySchema, valueSchema, markOffset, queue::enqueue);
+                recordMaker.getSourceInfo().update(DatabaseDescriptor.getClusterName(), OffsetPosition.defaultOffsetPosition(), keyspaceTable, true, writeTimeHolder.get());
+                recordMaker.insert(after, keySchema, valueSchema, markOffset, queue::enqueue);
                 rowNum++;
                 if (rowNum % 10_000 == 0) {
                     LOGGER.info("Queued {} snapshot records from table {}", rowNum, tableName);

@@ -293,7 +293,6 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
      */
     private void handlePartitionDeletion(PartitionUpdate pu, OffsetPosition offsetPosition, KeyspaceTable keyspaceTable) {
         try {
-            SourceInfo source = new SourceInfo(DatabaseDescriptor.getClusterName(), offsetPosition, keyspaceTable, false, pu.maxTimestamp());
 
             SchemaHolder.KeyValueSchema keyValueSchema = schemaHolder.getOrUpdateKeyValueSchema(keyspaceTable);
             Schema keySchema = keyValueSchema.keySchema();
@@ -301,13 +300,7 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
 
             RowData after = new RowData();
 
-            List<Object> partitionKeys = getPartitionKeys(pu);
-            for (ColumnDefinition cd : pu.metadata().partitionKeyColumns()) {
-                String name = cd.name.toString();
-                Object value = partitionKeys.get(cd.position());
-                CellData cellData = new CellData(name, value, null, CellData.ColumnType.PARTITION);
-                after.addCell(cellData);
-            }
+            populatePartitionColumns(after, pu);
 
             // For partition deletions, the PartitionUpdate only specifies the partition key, it does not
             // contains any info on regular (non-partition) columns, as if they were not modified. In order
@@ -327,7 +320,8 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
                 after.addCell(cellData);
             }
 
-            recordMaker.delete(source, after, keySchema, valueSchema, MARK_OFFSET, queue::enqueue);
+            recordMaker.getSourceInfo().update(DatabaseDescriptor.getClusterName(), offsetPosition, keyspaceTable, false, pu.maxTimestamp());
+            recordMaker.delete(after, keySchema, valueSchema, MARK_OFFSET, queue::enqueue);
         } catch (Exception e) {
             LOGGER.error("Fail to delete partition at {}. Reason: {}", offsetPosition, e);
         }
@@ -349,8 +343,6 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
      *      (4) Assemble a {@link Record} object from the populated data and queue the record
      */
     private void handleRowModifications(Row row, RowType rowType, PartitionUpdate pu, OffsetPosition offsetPosition, KeyspaceTable keyspaceTable) {
-        long ts = rowType == DELETE ? row.deletion().time().markedForDeleteAt() : pu.maxTimestamp();
-        SourceInfo source = new SourceInfo(DatabaseDescriptor.getClusterName(), offsetPosition, keyspaceTable, false, ts);
 
         SchemaHolder.KeyValueSchema schema = schemaHolder.getOrUpdateKeyValueSchema(keyspaceTable);
         Schema keySchema = schema.keySchema();
@@ -361,17 +353,20 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
         populateClusteringColumns(after, row, pu);
         populateRegularColumns(after, row, rowType, schema);
 
+        long ts = rowType == DELETE ? row.deletion().time().markedForDeleteAt() : pu.maxTimestamp();
+        recordMaker.getSourceInfo().update(DatabaseDescriptor.getClusterName(), offsetPosition, keyspaceTable, false, ts);
+
         switch (rowType) {
             case INSERT:
-                recordMaker.insert(source, after, keySchema, valueSchema, MARK_OFFSET, queue::enqueue);
+                recordMaker.insert(after, keySchema, valueSchema, MARK_OFFSET, queue::enqueue);
                 break;
 
             case UPDATE:
-                recordMaker.update(source, after, keySchema, valueSchema, MARK_OFFSET, queue::enqueue);
+                recordMaker.update(after, keySchema, valueSchema, MARK_OFFSET, queue::enqueue);
                 break;
 
             case DELETE:
-                recordMaker.delete(source, after, keySchema, valueSchema, MARK_OFFSET, queue::enqueue);
+                recordMaker.delete(after, keySchema, valueSchema, MARK_OFFSET, queue::enqueue);
                 break;
 
             default:
