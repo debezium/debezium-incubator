@@ -24,7 +24,6 @@ import static io.debezium.connector.cassandra.SchemaHolder.getFieldSchema;
  * to a kafka connect Struct representing key/value of the change event.
  */
 public abstract class Record implements Event {
-    static final String NAMESPACE = "io.debezium.connector.cassandra";
     static final String AFTER = "after";
     static final String OPERATION = "op";
     static final String SOURCE = "source";
@@ -90,35 +89,8 @@ public abstract class Record implements Event {
         return new Struct(valueSchema)
                 .put(TIMESTAMP, ts)
                 .put(OPERATION, op.getValue())
-                .put(SOURCE, source.record(getFieldSchema(SOURCE, valueSchema)))
+                .put(SOURCE, source.struct())
                 .put(AFTER, rowData.record(getFieldSchema(AFTER, valueSchema)));
-    }
-
-    public static Schema keySchema(String connectorName, TableMetadata tm) {
-        if (tm == null) {
-            return null;
-        }
-        SchemaBuilder schemaBuilder = SchemaBuilder.struct().name(NAMESPACE + "." + getKeyName(connectorName, tm));
-        for (ColumnMetadata cm : tm.getPrimaryKey()) {
-            AbstractType<?> convertedType = CassandraTypeConverter.convert(cm.getType());
-            Schema colSchema = CassandraTypeDeserializer.getSchemaBuilder(convertedType).build();
-            if (colSchema != null) {
-                schemaBuilder.field(cm.getName(), colSchema);
-            }
-        }
-        return schemaBuilder.build();
-    }
-
-    public static Schema valueSchema(String connectorName, TableMetadata tm) {
-        if (tm == null) {
-            return null;
-        }
-        return SchemaBuilder.struct().name(NAMESPACE + "." + getValueName(connectorName, tm))
-                .field(TIMESTAMP, Schema.INT64_SCHEMA)
-                .field(OPERATION, Schema.STRING_SCHEMA)
-                .field(SOURCE, SourceInfo.SOURCE_SCHEMA)
-                .field(AFTER, RowData.rowSchema(tm))
-                .build();
     }
 
     @Override
