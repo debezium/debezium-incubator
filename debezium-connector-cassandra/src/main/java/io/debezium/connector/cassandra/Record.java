@@ -5,14 +5,9 @@
  */
 package io.debezium.connector.cassandra;
 
-import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.TableMetadata;
-import io.debezium.connector.cassandra.transforms.CassandraTypeConverter;
-import io.debezium.connector.cassandra.transforms.CassandraTypeDeserializer;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.cassandra.db.marshal.AbstractType;
 
 import java.util.List;
 import java.util.Objects;
