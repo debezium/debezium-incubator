@@ -104,17 +104,22 @@ public class CassandraConnectorConfig extends CommonConnectorConfig {
      * Must be one of 'INITIAL', 'ALWAYS', or 'NEVER'. The default snapshot mode is 'INITIAL'.
      * See {@link SnapshotMode for details}.
      */
-    public static final Field SNAPSHOT_MODE = Field.create("snapshot.mode").withType(Type.STRING).withDefault("INITIAL");
+    public static final String DEFAULT_SNAPSHOT_MODE = "INITIAL";
+    public static final Field SNAPSHOT_MODE = Field.create("snapshot.mode")
+            .withType(Type.STRING).withDefault(DEFAULT_SNAPSHOT_MODE);
 
     /**
      * Specify the {@link ConsistencyLevel} used for the snapshot query.
      */
-    public static final Field SNAPSHOT_CONSISTENCY = Field.create("snapshot.consistency").withType(Type.STRING).withDefault("QUORUM");
+    public static final String DEFAULT_SNAPSHOT_CONSISTENCY = "QUORUM";
+    public static final Field SNAPSHOT_CONSISTENCY = Field.create("snapshot.consistency")
+            .withType(Type.STRING).withDefault(DEFAULT_SNAPSHOT_CONSISTENCY);
 
     /**
      * The port used by the HTTP server for ping, health check, and build info
      */
-    public static final Field HTTP_PORT = Field.create("http.port").withType(Type.INT).withDefault("http.port");
+    public static final int DEFAULT_HTTP_PORT = 8000;
+    public static final Field HTTP_PORT = Field.create("http.port").withType(Type.INT).withDefault(DEFAULT_HTTP_PORT);
 
     /**
      * The absolute path of the YAML config file used by a Cassandra node.
@@ -124,12 +129,16 @@ public class CassandraConnectorConfig extends CommonConnectorConfig {
     /**
      * One or more addresses of Cassandra nodes that driver uses to discover topology, separated by ","
      */
-    public static final Field CASSANDRA_HOSTS = Field.create("cassandra.hosts").withType(Type.STRING).withDefault("localhost");
+    public static final String DEFAULT_CASSANDRA_HOST = "localhost";
+    public static final Field CASSANDRA_HOSTS = Field.create("cassandra.hosts")
+            .withType(Type.STRING).withDefault(DEFAULT_CASSANDRA_HOST);
 
     /**
      * The port used to connect to Cassandra host(s).
      */
-    public static final Field CASSANDRA_PORT = Field.create("cassandra.port").withType(Type.INT).withDefault(9042);
+    public static final int DEFAULT_CASSANDRA_PORT = 9042;
+    public static final Field CASSANDRA_PORT = Field.create("cassandra.port")
+            .withType(Type.INT).withDefault(DEFAULT_CASSANDRA_PORT);
 
     /**
      * The username used when connecting to Cassandra hosts.
@@ -144,7 +153,9 @@ public class CassandraConnectorConfig extends CommonConnectorConfig {
     /**
      * If set to true, Cassandra connector agent will use SSL to connect to Cassandra node.
      */
-    public static final Field CASSANDRA_SSL_ENABLED = Field.create("cassandra.ssl.enabled").withType(Type.BOOLEAN).withDefault(false);
+    public static final boolean DEFAULT_CASSANDRA_SSL_ENABLED = false;
+    public static final Field CASSANDRA_SSL_ENABLED = Field.create("cassandra.ssl.enabled")
+            .withType(Type.BOOLEAN).withDefault(DEFAULT_CASSANDRA_SSL_ENABLED);
 
     /**
      * The SSL config file path required for storage node.
@@ -160,18 +171,18 @@ public class CassandraConnectorConfig extends CommonConnectorConfig {
      * Determines whether or not the CommitLogPostProcessor should run.
      * If disabled, commit logs would not be deleted post-process, and this could lead to disk storage
      */
+    public static final boolean DEFAULT_COMMIT_LOG_POST_PROCESSING_ENABLED = true;
     public static final Field COMMIT_LOG_POST_PROCESSING_ENABLED = Field.create("commit.log.post.processing.enabled")
-            .withType(Type.BOOLEAN)
-            .withDefault(true);
+            .withType(Type.BOOLEAN).withDefault(DEFAULT_COMMIT_LOG_POST_PROCESSING_ENABLED);
 
     /**
      * The fully qualified {@link CommitLogTransfer} class used to transfer commit logs.
      * The default option will delete all commit log files after processing (successful or otherwise).
      * You can extend a custom implementation.
      */
+    public static final String DEFAULT_COMMIT_LOG_TRANSFER_CLASS = "io.debezium.connector.cassandra.BlackHoleCommitLogTransfer";
     public static final Field COMMIT_LOG_TRANSFER_CLASS = Field.create("commit.log.transfer.class")
-            .withType(Type.STRING)
-            .withDefault("io.debezium.connector.cassandra.BlackHoleCommitLogTransfer");
+            .withType(Type.STRING).withDefault(DEFAULT_COMMIT_LOG_TRANSFER_CLASS);
 
 
     /**
@@ -183,40 +194,40 @@ public class CassandraConnectorConfig extends CommonConnectorConfig {
      * The minimum amount of time to wait before committing the offset. The default value of 0 implies
      * the offset will be flushed every time.
      */
-    public static final Field OFFSET_FLUSH_INTERVAL_MS = Field.create("offset.flush.interval.ms").withType(Type.INT).withDefault(0);
+    public static final int DEFAULT_OFFSET_FLUSH_INTERVAL_MS = 0;
+    public static final Field OFFSET_FLUSH_INTERVAL_MS = Field.create("offset.flush.interval.ms")
+            .withType(Type.INT).withDefault(DEFAULT_OFFSET_FLUSH_INTERVAL_MS);
 
     /**
      * The maximum records that are allowed to be processed until it is required to flush offset to disk.
      * This config is effective only if offset_flush_interval_ms != 0
      */
-    public static final Field MAX_OFFSET_FLUSH_SIZE = Field.create("max.offset.flush.size").withType(Type.INT).withDefault(100);
+    public static final int DEFAULT_MAX_OFFSET_FLUSH_SIZE = 100;
+    public static final Field MAX_OFFSET_FLUSH_SIZE = Field.create("max.offset.flush.size")
+            .withType(Type.INT).withDefault(DEFAULT_MAX_OFFSET_FLUSH_SIZE);
 
      /**
      * Positive integer value that specifies the number of milliseconds the schema processor should wait before
      * refreshing the cached Cassandra table schemas.
      */
-    public static final Field SCHEMA_POLL_INTERVAL_MS = Field.create("schema.refresh.interval.ms").withType(Type.INT).withDefault(10000);
+    public static final int DEFAULT_SCHEMA_POLL_INTERVAL_MS = 10000;
+    public static final Field SCHEMA_POLL_INTERVAL_MS = Field.create("schema.refresh.interval.ms")
+            .withType(Type.INT).withDefault(DEFAULT_SCHEMA_POLL_INTERVAL_MS);
 
     /**
      * The maximum amount of time to wait on each poll before reattempt.
      */
-    public static final Field CDC_DIR_POLL_INTERVAL_MS = Field.create("cdc.dir.poll.interval.ms").withType(Type.INT).withDefault(10000);
+    public static final int DEFAULT_CDC_DIR_POLL_INTERVAL_MS = 10000;
+    public static final Field CDC_DIR_POLL_INTERVAL_MS = Field.create("cdc.dir.poll.interval.ms")
+            .withType(Type.INT).withDefault(DEFAULT_CDC_DIR_POLL_INTERVAL_MS);
 
     /**
      * Positive integer value that specifies the number of milliseconds the snapshot processor should wait before
      * re-scanning tables to look for new cdc-enabled tables. Defaults to 10000 milliseconds, or 10 seconds.
      */
-    public static final Field SNAPSHOT_POLL_INTERVAL_MS = Field.create("snapshot.scan.interval.ms").withType(Type.INT).withDefault(10000);
-
-    /**
-     * Whether deletion events should have a subsequent tombstone event (true) or not (false).
-     * It's important to note that in Cassandra, two events with the same key may be updating
-     * different columns of a given table. So this could potentially result in records being lost
-     * during compaction if they haven't been consumed by the consumer yet. In other words, do NOT
-     * set this to true if you have kafka compaction turned on.
-     */
-    public static final String TOMBSTONES_ON_DELETE = "tombstones.on.delete";
-    public static final boolean DEFAULT_TOMBSTONES_ON_DELETE = false;
+    public static final int DEFAULT_SNAPSHOT_POLL_INTERVAL_MS = 10000;
+    public static final Field SNAPSHOT_POLL_INTERVAL_MS = Field.create("snapshot.scan.interval.ms")
+            .withType(Type.INT).withDefault(DEFAULT_SNAPSHOT_POLL_INTERVAL_MS);
 
     /**
      * A comma-separated list of fully-qualified names of fields that should be excluded from change event message values.
@@ -229,7 +240,13 @@ public class CassandraConnectorConfig extends CommonConnectorConfig {
      * latest modified timestamp in the commit log directory and attempt to process this file only.
      * Only used for Testing!
      */
-    public static final Field LATEST_COMMIT_LOG_ONLY = Field.create("latest.commit.log.only").withType(Type.BOOLEAN).withDefault(false);
+    public static final boolean DEFAULT_LATEST_COMMIT_LOG_ONLY = false;
+    public static final Field LATEST_COMMIT_LOG_ONLY = Field.create("latest.commit.log.only")
+            .withType(Type.BOOLEAN).withDefault(DEFAULT_LATEST_COMMIT_LOG_ONLY);
+
+    public static final int DEFAULT_POLL_INTERVAL_MS = 1000;
+
+    public static final boolean DEFAULT_TOMBSTONES_ON_DELETE = false;
 
     protected static final int DEFAULT_SNAPSHOT_FETCH_SIZE = 0;
 
@@ -364,7 +381,7 @@ public class CassandraConnectorConfig extends CommonConnectorConfig {
      * each iteration for new change events to appear in the queue. Defaults to 1000 milliseconds, or 1 second.
      */
     public Duration pollIntervalMs() {
-        int ms = this.getConfig().getInteger(POLL_INTERVAL_MS, 1000);
+        int ms = this.getConfig().getInteger(POLL_INTERVAL_MS, DEFAULT_POLL_INTERVAL_MS);
         return Duration.ofMillis(ms);
     }
 
@@ -399,7 +416,7 @@ public class CassandraConnectorConfig extends CommonConnectorConfig {
      * set this to true if you have kafka compaction turned on.
      */
     public boolean tombstonesOnDelete() {
-        return this.getConfig().getBoolean(TOMBSTONES_ON_DELETE, false);
+        return this.getConfig().getBoolean(TOMBSTONES_ON_DELETE, DEFAULT_TOMBSTONES_ON_DELETE);
     }
 
     public Converter getKeyConverter() throws CassandraConnectorConfigException {
