@@ -5,7 +5,6 @@
  */
 package io.debezium.connector.cassandra;
 
-import com.datastax.driver.core.TableMetadata;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Schema;
 
@@ -116,15 +115,6 @@ public abstract class Record implements Event {
                 && Objects.equals(valueSchema, record.valueSchema)
                 && op == record.op;
     }
-
-    public static String getKeyName(String connectorName, TableMetadata tm) {
-        return connectorName + "." + tm.getKeyspace().getName() + "." + tm.getName() + ".Key";
-    }
-
-    public static String getValueName(String connectorName, TableMetadata tm) {
-        return connectorName + "." + tm.getKeyspace().getName() + "." + tm.getName() + ".Value";
-    }
-
 
     @Override
     public int hashCode() {
