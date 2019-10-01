@@ -97,6 +97,6 @@ public class SourceInfo extends AbstractSourceInfo {
 
     @Override
     protected String database() {
-        return "N/A";
+        return "NULL";
     }
 }
