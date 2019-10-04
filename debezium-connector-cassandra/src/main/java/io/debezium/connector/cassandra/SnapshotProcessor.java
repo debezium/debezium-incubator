@@ -86,10 +86,12 @@ public class SnapshotProcessor extends AbstractProcessor {
     public void process() {
         if (snapshotMode ==CassandraConnectorConfig.SnapshotMode.ALWAYS) {
             snapshot();
-        } else if (snapshotMode == CassandraConnectorConfig.SnapshotMode.INITIAL && initial) {
+        }
+        else if (snapshotMode == CassandraConnectorConfig.SnapshotMode.INITIAL && initial) {
             snapshot();
             initial = false;
-        } else {
+        }
+        else {
             LOGGER.debug("Skipping snapshot [mode: {}]", snapshotMode);
         }
     }
@@ -120,10 +122,12 @@ public class SnapshotProcessor extends AbstractProcessor {
                 long endTime = System.currentTimeMillis();
                 long durationInSeconds = Duration.ofMillis(endTime - startTime).getSeconds();
                 LOGGER.info("Snapshot completely queued in {} seconds for tables: {}", durationInSeconds, tableArr);
-            } else {
+            }
+            else {
                 LOGGER.info("No tables to snapshot");
             }
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new CassandraConnectorTaskException(e);
         }
     }
@@ -212,7 +216,8 @@ public class SnapshotProcessor extends AbstractProcessor {
                     LOGGER.info("Queued {} snapshot records from table {}", rowNum, tableName);
                     metrics.setRowsScanned(tableName, rowNum);
                 }
-            } else {
+            }
+            else {
                 LOGGER.warn("Terminated snapshot processing while table {} is in progress", tableName);
                 metrics.setRowsScanned(tableName, rowNum);
                 return;
@@ -256,9 +261,11 @@ public class SnapshotProcessor extends AbstractProcessor {
     private static CellData.ColumnType getType(String name, Set<String> partitionKeyNames, Set<String> clusteringKeyNames) {
         if (partitionKeyNames.contains(name)) {
             return CellData.ColumnType.PARTITION;
-        } else if (clusteringKeyNames.contains(name)) {
+        }
+        else if (clusteringKeyNames.contains(name)) {
             return CellData.ColumnType.CLUSTERING;
-        } else {
+        }
+        else {
             return CellData.ColumnType.REGULAR;
         }
     }
