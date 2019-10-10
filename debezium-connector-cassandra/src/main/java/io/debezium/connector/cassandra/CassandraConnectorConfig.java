@@ -467,11 +467,6 @@ public class CassandraConnectorConfig extends CommonConnectorConfig {
 
     @Override
     protected SourceInfoStructMaker<? extends AbstractSourceInfo> getSourceInfoStructMaker(Version version) {
-        switch (version) {
-            case V1:
-                return new LegacyV1CassandraSourceInfoStructMaker(Module.name(), Module.version(), this);
-            default:
-                return new CassandraSourceInfoStructMaker(Module.name(), Module.version(), this);
-        }
+        return new CassandraSourceInfoStructMaker(Module.name(), Module.version(), this);
     }
 }

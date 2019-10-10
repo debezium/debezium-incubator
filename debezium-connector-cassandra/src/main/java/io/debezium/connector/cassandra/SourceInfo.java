@@ -87,7 +87,7 @@ public class SourceInfo extends AbstractSourceInfo {
 
     @Override
     protected Instant timestamp() {
-        return Instant.ofEpochSecond(tsMicro/1000);
+        return Instant.ofEpochMilli(tsMicro);
     }
 
     @Override
@@ -97,6 +97,7 @@ public class SourceInfo extends AbstractSourceInfo {
 
     @Override
     protected String database() {
+        // Set the database field in SourceInfo to be "NULL" because Cassandra doesn't have the conception of database.
         return "NULL";
     }
 }
