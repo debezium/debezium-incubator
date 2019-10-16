@@ -9,6 +9,7 @@ import io.debezium.config.CommonConnectorConfig;
 import io.debezium.connector.AbstractSourceInfo;
 import io.debezium.connector.SnapshotRecord;
 
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -87,7 +88,7 @@ public class SourceInfo extends AbstractSourceInfo {
 
     @Override
     protected Instant timestamp() {
-        return Instant.ofEpochMilli(tsMicro);
+        return Instant.EPOCH.plus(tsMicro, ChronoUnit.MICROS);
     }
 
     @Override
