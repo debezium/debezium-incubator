@@ -47,7 +47,7 @@ public class CommitLogProcessor extends AbstractProcessor {
                 context.getSchemaHolder(),
                 context.getQueue(),
                 context.getOffsetWriter(),
-                new RecordMaker(context.getCassandraConnectorConfig().tombstonesOnDelete(),
+                new RecordMaker(context.getCassandraConnectorConfig().isEmitTombstoneOnDelete(),
                         new Filters(context.getCassandraConnectorConfig().fieldBlacklist()),
                         new SourceInfo(context.getCassandraConnectorConfig())),
                 metrics);

@@ -65,7 +65,7 @@ public class SnapshotProcessor extends AbstractProcessor {
         queue = context.getQueue();
         offsetWriter = context.getOffsetWriter();
         schemaHolder = context.getSchemaHolder();
-        recordMaker = new RecordMaker(context.getCassandraConnectorConfig().tombstonesOnDelete(),
+        recordMaker = new RecordMaker(context.getCassandraConnectorConfig().isEmitTombstoneOnDelete(),
                 new Filters(context.getCassandraConnectorConfig().fieldBlacklist()),
                 new SourceInfo(context.getCassandraConnectorConfig()));
         snapshotMode = context.getCassandraConnectorConfig().snapshotMode();

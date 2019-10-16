@@ -113,7 +113,7 @@ public class CassandraConnectorConfigTest {
         assertArrayEquals(fieldBlacklist.split(","), config.fieldBlacklist());
 
         config = buildTaskConfig(CassandraConnectorConfig.TOMBSTONES_ON_DELETE.name(), "true");
-        assertTrue(config.tombstonesOnDelete());
+        assertTrue(config.isEmitTombstoneOnDelete());
 
         String snapshotMode = "always";
         config = buildTaskConfig(CassandraConnectorConfig.SNAPSHOT_MODE.name(), snapshotMode);
@@ -172,7 +172,7 @@ public class CassandraConnectorConfigTest {
         assertEquals(CassandraConnectorConfig.DEFAULT_COMMIT_LOG_POST_PROCESSING_ENABLED, config.postProcessEnabled());
         assertEquals(CassandraConnectorConfig.DEFAULT_COMMIT_LOG_TRANSFER_CLASS, config.getCommitLogTransfer().getClass().getName());
         assertFalse(config.cassandraSslEnabled());
-        assertFalse(config.tombstonesOnDelete());
+        assertTrue(config.isEmitTombstoneOnDelete());
         assertEquals(CassandraConnectorConfig.SnapshotMode.INITIAL, config.snapshotMode());
         assertEquals(CassandraConnectorConfig.DEFAULT_LATEST_COMMIT_LOG_ONLY, config.latestCommitLogOnly());
     }
