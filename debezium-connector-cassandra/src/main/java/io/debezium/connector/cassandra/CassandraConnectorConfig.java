@@ -246,6 +246,8 @@ public class CassandraConnectorConfig extends CommonConnectorConfig {
 
     public static final int DEFAULT_POLL_INTERVAL_MS = 1000;
 
+    public static final boolean DEFAULT_TOMBSTONES_ON_DELETE = false;
+
     protected static final int DEFAULT_SNAPSHOT_FETCH_SIZE = 0;
 
     public CassandraConnectorConfig(Configuration config) {
@@ -405,6 +407,17 @@ public class CassandraConnectorConfig extends CommonConnectorConfig {
             return new String[0];
         }
         return hosts.split(",");
+    }
+
+    /**
+     * Whether deletion events should have a subsequent tombstone event (true) or not (false).
+     * It's important to note that in Cassandra, two events with the same key may be updating
+     * different columns of a given table. So this could potentially result in records being lost
+     * during compaction if they haven't been consumed by the consumer yet. In other words, do NOT
+     * set this to true if you have kafka compaction turned on.
+     */
+    public boolean tombstonesOnDelete() {
+        return this.getConfig().getBoolean(TOMBSTONES_ON_DELETE, DEFAULT_TOMBSTONES_ON_DELETE);
     }
 
     public Converter getKeyConverter() throws CassandraConnectorConfigException {
