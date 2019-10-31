@@ -28,9 +28,12 @@ public class SourceInfo extends BaseSourceInfo {
     private Lsn commitLsn;
     private Instant sourceTime;
     private TableId tableId;
+    
+    private String databaseName;
 
     protected SourceInfo(Db2ConnectorConfig connectorConfig) {
         super(connectorConfig);
+        this.databaseName = connectorConfig.getDatabaseName();
     }
 
     /**
@@ -94,10 +97,10 @@ public class SourceInfo extends BaseSourceInfo {
     protected String database() {
         //urb
         //return tableId.catalog();
-        String dbn = serverName();
+        //String dbn = serverName();
         //String db2d = ((Db2ConnectorConfig) config).databaseName;
         //return "TESTDB";
 
-        return serverName();
+        return databaseName;
     }
 }
