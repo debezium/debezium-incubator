@@ -6,7 +6,6 @@
 
 package io.debezium.connector.db2;
 
-import java.sql.*;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -21,7 +20,6 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 import com.ibm.db2.jcc.DB2Driver;
 
@@ -471,9 +469,9 @@ public class Db2Connection extends JdbcConnection {
                     GET_DATABASE_NAME,
                     singleResultMapper(rs -> rs.getString(1), "Could not retrieve database name")
             );
-        } catch (SQLException e) {
+        } 
+        catch (SQLException e) {
             throw new RuntimeException("Couldn't obtain database name", e);
         }
     }
-
 }

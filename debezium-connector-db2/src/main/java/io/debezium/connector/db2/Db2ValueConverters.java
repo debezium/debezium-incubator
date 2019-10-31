@@ -5,24 +5,17 @@
  */
 package io.debezium.connector.db2;
 
-import java.sql.Timestamp;
 import java.sql.Types;
-import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-import io.debezium.data.SpecialValueDecimal;
 import io.debezium.jdbc.JdbcValueConverters;
 import io.debezium.jdbc.TemporalPrecisionMode;
 import io.debezium.relational.Column;
 import io.debezium.relational.ValueConverter;
-import io.debezium.time.ZonedTimestamp;
 
-
-/** import com.microsoft.sqlserver.jdbc.SQLServerDriver; **/
-import com.ibm.db2.jcc.DB2Driver;
 
 
 /**
