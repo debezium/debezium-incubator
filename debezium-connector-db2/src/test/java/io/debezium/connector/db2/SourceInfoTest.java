@@ -28,6 +28,7 @@ public class SourceInfoTest {
         final Db2ConnectorConfig connectorConfig = new Db2ConnectorConfig(
                 Configuration.create()
                     .with(Db2ConnectorConfig.SERVER_NAME, "serverX")
+                    .with(Db2ConnectorConfig.DATABASE_NAME, "c")
                     .build()
         );
         source = new SourceInfo(connectorConfig);
