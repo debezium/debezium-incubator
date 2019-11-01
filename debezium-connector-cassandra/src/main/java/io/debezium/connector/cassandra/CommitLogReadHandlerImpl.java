@@ -10,6 +10,7 @@ import com.datastax.driver.core.TableMetadata;
 import io.debezium.connector.cassandra.exceptions.CassandraConnectorSchemaException;
 import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
 import io.debezium.connector.cassandra.transforms.CassandraTypeDeserializer;
+import io.debezium.time.Conversions;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.cassandra.config.ColumnDefinition;
 import org.apache.cassandra.config.DatabaseDescriptor;
@@ -328,7 +329,7 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
                 CellData cellData = new CellData(name, null, deletionTs, CellData.ColumnType.REGULAR);
                 after.addCell(cellData);
             }
-            recordMaker.getSourceInfo().update(DatabaseDescriptor.getClusterName(), offsetPosition, keyspaceTable, false, pu.maxTimestamp());
+            recordMaker.getSourceInfo().update(DatabaseDescriptor.getClusterName(), offsetPosition, keyspaceTable, false, Conversions.toInstantFromMicros(pu.maxTimestamp()));
             recordMaker.delete(after, keySchema, valueSchema, MARK_OFFSET, queue::enqueue);
         }
         catch (Exception e) {
@@ -363,7 +364,7 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
         populateRegularColumns(after, row, rowType, schema);
 
         long ts = rowType == DELETE ? row.deletion().time().markedForDeleteAt() : pu.maxTimestamp();
-        recordMaker.getSourceInfo().update(DatabaseDescriptor.getClusterName(), offsetPosition, keyspaceTable, false, ts);
+        recordMaker.getSourceInfo().update(DatabaseDescriptor.getClusterName(), offsetPosition, keyspaceTable, false, Conversions.toInstantFromMicros(ts));
 
         switch (rowType) {
             case INSERT:

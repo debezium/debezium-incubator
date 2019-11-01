@@ -8,8 +8,8 @@ package io.debezium.connector.cassandra;
 import io.debezium.config.CommonConnectorConfig;
 import io.debezium.connector.AbstractSourceInfo;
 import io.debezium.connector.SnapshotRecord;
+import io.debezium.time.Conversions;
 
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -34,13 +34,13 @@ public class SourceInfo extends AbstractSourceInfo {
     public OffsetPosition offsetPosition;
     public KeyspaceTable keyspaceTable;
     public boolean snapshot;
-    public long tsMicro;
+    public Instant tsMicro;
 
     public SourceInfo(CommonConnectorConfig config) {
         super(config);
     }
 
-    public void update(String cluster, OffsetPosition offsetPosition, KeyspaceTable keyspaceTable, boolean snapshot, long tsMicro) {
+    public void update(String cluster, OffsetPosition offsetPosition, KeyspaceTable keyspaceTable, boolean snapshot, Instant tsMicro) {
         this.cluster = cluster;
         this.offsetPosition = offsetPosition;
         this.keyspaceTable = keyspaceTable;
@@ -63,12 +63,12 @@ public class SourceInfo extends AbstractSourceInfo {
                 && offsetPosition == that.offsetPosition
                 && snapshot == that.snapshot
                 && keyspaceTable == that.keyspaceTable
-                && tsMicro == that.tsMicro;
+                && this.tsMicroInLong() == that.tsMicroInLong();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cluster, snapshot, offsetPosition, keyspaceTable, tsMicro);
+        return Objects.hash(cluster, snapshot, offsetPosition, keyspaceTable, tsMicroInLong());
     }
 
     @Override
@@ -82,13 +82,17 @@ public class SourceInfo extends AbstractSourceInfo {
         map.put(COMMITLOG_POSITION_KEY, offsetPosition.filePosition);
         map.put(KEYSPACE_NAME_KEY, keyspaceTable.keyspace);
         map.put(TABLE_NAME_KEY, keyspaceTable.table);
-        map.put(TIMESTAMP_KEY, tsMicro);
+        map.put(TIMESTAMP_KEY, tsMicroInLong());
         return map.toString();
     }
 
     @Override
     protected Instant timestamp() {
-        return Instant.EPOCH.plus(tsMicro, ChronoUnit.MICROS);
+        return tsMicro;
+    }
+
+    protected long tsMicroInLong() {
+        return Conversions.toEpochMicros(tsMicro);
     }
 
     @Override

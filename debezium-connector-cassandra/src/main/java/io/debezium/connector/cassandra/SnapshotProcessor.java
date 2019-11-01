@@ -16,6 +16,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
 import io.debezium.connector.cassandra.transforms.CassandraTypeDeserializer;
+import io.debezium.time.Conversions;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.slf4j.Logger;
@@ -209,7 +210,7 @@ public class SnapshotProcessor extends AbstractProcessor {
                 RowData after = extractRowData(row, tableMetadata.getColumns(), partitionKeyNames, clusteringKeyNames, writeTimeHolder);
                 // only mark offset if there are no more rows left
                 boolean markOffset = !rowIter.hasNext();
-                recordMaker.getSourceInfo().update(DatabaseDescriptor.getClusterName(), OffsetPosition.defaultOffsetPosition(), keyspaceTable, true, writeTimeHolder.get());
+                recordMaker.getSourceInfo().update(DatabaseDescriptor.getClusterName(), OffsetPosition.defaultOffsetPosition(), keyspaceTable, true, Conversions.toInstantFromMicros(writeTimeHolder.get()));
                 recordMaker.insert(after, keySchema, valueSchema, markOffset, queue::enqueue);
                 rowNum++;
                 if (rowNum % 10_000 == 0) {
