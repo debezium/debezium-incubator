@@ -6,6 +6,7 @@
 package io.debezium.connector.cassandra;
 
 import io.debezium.config.Configuration;
+import io.debezium.time.Conversions;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.After;
@@ -49,7 +50,7 @@ public class QueueProcessorTest extends EmbeddedCassandraConnectorTestBase {
         for (int i = 0; i < recordSize; i++) {
             CassandraConnectorConfig config = new CassandraConnectorConfig(Configuration.from(new Properties()));
             SourceInfo sourceInfo = new SourceInfo(config);
-            sourceInfo.update(DatabaseDescriptor.getClusterName(), new OffsetPosition("CommitLog-6-123.log", i), new KeyspaceTable(TEST_KEYSPACE, "cdc_table"), false, System.currentTimeMillis() * 1000);
+            sourceInfo.update(DatabaseDescriptor.getClusterName(), new OffsetPosition("CommitLog-6-123.log", i), new KeyspaceTable(TEST_KEYSPACE, "cdc_table"), false, Conversions.toInstantFromMicros(System.currentTimeMillis() * 1000));
             Record record = new ChangeRecord(sourceInfo, new RowData(), Schema.INT32_SCHEMA,  Schema.INT32_SCHEMA, Record.Operation.INSERT, false);
             queue.enqueue(record);
         }
@@ -69,7 +70,7 @@ public class QueueProcessorTest extends EmbeddedCassandraConnectorTestBase {
         for (int i = 0; i < recordSize; i++) {
             CassandraConnectorConfig config = new CassandraConnectorConfig(Configuration.from(new Properties()));
             SourceInfo sourceInfo = new SourceInfo(config);
-            sourceInfo.update(DatabaseDescriptor.getClusterName(), new OffsetPosition("CommitLog-6-123.log", i), new KeyspaceTable(TEST_KEYSPACE, "cdc_table"), false, System.currentTimeMillis() * 1000);
+            sourceInfo.update(DatabaseDescriptor.getClusterName(), new OffsetPosition("CommitLog-6-123.log", i), new KeyspaceTable(TEST_KEYSPACE, "cdc_table"), false, Conversions.toInstantFromMicros(System.currentTimeMillis() * 1000));
             Record record = new TombstoneRecord(sourceInfo, new RowData(), Schema.INT32_SCHEMA);
             queue.enqueue(record);
         }
