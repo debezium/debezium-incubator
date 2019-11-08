@@ -44,7 +44,7 @@ public class CellData implements KafkaRecord {
 
     public static final String CELL_VALUE_KEY = "value";
     public static final String CELL_DELETION_TS_KEY = "deletion_ts";
-    public static final String CELL_SET_KEY = "set";
+    public static final String CELL_PK_KEY = "pk";
 
     public final String name;
     public final Object value;
@@ -67,7 +67,7 @@ public class CellData implements KafkaRecord {
         return new Struct(schema)
                 .put(CELL_VALUE_KEY, value)
                 .put(CELL_DELETION_TS_KEY, deletionTs)
-                .put(CELL_SET_KEY, true);
+                .put(CELL_PK_KEY, isPrimary());
     }
 
     static Schema cellSchema(ColumnMetadata cm, boolean optional) {
@@ -77,7 +77,7 @@ public class CellData implements KafkaRecord {
             SchemaBuilder schemaBuilder = SchemaBuilder.struct().name(cm.getName())
                     .field(CELL_VALUE_KEY, valueSchema)
                     .field(CELL_DELETION_TS_KEY, Schema.OPTIONAL_INT64_SCHEMA)
-                    .field(CELL_SET_KEY, Schema.BOOLEAN_SCHEMA);
+                    .field(CELL_PK_KEY, Schema.BOOLEAN_SCHEMA);
             if (optional) {
                 schemaBuilder.optional();
             }
