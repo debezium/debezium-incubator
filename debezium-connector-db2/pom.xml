@@ -8,7 +8,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>debezium-connector-db2</artifactId>
-    <name>Debezium Connector for IBM db2 Server</name>
+    <name>Debezium Connector for IBM DB2 Server</name>
     <packaging>jar</packaging>
 
     <properties>
