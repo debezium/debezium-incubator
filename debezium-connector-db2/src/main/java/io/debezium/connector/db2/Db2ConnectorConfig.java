@@ -321,12 +321,7 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
 
     @Override
     protected SourceInfoStructMaker<? extends AbstractSourceInfo> getSourceInfoStructMaker(Version version) {
-        switch (version) {
-            case V1:
-                return new LegacyV1Db2SourceInfoStructMaker(Module.name(), Module.version(), this);
-            default:
-                return new Db2SourceInfoStructMaker(Module.name(), Module.version(), this);
-        }
+        return new Db2SourceInfoStructMaker(Module.name(), Module.version(), this);
     }
 
     private static class SystemTablesPredicate implements TableFilter {
