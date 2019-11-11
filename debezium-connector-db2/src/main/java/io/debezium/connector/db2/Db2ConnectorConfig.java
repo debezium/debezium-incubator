@@ -204,8 +204,7 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
             .withWidth(Width.MEDIUM)
             .withImportance(Importance.HIGH)
             .withValidation(Field::isRequired)
-            .withDescription("The name of the database the connector should be monitoring. When working with a "
-                    + "multi-tenant set-up, must be set to the CDB name.");
+            .withDescription("The name of the database the connector should be monitoring.");
 
     public static final Field SNAPSHOT_MODE = Field.create("snapshot.mode")
             .withDisplayName("Snapshot mode")
