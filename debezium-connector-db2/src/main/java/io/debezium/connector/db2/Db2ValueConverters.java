@@ -16,8 +16,6 @@ import io.debezium.jdbc.TemporalPrecisionMode;
 import io.debezium.relational.Column;
 import io.debezium.relational.ValueConverter;
 
-
-
 /**
  * Conversion of SQL Server specific datatypes.
  *
@@ -54,14 +52,14 @@ public class Db2ValueConverters extends JdbcValueConverters {
             case Types.TINYINT:
                 // values are an 8-bit unsigned integer value between 0 and 255, we thus need to store it in short int
                 return SchemaBuilder.int16();
-/**
+            /**
             // Floating point
             case microsoft.sql.Types.SMALLMONEY:
             case microsoft.sql.Types.MONEY:
                 return SpecialValueDecimal.builder(decimalMode, column.length(), column.scale().get());
             case microsoft.sql.Types.DATETIMEOFFSET:
                 return ZonedTimestamp.builder();
- **/
+             **/
             default:
                 return super.schemaBuilder(column);
         }
@@ -74,15 +72,15 @@ public class Db2ValueConverters extends JdbcValueConverters {
             case Types.TINYINT:
                 // values are an 8-bit unsigned integer value between 0 and 255, we thus need to store it in short int
                 return (data) -> convertSmallInt(column, fieldDefn, data);
-/**
+            /**
             // Floating point
             case microsoft.sql.Types.SMALLMONEY:
             case microsoft.sql.Types.MONEY:
                 return (data) -> convertDecimal(column, fieldDefn, data);
             case microsoft.sql.Types.DATETIMEOFFSET:
                 return (data) -> convertTimestampWithZone(column, fieldDefn, data);
-**/
-                // TODO Geometry and geography supported since 6.5.0
+            **/
+            // TODO Geometry and geography supported since 6.5.0
             default:
                 return super.converter(column, fieldDefn);
         }
@@ -99,19 +97,19 @@ public class Db2ValueConverters extends JdbcValueConverters {
     protected Object convertTimestampWithZone(Column column, Field fieldDefn, Object data) {
         // dummy return
         return super.convertTimestampWithZone(column, fieldDefn, data);
-/**
+        /**
         if (!(data instanceof DateTimeOffset)) {
             return super.convertTimestampWithZone(column, fieldDefn, data);
         }
-
+        
         final DateTimeOffset dto = (DateTimeOffset) data;
-
+        
         // Timestamp is provided in UTC time
         final Timestamp utc = dto.getTimestamp();
         final ZoneOffset offset = ZoneOffset.ofTotalSeconds(dto.getMinutesOffset() * 60);
-
+        
         return super.convertTimestampWithZone(column, fieldDefn, LocalDateTime.ofEpochSecond(utc.getTime() / 1000, utc.getNanos(), offset).atOffset(offset));
-**/
+        **/
     }
 
 }

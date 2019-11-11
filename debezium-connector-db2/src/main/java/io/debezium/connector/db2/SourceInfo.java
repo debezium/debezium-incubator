@@ -28,7 +28,7 @@ public class SourceInfo extends BaseSourceInfo {
     private Lsn commitLsn;
     private Instant sourceTime;
     private TableId tableId;
-    
+
     private String databaseName;
 
     protected SourceInfo(Db2ConnectorConfig connectorConfig) {
@@ -69,7 +69,6 @@ public class SourceInfo extends BaseSourceInfo {
         return tableId;
     }
 
-
     /**
      * @param tableId - source table of the event
      */
@@ -95,11 +94,11 @@ public class SourceInfo extends BaseSourceInfo {
 
     @Override
     protected String database() {
-        //urb
-        //return tableId.catalog();
-        //String dbn = serverName();
-        //String db2d = ((Db2ConnectorConfig) config).databaseName;
-        //return "TESTDB";
+        // urb
+        // return tableId.catalog();
+        // String dbn = serverName();
+        // String db2d = ((Db2ConnectorConfig) config).databaseName;
+        // return "TESTDB";
 
         return databaseName;
     }

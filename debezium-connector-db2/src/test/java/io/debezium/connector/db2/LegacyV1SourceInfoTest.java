@@ -26,13 +26,12 @@ public class LegacyV1SourceInfoTest {
     public void beforeEach() {
         final Db2ConnectorConfig connectorConfig = new Db2ConnectorConfig(
                 Configuration.create()
-                    .with(Db2ConnectorConfig.SERVER_NAME, "serverX")
-                    .with(Db2ConnectorConfig.SOURCE_STRUCT_MAKER_VERSION, Version.V1)
-                    .build()
-        );
+                        .with(Db2ConnectorConfig.SERVER_NAME, "serverX")
+                        .with(Db2ConnectorConfig.SOURCE_STRUCT_MAKER_VERSION, Version.V1)
+                        .build());
         source = new SourceInfo(connectorConfig);
-        source.setChangeLsn(Lsn.valueOf(new byte [] { 0x01 }));
-        source.setCommitLsn(Lsn.valueOf(new byte [] { 0x02 }));
+        source.setChangeLsn(Lsn.valueOf(new byte[]{ 0x01 }));
+        source.setCommitLsn(Lsn.valueOf(new byte[]{ 0x02 }));
         source.setSnapshot(SnapshotRecord.TRUE);
         source.setSourceTime(Instant.ofEpochMilli(3000));
     }
@@ -54,12 +53,12 @@ public class LegacyV1SourceInfoTest {
 
     @Test
     public void changeLsnIsPresent() {
-        assertThat(source.struct().getString(SourceInfo.CHANGE_LSN_KEY)).isEqualTo(Lsn.valueOf(new byte [] { 0x01 }).toString());
+        assertThat(source.struct().getString(SourceInfo.CHANGE_LSN_KEY)).isEqualTo(Lsn.valueOf(new byte[]{ 0x01 }).toString());
     }
 
     @Test
     public void commitLsnIsPresent() {
-        assertThat(source.struct().getString(SourceInfo.COMMIT_LSN_KEY)).isEqualTo(Lsn.valueOf(new byte [] { 0x02 }).toString());
+        assertThat(source.struct().getString(SourceInfo.COMMIT_LSN_KEY)).isEqualTo(Lsn.valueOf(new byte[]{ 0x02 }).toString());
     }
 
     @Test

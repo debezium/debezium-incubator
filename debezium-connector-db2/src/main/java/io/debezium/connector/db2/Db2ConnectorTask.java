@@ -46,7 +46,8 @@ public class Db2ConnectorTask extends BaseSourceTask {
     private static final String CONTEXT_NAME = "db2-server-connector-task";
 
     private static enum State {
-        RUNNING, STOPPED;
+        RUNNING,
+        STOPPED;
     }
 
     private final AtomicReference<State> state = new AtomicReference<State>(State.STOPPED);
@@ -82,7 +83,8 @@ public class Db2ConnectorTask extends BaseSourceTask {
                 .withDefault("database.fetchSize", 10_000)
                 .build();
 
-        final Configuration jdbcConfig = config.filter(x -> !(x.startsWith(DatabaseHistory.CONFIGURATION_FIELD_PREFIX_STRING) || x.equals(HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY.name())))
+        final Configuration jdbcConfig = config.filter(
+                x -> !(x.startsWith(DatabaseHistory.CONFIGURATION_FIELD_PREFIX_STRING) || x.equals(HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY.name())))
                 .subset("database.", true);
         dataConnection = new Db2Connection(jdbcConfig);
         metadataConnection = new Db2Connection(jdbcConfig);
@@ -129,8 +131,7 @@ public class Db2ConnectorTask extends BaseSourceTask {
                 connectorConfig.getLogicalName(),
                 new Db2ChangeEventSourceFactory(connectorConfig, dataConnection, metadataConnection, errorHandler, dispatcher, clock, schema),
                 dispatcher,
-                schema
-        );
+                schema);
 
         coordinator.start(taskContext, this.queue, new Db2EventMetadataProvider());
     }
@@ -161,8 +162,8 @@ public class Db2ConnectorTask extends BaseSourceTask {
         final List<DataChangeEvent> records = queue.poll();
 
         final List<SourceRecord> sourceRecords = records.stream()
-            .map(DataChangeEvent::getRecord)
-            .collect(Collectors.toList());
+                .map(DataChangeEvent::getRecord)
+                .collect(Collectors.toList());
 
         if (!sourceRecords.isEmpty()) {
             this.lastOffset = sourceRecords.get(sourceRecords.size() - 1).sourceOffset();

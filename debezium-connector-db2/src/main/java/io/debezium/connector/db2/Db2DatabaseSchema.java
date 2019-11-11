@@ -34,11 +34,9 @@ public class Db2DatabaseSchema extends HistorizedRelationalDatabaseSchema {
                         new Db2ValueConverters(connectorConfig.getDecimalMode(), connectorConfig.getTemporalPrecisionMode()),
                         schemaNameAdjuster,
                         connectorConfig.getSourceInfoStructMaker().schema(),
-                        connectorConfig.getSanitizeFieldNames()
-                ),
+                        connectorConfig.getSanitizeFieldNames()),
                 false, connectorConfig.getKeyMapper());
     }
-
 
     @Override
     public void applySchemaChange(SchemaChangeEvent schemaChange) {
@@ -58,7 +56,6 @@ public class Db2DatabaseSchema extends HistorizedRelationalDatabaseSchema {
             tableChanges = new TableChanges();
             tableChanges.alter(table);
         }
-
 
         record(schemaChange, tableChanges);
     }

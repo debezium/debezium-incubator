@@ -19,7 +19,7 @@ import io.debezium.util.Strings;
 public class Lsn implements Comparable<Lsn>, Nullable {
     private static final String NULL_STRING = "NULL";
 
-    public static final Lsn NULL = new Lsn(null); 
+    public static final Lsn NULL = new Lsn(null);
 
     private final byte[] binary;
     private int[] unsignedBinary;
@@ -96,7 +96,7 @@ public class Lsn implements Comparable<Lsn>, Nullable {
      * @return LSN converted from its binary representation 
      */
     public static Lsn valueOf(byte[] lsnBinary) {
-        return (lsnBinary == null ) ? NULL : new Lsn(lsnBinary);
+        return (lsnBinary == null) ? NULL : new Lsn(lsnBinary);
     }
 
     @Override
@@ -119,7 +119,7 @@ public class Lsn implements Comparable<Lsn>, Nullable {
             return false;
         }
         Lsn other = (Lsn) obj;
-        if ( ! Arrays.equals(binary, other.binary) ) {
+        if (!Arrays.equals(binary, other.binary)) {
             return false;
         }
         return true;

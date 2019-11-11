@@ -51,7 +51,6 @@ public class Db2ChangeEventSourceFactory implements ChangeEventSourceFactory {
                 dispatcher,
                 errorHandler,
                 clock,
-                schema
-        );
+                schema);
     }
 }

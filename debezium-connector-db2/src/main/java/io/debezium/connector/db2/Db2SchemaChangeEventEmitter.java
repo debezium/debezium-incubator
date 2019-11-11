@@ -44,8 +44,7 @@ public class Db2SchemaChangeEventEmitter implements SchemaChangeEventEmitter {
                 "N/A",
                 tableSchema,
                 eventType,
-                false
-        );
+                false);
 
         receiver.schemaChangeEvent(event);
     }

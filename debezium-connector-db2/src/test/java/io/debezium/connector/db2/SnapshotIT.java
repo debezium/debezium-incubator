@@ -56,14 +56,12 @@ public class SnapshotIT extends AbstractConnectorTest {
         TestHelper.createTestDatabase();
         connection = TestHelper.testConnection();
         connection.execute(
-                "CREATE TABLE table1 (id int, name varchar(30), price decimal(8,2), ts datetime2(0), primary key(id))"
-        );
+                "CREATE TABLE table1 (id int, name varchar(30), price decimal(8,2), ts datetime2(0), primary key(id))");
 
         // Populate database
         for (int i = 0; i < INITIAL_RECORDS_PER_TABLE; i++) {
             connection.execute(
-                    String.format("INSERT INTO table1 VALUES(%s, '%s', %s, '%s')", i, "name" + i, new BigDecimal(i + ".23"), "2018-07-18 13:28:56")
-            );
+                    String.format("INSERT INTO table1 VALUES(%s, '%s', %s, '%s')", i, "name" + i, new BigDecimal(i + ".23"), "2018-07-18 13:28:56"));
         }
 
         TestHelper.enableTableCdc(connection, "table1");
@@ -77,7 +75,7 @@ public class SnapshotIT extends AbstractConnectorTest {
         if (connection != null) {
             connection.close();
         }
-//        TestHelper.dropTestDatabase();
+        // TestHelper.dropTestDatabase();
     }
 
     @Test
@@ -103,8 +101,8 @@ public class SnapshotIT extends AbstractConnectorTest {
 
     private void takeSnapshot(SnapshotIsolationMode lockingMode) throws Exception {
         final Configuration config = TestHelper.defaultConfig()
-            .with(SNAPSHOT_ISOLATION_MODE.name(), lockingMode.getValue())
-            .build();
+                .with(SNAPSHOT_ISOLATION_MODE.name(), lockingMode.getValue())
+                .build();
 
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
@@ -117,14 +115,12 @@ public class SnapshotIT extends AbstractConnectorTest {
         for (int i = 0; i < INITIAL_RECORDS_PER_TABLE; i++) {
             final SourceRecord record1 = table1.get(i);
             final List<SchemaAndValueField> expectedKey1 = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, i)
-            );
+                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, i));
             final List<SchemaAndValueField> expectedRow1 = Arrays.asList(
                     new SchemaAndValueField("id", Schema.INT32_SCHEMA, i),
                     new SchemaAndValueField("name", Schema.OPTIONAL_STRING_SCHEMA, "name" + i),
                     new SchemaAndValueField("price", Decimal.builder(2).parameter("connect.decimal.precision", "8").optional().build(), new BigDecimal(i + ".23")),
-                    new SchemaAndValueField("ts", Timestamp.builder().optional().schema(), 1_531_920_536_000l)
-            );
+                    new SchemaAndValueField("ts", Timestamp.builder().optional().schema(), 1_531_920_536_000l));
 
             final Struct key1 = (Struct) record1.key();
             final Struct value1 = (Struct) record1.value();
@@ -176,8 +172,7 @@ public class SnapshotIT extends AbstractConnectorTest {
         for (int i = 0; i < STREAMING_RECORDS_PER_TABLE; i++) {
             final int id = i + INITIAL_RECORDS_PER_TABLE;
             connection.execute(
-                    String.format("INSERT INTO table1 VALUES(%s, '%s', %s, '%s')", id, "name" + id, new BigDecimal(id + ".23"), "2018-07-18 13:28:56")
-            );
+                    String.format("INSERT INTO table1 VALUES(%s, '%s', %s, '%s')", id, "name" + id, new BigDecimal(id + ".23"), "2018-07-18 13:28:56"));
         }
 
         final SourceRecords records = consumeRecordsByTopic(STREAMING_RECORDS_PER_TABLE);
@@ -189,14 +184,12 @@ public class SnapshotIT extends AbstractConnectorTest {
             final int id = i + INITIAL_RECORDS_PER_TABLE;
             final SourceRecord record1 = table1.get(i);
             final List<SchemaAndValueField> expectedKey1 = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, id)
-            );
+                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, id));
             final List<SchemaAndValueField> expectedRow1 = Arrays.asList(
                     new SchemaAndValueField("id", Schema.INT32_SCHEMA, id),
                     new SchemaAndValueField("name", Schema.OPTIONAL_STRING_SCHEMA, "name" + id),
                     new SchemaAndValueField("price", Decimal.builder(2).parameter("connect.decimal.precision", "8").optional().build(), new BigDecimal(id + ".23")),
-                    new SchemaAndValueField("ts", Timestamp.builder().optional().schema(), 1_531_920_536_000l)
-            );
+                    new SchemaAndValueField("ts", Timestamp.builder().optional().schema(), 1_531_920_536_000l));
 
             final Struct key1 = (Struct) record1.key();
             final Struct value1 = (Struct) record1.value();
@@ -228,13 +221,11 @@ public class SnapshotIT extends AbstractConnectorTest {
     @FixFor("DBZ-1031")
     public void takeSnapshotFromTableWithReservedName() throws Exception {
         connection.execute(
-                "CREATE TABLE [User] (id int, name varchar(30), primary key(id))"
-        );
+                "CREATE TABLE [User] (id int, name varchar(30), primary key(id))");
 
         for (int i = 0; i < INITIAL_RECORDS_PER_TABLE; i++) {
             connection.execute(
-                    String.format("INSERT INTO [User] VALUES(%s, '%s')", i, "name" + i)
-            );
+                    String.format("INSERT INTO [User] VALUES(%s, '%s')", i, "name" + i));
         }
 
         TestHelper.enableTableCdc(connection, "User");
@@ -255,12 +246,10 @@ public class SnapshotIT extends AbstractConnectorTest {
         for (int i = 0; i < INITIAL_RECORDS_PER_TABLE; i++) {
             final SourceRecord record1 = user.get(i);
             final List<SchemaAndValueField> expectedKey1 = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, i)
-            );
+                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, i));
             final List<SchemaAndValueField> expectedRow1 = Arrays.asList(
                     new SchemaAndValueField("id", Schema.INT32_SCHEMA, i),
-                    new SchemaAndValueField("name", Schema.OPTIONAL_STRING_SCHEMA, "name" + i)
-            );
+                    new SchemaAndValueField("name", Schema.OPTIONAL_STRING_SCHEMA, "name" + i));
 
             final Struct key1 = (Struct) record1.key();
             final Struct value1 = (Struct) record1.value();
@@ -294,8 +283,7 @@ public class SnapshotIT extends AbstractConnectorTest {
     public void blacklistColumn() throws Exception {
         connection.execute(
                 "CREATE TABLE blacklist_column_table_a (id int, name varchar(30), amount integer primary key(id))",
-                "CREATE TABLE blacklist_column_table_b (id int, name varchar(30), amount integer primary key(id))"
-        );
+                "CREATE TABLE blacklist_column_table_b (id int, name varchar(30), amount integer primary key(id))");
         connection.execute("INSERT INTO blacklist_column_table_a VALUES(10, 'some_name', 120)");
         connection.execute("INSERT INTO blacklist_column_table_b VALUES(11, 'some_name', 447)");
         TestHelper.enableTableCdc(connection, "blacklist_column_table_a");
@@ -348,13 +336,12 @@ public class SnapshotIT extends AbstractConnectorTest {
 
         stopConnector();
     }
-    
+
     @Test
     public void reoderCapturedTables() throws Exception {
         connection.execute(
                 "CREATE TABLE table_a (id int, name varchar(30), amount integer primary key(id))",
-                "CREATE TABLE table_b (id int, name varchar(30), amount integer primary key(id))"
-        );
+                "CREATE TABLE table_b (id int, name varchar(30), amount integer primary key(id))");
         connection.execute("INSERT INTO table_a VALUES(10, 'some_name', 120)");
         connection.execute("INSERT INTO table_b VALUES(11, 'some_name', 447)");
         TestHelper.enableTableCdc(connection, "table_a");
@@ -367,28 +354,27 @@ public class SnapshotIT extends AbstractConnectorTest {
 
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
-        
+
         SourceRecords records = consumeRecordsByTopic(1);
         List<SourceRecord> tableA = records.recordsForTopic("server1.dbo.table_a");
         List<SourceRecord> tableB = records.recordsForTopic("server1.dbo.table_b");
-        
+
         Assertions.assertThat(tableB).hasSize(1);
         Assertions.assertThat(tableA).isNull();
-        
+
         records = consumeRecordsByTopic(1);
         tableA = records.recordsForTopic("server1.dbo.table_a");
         Assertions.assertThat(tableA).hasSize(1);
-        
+
         stopConnector();
     }
-    
+
     @Test
     public void reoderCapturedTablesWithOverlappingTableWhitelist() throws Exception {
         connection.execute(
                 "CREATE TABLE table_a (id int, name varchar(30), amount integer primary key(id))",
                 "CREATE TABLE table_ac (id int, name varchar(30), amount integer primary key(id))",
-                "CREATE TABLE table_ab (id int, name varchar(30), amount integer primary key(id))"
-        );
+                "CREATE TABLE table_ab (id int, name varchar(30), amount integer primary key(id))");
         connection.execute("INSERT INTO table_a VALUES(10, 'some_name', 120)");
         connection.execute("INSERT INTO table_ab VALUES(11, 'some_name', 447)");
         connection.execute("INSERT INTO table_ac VALUES(12, 'some_name', 885)");
@@ -403,35 +389,34 @@ public class SnapshotIT extends AbstractConnectorTest {
 
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
-        
+
         SourceRecords records = consumeRecordsByTopic(1);
         List<SourceRecord> tableA = records.recordsForTopic("server1.dbo.table_a");
         List<SourceRecord> tableB = records.recordsForTopic("server1.dbo.table_ab");
         List<SourceRecord> tableC = records.recordsForTopic("server1.dbo.table_ac");
-        
+
         Assertions.assertThat(tableB).hasSize(1);
         Assertions.assertThat(tableA).isNull();
         Assertions.assertThat(tableC).isNull();
-        
+
         records = consumeRecordsByTopic(1);
         tableA = records.recordsForTopic("server1.dbo.table_a");
         Assertions.assertThat(tableA).hasSize(1);
         Assertions.assertThat(tableC).isNull();
-        
+
         records = consumeRecordsByTopic(1);
         tableC = records.recordsForTopic("server1.dbo.table_ac");
         Assertions.assertThat(tableC).hasSize(1);
-        
+
         stopConnector();
     }
-    
+
     @Test
     public void reoderCapturedTablesWithoutTableWhitelist() throws Exception {
         connection.execute(
                 "CREATE TABLE table_ac (id int, name varchar(30), amount integer primary key(id))",
                 "CREATE TABLE table_a (id int, name varchar(30), amount integer primary key(id))",
-                "CREATE TABLE table_ab (id int, name varchar(30), amount integer primary key(id))"
-                );
+                "CREATE TABLE table_ab (id int, name varchar(30), amount integer primary key(id))");
         connection.execute("INSERT INTO table_ac VALUES(12, 'some_name', 885)");
         connection.execute("INSERT INTO table_a VALUES(10, 'some_name', 120)");
         connection.execute("INSERT INTO table_ab VALUES(11, 'some_name', 447)");
@@ -442,35 +427,34 @@ public class SnapshotIT extends AbstractConnectorTest {
         final Configuration config = TestHelper.defaultConfig()
                 .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
                 .with(Db2ConnectorConfig.TABLE_BLACKLIST, "dbo.table1")
-                
+
                 .build();
 
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
-        
+
         SourceRecords records = consumeRecordsByTopic(1);
         List<SourceRecord> tableA = records.recordsForTopic("server1.dbo.table_a");
         List<SourceRecord> tableB = records.recordsForTopic("server1.dbo.table_ab");
         List<SourceRecord> tableC = records.recordsForTopic("server1.dbo.table_ac");
-        
+
         Assertions.assertThat(tableA).hasSize(1);
         Assertions.assertThat(tableB).isNull();
         Assertions.assertThat(tableC).isNull();
-        
+
         records = consumeRecordsByTopic(1);
         tableB = records.recordsForTopic("server1.dbo.table_ab");
         Assertions.assertThat(tableB).hasSize(1);
         Assertions.assertThat(tableC).isNull();
-        
+
         records = consumeRecordsByTopic(1);
         tableC = records.recordsForTopic("server1.dbo.table_ac");
         Assertions.assertThat(tableC).hasSize(1);
-        
+
         stopConnector();
     }
-    
 
     private void assertRecord(Struct record, List<SchemaAndValueField> expected) {
         expected.forEach(schemaAndValueField -> schemaAndValueField.assertFor(record));
     }
- }
+}
