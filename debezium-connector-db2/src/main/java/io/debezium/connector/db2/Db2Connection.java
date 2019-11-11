@@ -51,42 +51,11 @@ public class Db2Connection extends JdbcConnection {
             + ".IBMSNAP_REGISTER UNION ALL SELECT SYNCHPOINT AS SYNCHPOINT FROM " + CDC_SCHEMA + ".IBMSNAP_REGISTER) t";
 
     private static final String LOCK_TABLE = "SELECT * FROM # WITH CS"; // DB2
-    // private static final String LSN_TO_TIMESTAMP = "SELECT sys.fn_cdc_map_lsn_to_time(?)";
 
     private static final String LSN_TO_TIMESTAMP = "SELECT CURRENT TIMEstamp FROM sysibm.sysdummy1  WHERE ? > X'00000000000000000000000000000000'";
 
     private static final String INCREMENT_LSN = " SELECT *" +
             " FROM (select CAST(CAST( ? AS VARCHAR(16) FOR BIT DATA) AS VARCHAR(32)) AS LSN from sysibm.sysdummy1)   FETCH FIRST ROW ONLY;";
-    /**
-     * private static final String INCREMENT_LSN = "SELECT CAST(LSN AS VARCHAR(16)) CONCAT "
-     * + " SUBSTR( HEX(CAST((HEX2INT(SUBSTR((CAST(LSN AS VARCHAR(32))),17,16)) + 1) AS BIGINT)) ,13 ,2) CONCAT"
-     * + " SUBSTR( HEX(CAST((HEX2INT(SUBSTR((CAST(LSN AS VARCHAR(32))),17,16)) + 1) AS BIGINT)) ,13 ,2) CONCAT"
-     * + " SUBSTR( HEX(CAST((HEX2INT(SUBSTR((CAST(LSN AS VARCHAR(32))),17,16)) + 1) AS BIGINT)) ,11,2) CONCAT"
-     * + " SUBSTR( HEX(CAST((HEX2INT(SUBSTR((CAST(LSN AS VARCHAR(32))),17,16)) + 1) AS BIGINT)) ,9,2) CONCAT"
-     * + " SUBSTR( HEX(CAST((HEX2INT(SUBSTR((CAST(LSN AS VARCHAR(32))),17,16)) + 1) AS BIGINT)) ,7,2) CONCAT"
-     * + " SUBSTR( HEX(CAST((HEX2INT(SUBSTR((CAST(LSN AS VARCHAR(32))),17,16)) + 1) AS BIGINT)) ,5,2) CONCAT"
-     * + " SUBSTR( HEX(CAST((HEX2INT(SUBSTR((CAST(LSN AS VARCHAR(32))),17,16)) + 1) AS BIGINT)) ,3,2) CONCAT"
-     * + " SUBSTR( HEX(CAST((HEX2INT(SUBSTR((CAST(LSN AS VARCHAR(32))),17,16)) + 1) AS BIGINT)) ,1,2)"
-     * + " FROM (select ? AS LSN from sysibm.sysdummy1)";
-     **/
-
-    // private static final String GET_ALL_CHANGES_FOR_TABLE = "SELECT * FROM cdc.[fn_cdc_get_all_changes_#](ISNULL(?,sys.fn_cdc_get_min_lsn('#')), ?, N'all update old')";
-
-    /**
-    private static final String GET_ALL_CHANGES_FOR_TABLE = "SELECT "
-            + "CASE "
-            + "WHEN IBMSNAP_OPERATION = 'D' AND (LEAD(cdc.IBMSNAP_OPERATION,1,'X') OVER (PARTITION BY cdc.IBMSNAP_COMMITSEQ ORDER BY cdc.IBMSNAP_OPERATION)) ='I' THEN 3 "
-            + "WHEN IBMSNAP_OPERATION = 'I' AND (LAG(cdc.IBMSNAP_OPERATION,1,'X') OVER (PARTITION BY cdc.IBMSNAP_COMMITSEQ ORDER BY cdc.IBMSNAP_OPERATION)) ='D' THEN 4 "
-            + "WHEN IBMSNAP_OPERATION = 'I' THEN 1 "
-            + "WHEN IBMSNAP_OPERATION = 'D' THEN 2 "
-            + "END "
-            + "OPCODE,"
-            + "cdc.* "
-            + "FROM ASNCDC.CDC_DEMO_SIMPLE cdc WHERE   IBMSNAP_COMMITSEQ > ? AND IBMSNAP_COMMITSEQ <= ? "
-            + "order by IBMSNAP_COMMITSEQ, IBMSNAP_INTENTSEQ";
-    
-    
-    **/
 
     private static final String GET_ALL_CHANGES_FOR_TABLE = "SELECT "
             + "CASE "
@@ -107,12 +76,8 @@ public class Db2Connection extends JdbcConnection {
             + "    ) a  "
             + "order by IBMSNAP_COMMITSEQ, IBMSNAP_INTENTSEQ";
 
-    // private static final String GET_LIST_OF_CDC_ENABLED_TABLES = "EXEC sys.sp_cdc_help_change_data_capture";
-    // private static final String GET_LIST_OF_CDC_ENABLED_TABLES = "SELECT * FROM ASN.IBMSNAP_REGISTER WHERE SOURCE_OWNER <> ''";
     private static final String GET_LIST_OF_CDC_ENABLED_TABLES = "select r.SOURCE_OWNER, r.SOURCE_TABLE, r.CD_OWNER, r.CD_TABLE, r.CD_NEW_SYNCHPOINT, r.CD_OLD_SYNCHPOINT, t.TBSPACEID, t.TABLEID , CAST((t.TBSPACEID * 65536 +  t.TABLEID )AS INTEGER )from "
             + CDC_SCHEMA + ".IBMSNAP_REGISTER r left JOIN SYSCAT.TABLES t ON r.SOURCE_OWNER  = t.TABSCHEMA AND r.SOURCE_TABLE = t.TABNAME  WHERE r.SOURCE_OWNER <> ''";
-
-    // private static final String GET_LIST_OF_NEW_CDC_ENABLED_TABLES = "SELECT * FROM cdc.change_tables WHERE start_lsn BETWEEN ? AND ?";
 
     // No new Tabels 1=0
     private static final String GET_LIST_OF_NEW_CDC_ENABLED_TABLES = "select CAST((t.TBSPACEID * 65536 +  t.TABLEID )AS INTEGER ) AS OBJECTID, " +
@@ -122,7 +87,6 @@ public class Db2Connection extends JdbcConnection {
             "from ASNCDC.IBMSNAP_REGISTER  r left JOIN SYSCAT.TABLES t ON r.SOURCE_OWNER  = t.TABSCHEMA AND r.SOURCE_TABLE = t.TABNAME " +
             "WHERE r.SOURCE_OWNER <> '' AND 1=0 AND CD_NEW_SYNCHPOINT > ? AND CD_OLD_SYNCHPOINT < ? ";
 
-    // private static final String GET_LIST_OF_KEY_COLUMNS = "SELECT * FROM cdc.index_columns WHERE object_id=?";
     private static final String GET_LIST_OF_KEY_COLUMNS = "SELECT "
             + "CAST((t.TBSPACEID * 65536 +  t.TABLEID )AS INTEGER ) as objectid, "
             + "c.colname,c.colno,c.keyseq "
@@ -132,7 +96,6 @@ public class Db2Connection extends JdbcConnection {
 
     private static final int CHANGE_TABLE_DATA_COLUMN_OFFSET = 7;
 
-    // private static final String URL_PATTERN = "jdbc:db2://${" + JdbcConfiguration.HOSTNAME + "}:${" + JdbcConfiguration.PORT + "};databaseName=${" + JdbcConfiguration.DATABASE + "}";
     private static final String URL_PATTERN = "jdbc:db2://${" + JdbcConfiguration.HOSTNAME + "}:${" + JdbcConfiguration.PORT + "}/${" + JdbcConfiguration.DATABASE + "}";
 
     private static final ConnectionFactory FACTORY = JdbcConnection.patternBasedFactory(URL_PATTERN,
