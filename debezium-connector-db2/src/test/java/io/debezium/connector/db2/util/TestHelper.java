@@ -16,7 +16,6 @@ import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
-import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +24,7 @@ import io.debezium.config.Configuration;
 import io.debezium.connector.db2.Db2Connection;
 import io.debezium.connector.db2.Db2ConnectorConfig;
 import io.debezium.jdbc.JdbcConfiguration;
+import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.history.FileDatabaseHistory;
 import io.debezium.util.Clock;
 import io.debezium.util.IoUtil;
@@ -65,22 +65,22 @@ public class TestHelper {
 
     public static JdbcConfiguration adminJdbcConfig() {
         return JdbcConfiguration.copy(Configuration.fromSystemProperties("database."))
-                                .withDefault(JdbcConfiguration.DATABASE, "master")
-                                .withDefault(JdbcConfiguration.HOSTNAME, "localhost")
-                                .withDefault(JdbcConfiguration.PORT, 1433)
-                                .withDefault(JdbcConfiguration.USER, "sa")
-                                .withDefault(JdbcConfiguration.PASSWORD, "Password!")
-                                .build();
+                .withDefault(JdbcConfiguration.DATABASE, "master")
+                .withDefault(JdbcConfiguration.HOSTNAME, "localhost")
+                .withDefault(JdbcConfiguration.PORT, 1433)
+                .withDefault(JdbcConfiguration.USER, "sa")
+                .withDefault(JdbcConfiguration.PASSWORD, "Password!")
+                .build();
     }
 
     public static JdbcConfiguration defaultJdbcConfig() {
         return JdbcConfiguration.copy(Configuration.fromSystemProperties("database."))
-                                .withDefault(JdbcConfiguration.DATABASE, TEST_DATABASE)
-                                .withDefault(JdbcConfiguration.HOSTNAME, "localhost")
-                                .withDefault(JdbcConfiguration.PORT, 1433)
-                                .withDefault(JdbcConfiguration.USER, "sa")
-                                .withDefault(JdbcConfiguration.PASSWORD, "Password!")
-                                .build();
+                .withDefault(JdbcConfiguration.DATABASE, TEST_DATABASE)
+                .withDefault(JdbcConfiguration.HOSTNAME, "localhost")
+                .withDefault(JdbcConfiguration.PORT, 1433)
+                .withDefault(JdbcConfiguration.USER, "sa")
+                .withDefault(JdbcConfiguration.PASSWORD, "Password!")
+                .build();
     }
 
     /**
@@ -92,8 +92,7 @@ public class TestHelper {
         Configuration.Builder builder = Configuration.create();
 
         jdbcConfiguration.forEach(
-                (field, value) -> builder.with(Db2ConnectorConfig.DATABASE_CONFIG_PREFIX + field, value)
-        );
+                (field, value) -> builder.with(Db2ConnectorConfig.DATABASE_CONFIG_PREFIX + field, value));
 
         return builder.with(RelationalDatabaseConnectorConfig.SERVER_NAME, "server1")
                 .with(Db2ConnectorConfig.DATABASE_HISTORY, FileDatabaseHistory.class)
@@ -231,7 +230,8 @@ public class TestHelper {
                 Assert.fail("Snapshot was not completed on time");
             }
             try {
-                final boolean completed = (boolean) mbeanServer.getAttribute(new ObjectName("debezium.sql_server:type=connector-metrics,context=snapshot,server=server1"), "SnapshotCompleted");
+                final boolean completed = (boolean) mbeanServer.getAttribute(new ObjectName("debezium.sql_server:type=connector-metrics,context=snapshot,server=server1"),
+                        "SnapshotCompleted");
                 if (completed) {
                     break;
                 }

@@ -40,7 +40,8 @@ public class Db2SnapshotChangeEventSource extends RelationalSnapshotChangeEventS
     private final Db2ConnectorConfig connectorConfig;
     private final Db2Connection jdbcConnection;
 
-    public Db2SnapshotChangeEventSource(Db2ConnectorConfig connectorConfig, Db2OffsetContext previousOffset, Db2Connection jdbcConnection, Db2DatabaseSchema schema, EventDispatcher<TableId> dispatcher, Clock clock, SnapshotProgressListener snapshotProgressListener) {
+    public Db2SnapshotChangeEventSource(Db2ConnectorConfig connectorConfig, Db2OffsetContext previousOffset, Db2Connection jdbcConnection, Db2DatabaseSchema schema,
+                                        EventDispatcher<TableId> dispatcher, Clock clock, SnapshotProgressListener snapshotProgressListener) {
         super(connectorConfig, previousOffset, jdbcConnection, schema, dispatcher, clock, snapshotProgressListener);
         this.connectorConfig = connectorConfig;
         this.jdbcConnection = jdbcConnection;
@@ -92,10 +93,9 @@ public class Db2SnapshotChangeEventSource extends RelationalSnapshotChangeEventS
 
     @Override
     protected Set<TableId> getAllTableIds(SnapshotContext ctx) throws Exception {
-        //return jdbcConnection.readTableNames(ctx.catalogName, null, null, new String[] {"TABLE"});
+        // return jdbcConnection.readTableNames(ctx.catalogName, null, null, new String[] {"TABLE"});
 
-
-        return jdbcConnection.readTableNames(null, null, null, new String[] {"TABLE"});
+        return jdbcConnection.readTableNames(null, null, null, new String[]{ "TABLE" });
 
     }
 
@@ -112,7 +112,7 @@ public class Db2SnapshotChangeEventSource extends RelationalSnapshotChangeEventS
         else if (connectorConfig.getSnapshotIsolationMode() == SnapshotIsolationMode.EXCLUSIVE
                 || connectorConfig.getSnapshotIsolationMode() == SnapshotIsolationMode.REPEATABLE_READ) {
             jdbcConnection.connection().setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
-                ((Db2SnapshotContext) snapshotContext).preSchemaSnapshotSavepoint = jdbcConnection.connection().setSavepoint("db2_schema_snapshot");
+            ((Db2SnapshotContext) snapshotContext).preSchemaSnapshotSavepoint = jdbcConnection.connection().setSavepoint("db2_schema_snapshot");
 
             LOGGER.info("Executing schema locking");
             try (Statement statement = jdbcConnection.connection().createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
@@ -149,8 +149,7 @@ public class Db2SnapshotChangeEventSource extends RelationalSnapshotChangeEventS
                 connectorConfig,
                 TxLogPosition.valueOf(jdbcConnection.getMaxLsn()),
                 false,
-                false
-        );
+                false);
     }
 
     @Override
@@ -184,8 +183,7 @@ public class Db2SnapshotChangeEventSource extends RelationalSnapshotChangeEventS
                     schema,
                     connectorConfig.getTableFilters().dataCollectionFilter(),
                     null,
-                    false
-            );
+                    false);
         }
     }
 

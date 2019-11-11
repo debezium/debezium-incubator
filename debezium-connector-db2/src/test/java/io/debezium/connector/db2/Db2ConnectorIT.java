@@ -5,6 +5,9 @@
  */
 package io.debezium.connector.db2;
 
+import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.assertNull;
+
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -31,9 +34,6 @@ import io.debezium.embedded.AbstractConnectorTest;
 import io.debezium.junit.logging.LogInterceptor;
 import io.debezium.util.Testing;
 
-import static org.fest.assertions.Assertions.assertThat;
-import static org.junit.Assert.assertNull;
-
 /**
  * Integration test for the Debezium SQL Server connector.
  *
@@ -50,8 +50,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         connection.execute(
                 "CREATE TABLE tablea (id int primary key, cola varchar(30))",
                 "CREATE TABLE tableb (id int primary key, colb varchar(30))",
-                "INSERT INTO tablea VALUES(1, 'a')"
-        );
+                "INSERT INTO tablea VALUES(1, 'a')");
         TestHelper.enableTableCdc(connection, "tablea");
         TestHelper.enableTableCdc(connection, "tableb");
 
@@ -85,11 +84,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START + i;
             connection.execute(
-                    "INSERT INTO tablea VALUES(" + id + ", 'a')"
-            );
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
             connection.execute(
-                    "INSERT INTO tableb VALUES(" + id + ", 'b')"
-            );
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
 
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
@@ -164,11 +161,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START + i;
             connection.execute(
-                    "INSERT INTO tablea VALUES(" + id + ", 'a')"
-            );
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
             connection.execute(
-                    "INSERT INTO tableb VALUES(" + id + ", 'b')"
-            );
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
 
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
@@ -274,8 +269,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         connection.execute(
                 "UPDATE tablea SET id=100 WHERE id=1",
-                "UPDATE tableb SET id=100 WHERE id=1"
-        );
+                "UPDATE tableb SET id=100 WHERE id=1");
 
         final SourceRecords records = consumeRecordsByTopic(6);
         final List<SourceRecord> tableA = records.recordsForTopic("server1.dbo.tablea");
@@ -375,8 +369,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         connection.execute(
                 "UPDATE tablea SET id=100 WHERE id=1",
-                "UPDATE tableb SET id=100 WHERE id=1"
-        );
+                "UPDATE tableb SET id=100 WHERE id=1");
 
         final SourceRecords records1 = consumeRecordsByTopic(2);
         stopConnector();
@@ -477,11 +470,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START + i;
             connection.execute(
-                    "INSERT INTO tablea VALUES(" + id + ", 'a')"
-            );
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
             connection.execute(
-                    "INSERT INTO tableb VALUES(" + id + ", 'b')"
-            );
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
 
         consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
@@ -489,11 +480,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_RESTART + i;
             connection.execute(
-                    "INSERT INTO tablea VALUES(" + id + ", 'a')"
-            );
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
             connection.execute(
-                    "INSERT INTO tableb VALUES(" + id + ", 'b')"
-            );
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
 
         start(Db2Connector.class, config);
@@ -541,11 +530,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START + i;
             connection.execute(
-                    "INSERT INTO tablea VALUES(" + id + ", 'a')"
-            );
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
             connection.execute(
-                    "INSERT INTO tableb VALUES(" + id + ", 'b')"
-            );
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
 
         for (int i = 0; !connection.getMaxLsn().isAvailable(); i++) {
@@ -575,11 +562,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_RESTART + i;
             connection.execute(
-                    "INSERT INTO tablea VALUES(" + id + ", 'a')"
-            );
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
             connection.execute(
-                    "INSERT INTO tableb VALUES(" + id + ", 'b')"
-            );
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
 
         start(Db2Connector.class, config);
@@ -631,8 +616,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
                 .with(Db2ConnectorConfig.TABLE_WHITELIST, "dbo.tableb")
                 .build();
         connection.execute(
-                "INSERT INTO tableb VALUES(1, 'b')"
-        );
+                "INSERT INTO tableb VALUES(1, 'b')");
 
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
@@ -643,11 +627,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START + i;
             connection.execute(
-                    "INSERT INTO tablea VALUES(" + id + ", 'a')"
-            );
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
             connection.execute(
-                    "INSERT INTO tableb VALUES(" + id + ", 'b')"
-            );
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
 
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
@@ -669,8 +651,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
                 .with(Db2ConnectorConfig.TABLE_BLACKLIST, "dbo.tablea")
                 .build();
         connection.execute(
-                "INSERT INTO tableb VALUES(1, 'b')"
-        );
+                "INSERT INTO tableb VALUES(1, 'b')");
 
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
@@ -681,11 +662,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START + i;
             connection.execute(
-                    "INSERT INTO tablea VALUES(" + id + ", 'a')"
-            );
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
             connection.execute(
-                    "INSERT INTO tableb VALUES(" + id + ", 'b')"
-            );
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
 
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
@@ -702,8 +681,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     public void blacklistColumn() throws Exception {
         connection.execute(
                 "CREATE TABLE blacklist_column_table_a (id int, name varchar(30), amount integer primary key(id))",
-                "CREATE TABLE blacklist_column_table_b (id int, name varchar(30), amount integer primary key(id))"
-        );
+                "CREATE TABLE blacklist_column_table_b (id int, name varchar(30), amount integer primary key(id))");
         TestHelper.enableTableCdc(connection, "blacklist_column_table_a");
         TestHelper.enableTableCdc(connection, "blacklist_column_table_b");
 
@@ -833,11 +811,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START + i;
             connection.executeWithoutCommitting(
-                    "INSERT INTO tablea VALUES(" + id + ", 'a')"
-            );
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
             connection.executeWithoutCommitting(
-                    "INSERT INTO tableb VALUES(" + id + ", 'b')"
-            );
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
         connection.connection().commit();
         List<SourceRecord> records = consumeRecordsByTopic(RECORDS_PER_TABLE).allRecordsInOrder();
@@ -883,11 +859,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_RESTART + i;
             connection.executeWithoutCommitting(
-                    "INSERT INTO tablea VALUES(" + id + ", 'a')"
-            );
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
             connection.executeWithoutCommitting(
-                    "INSERT INTO tableb VALUES(" + id + ", 'b')"
-            );
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
             connection.connection().commit();
         }
 
@@ -977,8 +951,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     public void keylessTable() throws Exception {
         connection.execute(
                 "CREATE TABLE keyless (id int, name varchar(30))",
-                "INSERT INTO keyless VALUES(1, 'k')"
-        );
+                "INSERT INTO keyless VALUES(1, 'k')");
         TestHelper.enableTableCdc(connection, "keyless");
 
         final Configuration config = TestHelper.defaultConfig()
@@ -1005,15 +978,13 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         assertThat(records.recordsForTopic("server1.dbo.keyless").get(0).keySchema()).isNull();
 
         connection.execute(
-                "INSERT INTO keyless VALUES(2, 'k')"
-        );
+                "INSERT INTO keyless VALUES(2, 'k')");
         records = consumeRecordsByTopic(1);
         assertThat((Struct) records.recordsForTopic("server1.dbo.keyless").get(0).key()).isNull();
         assertThat((Struct) records.recordsForTopic("server1.dbo.keyless").get(0).key()).isNull();
 
         connection.execute(
-                "UPDATE keyless SET id=3 WHERE ID=2"
-        );
+                "UPDATE keyless SET id=3 WHERE ID=2");
         records = consumeRecordsByTopic(3);
         final SourceRecord update1 = records.recordsForTopic("server1.dbo.keyless").get(0);
 
@@ -1023,8 +994,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         assertRecord(((Struct) update1.value()).getStruct(Envelope.FieldName.AFTER), key3);
 
         connection.execute(
-                "DELETE FROM keyless WHERE id=3"
-        );
+                "DELETE FROM keyless WHERE id=3");
         records = consumeRecordsByTopic(2);
         assertThat(records.recordsForTopic("server1.dbo.keyless").get(0).key()).isNull();
         assertThat(records.recordsForTopic("server1.dbo.keyless").get(0).keySchema()).isNull();

@@ -198,8 +198,6 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
     public static final Field SERVER_NAME = RelationalDatabaseConnectorConfig.SERVER_NAME
             .withValidation(CommonConnectorConfig::validateServerNameIsDifferentFromHistoryTopicName);
 
-
-
     public static final Field DATABASE_NAME = Field.create(DATABASE_CONFIG_PREFIX + JdbcConfiguration.DATABASE)
             .withDisplayName("Database name")
             .withType(Type.STRING)
@@ -225,10 +223,14 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
             .withWidth(Width.SHORT)
             .withImportance(Importance.LOW)
             .withDescription("Controls which transaction isolation level is used and how long the connector locks the monitored tables. "
-                    + "The default is '" + SnapshotIsolationMode.REPEATABLE_READ.getValue() + "', which means that repeatable read isolation level is used. In addition, exclusive locks are taken only during schema snapshot. "
-                    + "Using a value of '" + SnapshotIsolationMode.EXCLUSIVE.getValue() + "' ensures that the connector holds the exclusive lock (and thus prevents any reads and updates) for all monitored tables during the entire snapshot duration. "
-                    + "When '" + SnapshotIsolationMode.SNAPSHOT.getValue() + "' is specified, connector runs the initial snapshot in SNAPSHOT isolation level, which guarantees snapshot consistency. In addition, neither table nor row-level locks are held. "
-                    + "In '" + SnapshotIsolationMode.READ_UNCOMMITTED.getValue() + "' mode neither table nor row-level locks are acquired, but connector does not guarantee snapshot consistency.");
+                    + "The default is '" + SnapshotIsolationMode.REPEATABLE_READ.getValue()
+                    + "', which means that repeatable read isolation level is used. In addition, exclusive locks are taken only during schema snapshot. "
+                    + "Using a value of '" + SnapshotIsolationMode.EXCLUSIVE.getValue()
+                    + "' ensures that the connector holds the exclusive lock (and thus prevents any reads and updates) for all monitored tables during the entire snapshot duration. "
+                    + "When '" + SnapshotIsolationMode.SNAPSHOT.getValue()
+                    + "' is specified, connector runs the initial snapshot in SNAPSHOT isolation level, which guarantees snapshot consistency. In addition, neither table nor row-level locks are held. "
+                    + "In '" + SnapshotIsolationMode.READ_UNCOMMITTED.getValue()
+                    + "' mode neither table nor row-level locks are acquired, but connector does not guarantee snapshot consistency.");
 
     /**
      * The set of {@link Field}s defined as part of this configuration.
@@ -251,8 +253,7 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
             CommonConnectorConfig.SNAPSHOT_DELAY_MS,
             CommonConnectorConfig.SNAPSHOT_FETCH_SIZE,
             Heartbeat.HEARTBEAT_INTERVAL, Heartbeat.HEARTBEAT_TOPICS_PREFIX,
-            CommonConnectorConfig.SOURCE_STRUCT_MAKER_VERSION
-    );
+            CommonConnectorConfig.SOURCE_STRUCT_MAKER_VERSION);
 
     public static ConfigDef configDef() {
         ConfigDef config = new ConfigDef();
@@ -267,8 +268,7 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
                 RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE,
                 RelationalDatabaseConnectorConfig.TABLE_IGNORE_BUILTIN,
                 Heartbeat.HEARTBEAT_INTERVAL, Heartbeat.HEARTBEAT_TOPICS_PREFIX,
-                CommonConnectorConfig.SOURCE_STRUCT_MAKER_VERSION
-        );
+                CommonConnectorConfig.SOURCE_STRUCT_MAKER_VERSION);
         Field.group(config, "Connector", CommonConnectorConfig.POLL_INTERVAL_MS, CommonConnectorConfig.MAX_BATCH_SIZE,
                 CommonConnectorConfig.MAX_QUEUE_SIZE, CommonConnectorConfig.SNAPSHOT_DELAY_MS, CommonConnectorConfig.SNAPSHOT_FETCH_SIZE,
                 RelationalDatabaseConnectorConfig.DECIMAL_HANDLING_MODE, RelationalDatabaseConnectorConfig.TIME_PRECISION_MODE);
@@ -322,10 +322,10 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
     @Override
     protected SourceInfoStructMaker<? extends AbstractSourceInfo> getSourceInfoStructMaker(Version version) {
         switch (version) {
-        case V1:
-            return new LegacyV1Db2SourceInfoStructMaker(Module.name(), Module.version(), this);
-        default:
-            return new Db2SourceInfoStructMaker(Module.name(), Module.version(), this);
+            case V1:
+                return new LegacyV1Db2SourceInfoStructMaker(Module.name(), Module.version(), this);
+            default:
+                return new Db2SourceInfoStructMaker(Module.name(), Module.version(), this);
         }
     }
 
@@ -336,9 +336,9 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
             return !(t.table().toLowerCase().startsWith("ibmsnap_") ||
                     t.schema().toUpperCase().startsWith("ASNCDC") ||
                     t.schema().toUpperCase().startsWith("SYSTOOLS") ||
-                    t.table().toLowerCase().startsWith("ibmqrep_") );
+                    t.table().toLowerCase().startsWith("ibmqrep_"));
 
-            }
+        }
     }
 
     @Override
@@ -356,7 +356,7 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
     public String getContextName() {
         return Module.contextName();
     }
-    
+
     /**
      * Returns any SELECT overrides, if present.
      */
@@ -372,12 +372,10 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
 
         for (String table : tableList.split(",")) {
             snapshotSelectOverridesByTable.put(
-                TableId.parse(table, false),
-                getConfig().getString(SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE + "." + table)
-            );
+                    TableId.parse(table, false),
+                    getConfig().getString(SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE + "." + table));
         }
 
         return Collections.unmodifiableMap(snapshotSelectOverridesByTable);
     }
 }
-
