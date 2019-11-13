@@ -4,7 +4,7 @@
         <groupId>io.debezium</groupId>
         <artifactId>debezium-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
-        <relativePath>../</relativePath>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>debezium-connector-db2</artifactId>
@@ -17,11 +17,11 @@
           Note that the `dockerhost.ip` property is computed from the IP address of DOCKER_HOST, which will
           work on all platforms. We'll set some of these as system properties during integration testing.
       -->
-        <db2.port>1433</db2.port>
+        <db2.port>50000</db2.port>
         <db2.user>db2inst1</db2.user>
         <db2.password>admin</db2.password>
         <db2.dbname>testdb</db2.dbname>
-        <docker.filter>ibmcom/db2-cdc</docker.filter>
+        <docker.filter>debezium/db2-cdc</docker.filter>
         <docker.skip>false</docker.skip>
         <docker.showLogs>true</docker.showLogs>
     </properties>
@@ -110,8 +110,12 @@
                         <image>
                             <!-- A Docker image using the SQL Server -->
                             <name>${docker.filter}</name>
+                            <build>
+                               <dockerFileDir>${project.basedir}/src/test/docker/db2-cdc-docker</dockerFileDir>
+                            </build>
                             <run>
                                 <namingStrategy>none</namingStrategy>
+                                <privileged>true</privileged>
                                 <env>
                                     <LICENSE>accept</LICENSE>
                                     <DB2INST1_PASSWORD>${db2.password}</DB2INST1_PASSWORD>
@@ -121,13 +125,13 @@
                                     <port>${db2.port}:50000</port>
                                 </ports>
                                 <log>
-                                    <prefix>db2</prefix>
+                                    <prefix>DB2 >>></prefix>
                                     <enabled>true</enabled>
                                     <color>yellow</color>
                                 </log>
                                 <wait>
-                                    <time>30000</time> <!-- 30 seconds max -->
-                                    <log>DB2 is now ready for client connections</log>
+                                    <time>300000</time> <!-- 300 seconds max -->
+                                    <log>STOP    : DATABASE: TESTDB   : DEACTIVATED: NO</log>
                                 </wait>
                             </run>
                         </image>
@@ -142,6 +146,7 @@
                         <id>start</id>
                         <phase>pre-integration-test</phase>
                         <goals>
+                            <goal>build</goal>
                             <goal>start</goal>
                         </goals>
                     </execution>
@@ -182,6 +187,7 @@
                     <systemPropertyVariables>
                         <!-- Make these available to the tests via system properties -->
                         <database.hostname>${docker.host.address}</database.hostname>
+                        <database.dbname>${db2.dbname}</database.dbname>
                         <database.port>${db2.port}</database.port>
                         <database.user>${db2.user}</database.user>
                         <database.password>${db2.password}</database.password>
