@@ -37,7 +37,6 @@ public class SnapshotWithSelectOverridesIT extends AbstractConnectorTest {
 
     @Before
     public void before() throws SQLException {
-        TestHelper.createTestDatabase();
         connection = TestHelper.testConnection();
         connection.execute(
                 "CREATE TABLE table1 (id int, name varchar(30), price decimal(8,2), ts datetime2(0), soft_deleted bit, primary key(id))");
@@ -96,22 +95,22 @@ public class SnapshotWithSelectOverridesIT extends AbstractConnectorTest {
         final Configuration config = TestHelper.defaultConfig()
                 .with(
                         RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE,
-                        "dbo.table1,dbo.table3")
+                        "db2inst1.table1,db2inst1.table3")
                 .with(
-                        RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE + ".dbo.table1",
-                        "SELECT * FROM [dbo].[table1] where soft_deleted = 0 order by id desc")
+                        RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE + ".db2inst1.table1",
+                        "SELECT * FROM [db2inst1].[table1] where soft_deleted = 0 order by id desc")
                 .with(
-                        RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE + ".dbo.table3",
-                        "SELECT * FROM [dbo].[table3] where soft_deleted = 0")
+                        RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE + ".db2inst1.table3",
+                        "SELECT * FROM [db2inst1].[table3] where soft_deleted = 0")
                 .build();
 
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
 
         SourceRecords records = consumeRecordsByTopic(INITIAL_RECORDS_PER_TABLE + INITIAL_RECORDS_PER_TABLE + INITIAL_RECORDS_PER_TABLE / 2);
-        List<SourceRecord> table1 = records.recordsForTopic("server1.dbo.table1");
-        List<SourceRecord> table2 = records.recordsForTopic("server1.dbo.table2");
-        List<SourceRecord> table3 = records.recordsForTopic("server1.dbo.table3");
+        List<SourceRecord> table1 = records.recordsForTopic("testdb.db2inst1.table1");
+        List<SourceRecord> table2 = records.recordsForTopic("testdb.db2inst1.table2");
+        List<SourceRecord> table3 = records.recordsForTopic("testdb.db2inst1.table3");
 
         // soft_deleted records should be excluded for table1 and table3
         assertThat(table1).hasSize(INITIAL_RECORDS_PER_TABLE / 2);

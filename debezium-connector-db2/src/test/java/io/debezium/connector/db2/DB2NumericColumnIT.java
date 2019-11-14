@@ -44,7 +44,6 @@ public class DB2NumericColumnIT extends AbstractConnectorTest {
      */
     @Before
     public void before() throws SQLException {
-        TestHelper.createTestDatabase();
         connection = TestHelper.testConnection();
         connection.execute(
                 "CREATE TABLE tablenuma (id int IDENTITY(1,1) primary key, cola DECIMAL(8, 4),colb DECIMAL, colc numeric(8,1), cold numeric)",
@@ -63,6 +62,15 @@ public class DB2NumericColumnIT extends AbstractConnectorTest {
     @After
     public void after() throws SQLException {
         if (connection != null) {
+            TestHelper.disableTableCdc(connection, "tablenuma");
+            TestHelper.disableTableCdc(connection, "tablenumb");
+            TestHelper.disableTableCdc(connection, "tablenumc");
+            TestHelper.disableTableCdc(connection, "tablenumd");
+            connection.execute(
+                    "DROP TABLE tablenuma",
+                    "DROP TABLE tablenumb",
+                    "DROP TABLE tablenumc",
+                    "DROP TABLE tablenumd");
             connection.close();
         }
     }
@@ -88,7 +96,7 @@ public class DB2NumericColumnIT extends AbstractConnectorTest {
 
         connection.execute("INSERT INTO tablenuma VALUES (111.1111, 1111111, 1111111.1, 1111111 );");
         final SourceRecords records = consumeRecordsByTopic(1);
-        final List<SourceRecord> tableA = records.recordsForTopic("server1.dbo.tablenuma");
+        final List<SourceRecord> tableA = records.recordsForTopic("testdb.db2inst1.tablenuma");
         Assertions.assertThat(tableA).hasSize(1);
         final Struct valueA = (Struct) tableA.get(0).value();
         assertSchema(valueA, Schema.OPTIONAL_STRING_SCHEMA);
@@ -120,7 +128,7 @@ public class DB2NumericColumnIT extends AbstractConnectorTest {
 
         connection.execute("INSERT INTO tablenumb VALUES (222.2222, 22222, 22222.2, 2222222 );");
         final SourceRecords records = consumeRecordsByTopic(1);
-        final List<SourceRecord> results = records.recordsForTopic("server1.dbo.tablenumb");
+        final List<SourceRecord> results = records.recordsForTopic("testdb.db2inst1.tablenumb");
         Assertions.assertThat(results).hasSize(1);
         final Struct valueA = (Struct) results.get(0).value();
         assertSchema(valueA, Schema.OPTIONAL_FLOAT64_SCHEMA);
@@ -142,7 +150,7 @@ public class DB2NumericColumnIT extends AbstractConnectorTest {
     public void decimalModeConfigPrecise() throws Exception {
         final Configuration config = TestHelper.defaultConfig()
                 .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-                .with(Db2ConnectorConfig.TABLE_WHITELIST, "dbo.tablenumc")
+                .with(Db2ConnectorConfig.TABLE_WHITELIST, "db2inst1.tablenumc")
                 .with(Db2ConnectorConfig.DECIMAL_HANDLING_MODE, DecimalHandlingMode.PRECISE).build();
 
         start(Db2Connector.class, config);
@@ -151,7 +159,7 @@ public class DB2NumericColumnIT extends AbstractConnectorTest {
 
         connection.execute("INSERT INTO tablenumc VALUES (333.3333, 3333, 3333.3, 33333333 );");
         final SourceRecords records = consumeRecordsByTopic(1);
-        final List<SourceRecord> results = records.recordsForTopic("server1.dbo.tablenumc");
+        final List<SourceRecord> results = records.recordsForTopic("testdb.db2inst1.tablenumc");
         Assertions.assertThat(results).hasSize(1);
         final Struct valueA = (Struct) results.get(0).value();
         Assertions.assertThat(valueA.schema().field("after").schema().field("cola").schema())
