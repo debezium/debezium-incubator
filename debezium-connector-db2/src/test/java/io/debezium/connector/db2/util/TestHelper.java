@@ -43,33 +43,18 @@ public class TestHelper {
 
     private static final String STATEMENTS_PLACEHOLDER = "#";
 
-    private static final String ENABLE_DB_CDC = "IF EXISTS(select 1 from sys.databases where name='#' AND is_cdc_enabled=0)\n"
-            + "EXEC sys.sp_cdc_enable_db";
-    private static final String DISABLE_DB_CDC = "IF EXISTS(select 1 from sys.databases where name='#' AND is_cdc_enabled=1)\n"
-            + "EXEC sys.sp_cdc_disable_db";
-    private static final String ENABLE_TABLE_CDC = "IF EXISTS(select 1 from sys.tables where name = '#' AND is_tracked_by_cdc=0)\n"
-            + "EXEC sys.sp_cdc_enable_table @source_schema = N'dbo', @source_name = N'#', @role_name = NULL, @supports_net_changes = 0";
-    private static final String ENABLE_TABLE_CDC_WITH_CUSTOM_CAPTURE = "EXEC sys.sp_cdc_enable_table @source_schema = N'dbo', @source_name = N'%s', @capture_instance = N'%s', @role_name = NULL, @supports_net_changes = 0";
-    private static final String DISABLE_TABLE_CDC = "EXEC sys.sp_cdc_disable_table @source_schema = N'dbo', @source_name = N'#', @capture_instance = 'all'";
-    private static final String CDC_WRAPPERS_DML;
-
-    static {
-        try {
-            ClassLoader classLoader = TestHelper.class.getClassLoader();
-            CDC_WRAPPERS_DML = IoUtil.read(classLoader.getResourceAsStream("generate_cdc_wrappers.sql"));
-        }
-        catch (Exception e) {
-            throw new RuntimeException("Cannot load SQL Server statements", e);
-        }
-    }
+    private static final String ENABLE_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('start','asncdc');";
+    private static final String DISABLE_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('stop','asncdc');";
+    private static final String ENABLE_TABLE_CDC = "CALL ASNCDC.ADDTABLE('db2inst1', '#' );VALUES ASNCDC.ASNCDCSERVICES('reinit','asncdc');";
+    private static final String DISABLE_TABLE_CDC = "CALL ASNCDC.REMOVETABLE('db2inst1', '#' );VALUES ASNCDC.ASNCDCSERVICES('reinit','asncdc');";
 
     public static JdbcConfiguration adminJdbcConfig() {
         return JdbcConfiguration.copy(Configuration.fromSystemProperties("database."))
-                .withDefault(JdbcConfiguration.DATABASE, "master")
+                .withDefault(JdbcConfiguration.DATABASE, "testdb")
                 .withDefault(JdbcConfiguration.HOSTNAME, "localhost")
-                .withDefault(JdbcConfiguration.PORT, 1433)
-                .withDefault(JdbcConfiguration.USER, "sa")
-                .withDefault(JdbcConfiguration.PASSWORD, "Password!")
+                .withDefault(JdbcConfiguration.PORT, 50000)
+                .withDefault(JdbcConfiguration.USER, "db2inst1")
+                .withDefault(JdbcConfiguration.PASSWORD, "admin")
                 .build();
     }
 
@@ -77,9 +62,9 @@ public class TestHelper {
         return JdbcConfiguration.copy(Configuration.fromSystemProperties("database."))
                 .withDefault(JdbcConfiguration.DATABASE, TEST_DATABASE)
                 .withDefault(JdbcConfiguration.HOSTNAME, "localhost")
-                .withDefault(JdbcConfiguration.PORT, 1433)
-                .withDefault(JdbcConfiguration.USER, "sa")
-                .withDefault(JdbcConfiguration.PASSWORD, "Password!")
+                .withDefault(JdbcConfiguration.PORT, 50000)
+                .withDefault(JdbcConfiguration.USER, "db2inst1")
+                .withDefault(JdbcConfiguration.PASSWORD, "admin")
                 .build();
     }
 
@@ -94,53 +79,9 @@ public class TestHelper {
         jdbcConfiguration.forEach(
                 (field, value) -> builder.with(Db2ConnectorConfig.DATABASE_CONFIG_PREFIX + field, value));
 
-        return builder.with(RelationalDatabaseConnectorConfig.SERVER_NAME, "server1")
+        return builder.with(RelationalDatabaseConnectorConfig.SERVER_NAME, "localhost")
                 .with(Db2ConnectorConfig.DATABASE_HISTORY, FileDatabaseHistory.class)
                 .with(FileDatabaseHistory.FILE_PATH, DB_HISTORY_PATH);
-    }
-
-    public static void createTestDatabase() {
-        // NOTE: you cannot enable CDC for the "master" db (the default one) so
-        // all tests must use a separate database...
-        try (Db2Connection connection = adminConnection()) {
-            connection.connect();
-            try {
-                connection.execute("USE testDB");
-                disableDbCdc(connection, "testDB");
-            }
-            catch (SQLException e) {
-            }
-            connection.execute("USE master");
-            String sql = "IF EXISTS(select 1 from sys.databases where name='testDB') DROP DATABASE testDB\n"
-                    + "CREATE DATABASE testDB\n";
-            connection.execute(sql);
-            connection.execute("USE testDB");
-            connection.execute("ALTER DATABASE testDB SET ALLOW_SNAPSHOT_ISOLATION ON");
-            // NOTE: you cannot enable CDC on master
-            enableDbCdc(connection, "testDB");
-        }
-        catch (SQLException e) {
-            LOGGER.error("Error while initiating test database", e);
-            throw new IllegalStateException("Error while initiating test database", e);
-        }
-    }
-
-    public static void dropTestDatabase() {
-        try (Db2Connection connection = adminConnection()) {
-            connection.connect();
-            try {
-                connection.execute("USE testDB");
-                disableDbCdc(connection, "testDB");
-            }
-            catch (SQLException e) {
-            }
-            connection.execute("USE master");
-            String sql = "IF EXISTS(select 1 from sys.databases where name='testDB') DROP DATABASE testDB";
-            connection.execute(sql);
-        }
-        catch (SQLException e) {
-            throw new IllegalStateException("Error while dropping test database", e);
-        }
     }
 
     public static Db2Connection adminConnection() {
@@ -154,27 +95,21 @@ public class TestHelper {
     /**
      * Enables CDC for a given database, if not already enabled.
      *
-     * @param name
-     *            the name of the DB, may not be {@code null}
      * @throws SQLException
      *             if anything unexpected fails
      */
-    public static void enableDbCdc(Db2Connection connection, String name) throws SQLException {
-        Objects.requireNonNull(name);
-        connection.execute(ENABLE_DB_CDC.replace(STATEMENTS_PLACEHOLDER, name));
+    public static void enableDbCdc(Db2Connection connection) throws SQLException {
+        connection.execute(ENABLE_DB_CDC);
     }
 
     /**
      * Disables CDC for a given database, if not already disabled.
      *
-     * @param name
-     *            the name of the DB, may not be {@code null}
      * @throws SQLException
      *             if anything unexpected fails
      */
-    protected static void disableDbCdc(Db2Connection connection, String name) throws SQLException {
-        Objects.requireNonNull(name);
-        connection.execute(DISABLE_DB_CDC.replace(STATEMENTS_PLACEHOLDER, name));
+    protected static void disableDbCdc(Db2Connection connection) throws SQLException {
+        connection.execute(DISABLE_DB_CDC);
     }
 
     /**
@@ -188,7 +123,6 @@ public class TestHelper {
     public static void enableTableCdc(Db2Connection connection, String name) throws SQLException {
         Objects.requireNonNull(name);
         String enableCdcForTableStmt = ENABLE_TABLE_CDC.replace(STATEMENTS_PLACEHOLDER, name);
-        String generateWrapperFunctionsStmts = CDC_WRAPPERS_DML.replaceAll(STATEMENTS_PLACEHOLDER, name.replaceAll("\\$", "\\\\\\$"));
         connection.execute(enableCdcForTableStmt, generateWrapperFunctionsStmts);
     }
 
@@ -203,7 +137,6 @@ public class TestHelper {
     public static void enableTableCdc(Db2Connection connection, String tableName, String captureName) throws SQLException {
         Objects.requireNonNull(tableName);
         Objects.requireNonNull(captureName);
-        String enableCdcForTableStmt = String.format(ENABLE_TABLE_CDC_WITH_CUSTOM_CAPTURE, tableName, captureName);
         connection.execute(enableCdcForTableStmt);
     }
 
