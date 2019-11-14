@@ -18,7 +18,7 @@ import io.debezium.jdbc.TemporalPrecisionMode;
  *
  * @author Jiri Pechanec
  */
-public class DatatypesFromSnapshotIT extends AbstractSqlServerDatatypesTest {
+public class DatatypesFromSnapshotIT extends AbstractDB2DatatypesTest {
 
     @BeforeClass
     public static void beforeClass() throws SQLException {
