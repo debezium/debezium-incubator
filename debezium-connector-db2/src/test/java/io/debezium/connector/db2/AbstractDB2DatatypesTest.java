@@ -45,7 +45,7 @@ import io.debezium.util.Testing;
  *
  * @author Jiri Pechanec
  */
-public abstract class AbstractSqlServerDatatypesTest extends AbstractConnectorTest {
+public abstract class AbstractDB2DatatypesTest extends AbstractConnectorTest {
 
     /**
      * Key for schema parameter used to store DECIMAL/NUMERIC columns' precision.
