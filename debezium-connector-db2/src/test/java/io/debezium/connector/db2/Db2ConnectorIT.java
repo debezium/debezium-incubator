@@ -47,8 +47,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     public void before() throws SQLException {
         connection = TestHelper.testConnection();
         connection.execute(
-                "CREATE TABLE tablea (id int, cola varchar(30), primary key (id))",
-                "CREATE TABLE tableb (id int, colb varchar(30), primary key (id))",
+                "CREATE TABLE tablea (id int not null, cola varchar(30), primary key (id))",
+                "CREATE TABLE tableb (id int not null, colb varchar(30), primary key (id))",
                 "INSERT INTO tablea VALUES(1, 'a')");
         TestHelper.enableTableCdc(connection, "tablea");
         TestHelper.enableTableCdc(connection, "tableb");
@@ -679,8 +679,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     @FixFor("DBZ-1067")
     public void blacklistColumn() throws Exception {
         connection.execute(
-                "CREATE TABLE blacklist_column_table_a (id int, name varchar(30), amount integer, primary key(id))",
-                "CREATE TABLE blacklist_column_table_b (id int, name varchar(30), amount integer, primary key(id))");
+                "CREATE TABLE blacklist_column_table_a (id int not null, name varchar(30), amount integer, primary key(id))",
+                "CREATE TABLE blacklist_column_table_b (id int not null, name varchar(30), amount integer, primary key(id))");
         TestHelper.enableTableCdc(connection, "blacklist_column_table_a");
         TestHelper.enableTableCdc(connection, "blacklist_column_table_b");
 
