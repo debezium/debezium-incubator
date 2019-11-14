@@ -123,20 +123,6 @@ public class TestHelper {
     public static void enableTableCdc(Db2Connection connection, String name) throws SQLException {
         Objects.requireNonNull(name);
         String enableCdcForTableStmt = ENABLE_TABLE_CDC.replace(STATEMENTS_PLACEHOLDER, name);
-        connection.execute(enableCdcForTableStmt, generateWrapperFunctionsStmts);
-    }
-
-    /**
-     * Enables CDC for a table with a custom capture name
-     * functions for that table.
-     *
-     * @param name
-     *            the name of the table, may not be {@code null}
-     * @throws SQLException if anything unexpected fails
-     */
-    public static void enableTableCdc(Db2Connection connection, String tableName, String captureName) throws SQLException {
-        Objects.requireNonNull(tableName);
-        Objects.requireNonNull(captureName);
         connection.execute(enableCdcForTableStmt);
     }
 

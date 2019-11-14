@@ -53,7 +53,6 @@ public class SnapshotIT extends AbstractConnectorTest {
 
     @Before
     public void before() throws SQLException {
-        TestHelper.createTestDatabase();
         connection = TestHelper.testConnection();
         connection.execute(
                 "CREATE TABLE table1 (id int, name varchar(30), price decimal(8,2), ts datetime2(0), primary key(id))");
@@ -73,6 +72,7 @@ public class SnapshotIT extends AbstractConnectorTest {
     @After
     public void after() throws SQLException {
         if (connection != null) {
+            connection.execute("DROP TABLE table1");
             connection.close();
         }
         // TestHelper.dropTestDatabase();
