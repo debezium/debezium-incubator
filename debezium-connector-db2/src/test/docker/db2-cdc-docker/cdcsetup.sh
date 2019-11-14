@@ -2,7 +2,7 @@
 
 if [ ! -f /asncdctools/src/asncdc.nlk ]; then
 rc=1
-echo "waiting for db2inst1 exists ."
+echo "Waiting for db2inst1 to exist ..."
 while [ "$rc" -ne 0 ]
 do
    sleep 5
