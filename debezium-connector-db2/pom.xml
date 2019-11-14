@@ -21,7 +21,7 @@
         <db2.user>db2inst1</db2.user>
         <db2.password>admin</db2.password>
         <db2.dbname>testdb</db2.dbname>
-        <docker.filter>debezium/db2-cdc</docker.filter>
+        <docker.filter>debezium/db2-cdc-it</docker.filter>
         <docker.skip>false</docker.skip>
         <docker.showLogs>true</docker.showLogs>
     </properties>

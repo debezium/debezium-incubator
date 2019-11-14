@@ -1,9 +1,13 @@
 #/bin/bash
 
+echo "Compile ASN tool ..."
+cd /asncdctools/src
+./bldrtn asncdc
+
 DBNAME=$1
 DB2DIR=/opt/ibm/db2/V11.5
 rc=1
-echo "waiting for DB2 start ( $DBNAME ) ."
+echo "Waiting for DB2 start ( $DBNAME ) ."
 while [ "$rc" -ne 0 ]
 do
    sleep 5
@@ -34,15 +38,6 @@ db2 -tvmf /asncdctools/src/asncdctables.sql
 # add UDF / add remove asntables
 
 db2 -tvmf /asncdctools/src/asncdcaddremove.sql
-
-
-
-
-# create sample table and datat
-db2 -tvmf /asncdctools/src/inventory.sql 
-db2 -tvmf /asncdctools/src/startup-agent.sql 
-sleep 10
-db2 -tvmf /asncdctools/src/startup-cdc-demo.sql 
 
 
 
