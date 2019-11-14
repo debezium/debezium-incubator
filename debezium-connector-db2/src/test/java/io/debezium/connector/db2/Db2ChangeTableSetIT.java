@@ -212,7 +212,7 @@ public class Db2ChangeTableSetIT extends AbstractConnectorTest {
         });
 
         // Enable a second capture instance
-        connection.execute("ALTER TABLE dbo.tableb ADD newcol INT NOT NULL DEFAULT 0");
+        connection.execute("ALTER TABLE db2inst1.tableb ADD newcol INT NOT NULL DEFAULT 0");
 
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START_2 + i;
@@ -236,7 +236,7 @@ public class Db2ChangeTableSetIT extends AbstractConnectorTest {
                             .build());
         });
 
-        TestHelper.enableTableCdc(connection, "tableb", "after_change");
+        TestHelper.enableTableCdc(connection, "tableb");
         if (pauseAfterCaptureChange) {
             Thread.sleep(5_000);
         }
@@ -325,8 +325,8 @@ public class Db2ChangeTableSetIT extends AbstractConnectorTest {
         });
 
         // Enable a second capture instance
-        connection.execute("ALTER TABLE dbo.tableb DROP COLUMN colb");
-        TestHelper.enableTableCdc(connection, "tableb", "after_change");
+        connection.execute("ALTER TABLE db2inst1.tableb DROP COLUMN colb");
+        TestHelper.enableTableCdc(connection, "tableb");
 
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START_2 + i;
@@ -398,8 +398,8 @@ public class Db2ChangeTableSetIT extends AbstractConnectorTest {
         Assertions.assertThat(records.recordsForTopic("testdb.db2inst1.tableb")).hasSize(RECORDS_PER_TABLE);
 
         // Enable a second capture instance
-        connection.execute("ALTER TABLE dbo.tableb DROP COLUMN colb");
-        TestHelper.enableTableCdc(connection, "tableb", "after_change");
+        connection.execute("ALTER TABLE db2inst1.tableb DROP COLUMN colb");
+        TestHelper.enableTableCdc(connection, "tableb");
 
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START_2 + i;
@@ -460,7 +460,7 @@ public class Db2ChangeTableSetIT extends AbstractConnectorTest {
         final String type = changeArray.get(0).asDocument().getString("type");
         final String tableIid = changeArray.get(0).asDocument().getString("id");
         Assertions.assertThat(type).isEqualTo("ALTER");
-        Assertions.assertThat(tableIid).isEqualTo("\"testDB\".\"dbo\".\"tableb\"");
+        Assertions.assertThat(tableIid).isEqualTo("\"testDB\".\"db2inst1\".\"tableb\"");
     }
 
     @Test
@@ -504,7 +504,7 @@ public class Db2ChangeTableSetIT extends AbstractConnectorTest {
         TestHelper.disableTableCdc(connection, "tableb");
         // Enable a second capture instance
         connection.execute("exec sp_rename 'tableb.colb', 'newcolb';");
-        TestHelper.enableTableCdc(connection, "tableb", "after_change");
+        TestHelper.enableTableCdc(connection, "tableb");
 
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START_2 + i;
@@ -592,8 +592,8 @@ public class Db2ChangeTableSetIT extends AbstractConnectorTest {
         });
 
         // Enable a second capture instance
-        connection.execute("ALTER TABLE dbo.tableb ALTER COLUMN colb INT");
-        TestHelper.enableTableCdc(connection, "tableb", "after_change");
+        connection.execute("ALTER TABLE db2inst1.tableb ALTER COLUMN colb INT");
+        TestHelper.enableTableCdc(connection, "tableb");
 
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START_2 + i;
