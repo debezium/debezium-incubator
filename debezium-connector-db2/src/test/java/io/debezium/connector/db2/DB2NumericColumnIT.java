@@ -46,10 +46,10 @@ public class DB2NumericColumnIT extends AbstractConnectorTest {
     public void before() throws SQLException {
         connection = TestHelper.testConnection();
         connection.execute(
-                "CREATE TABLE tablenuma (id int IDENTITY(1,1) primary key, cola DECIMAL(8, 4),colb DECIMAL, colc numeric(8,1), cold numeric)",
-                "CREATE TABLE tablenumb (id int IDENTITY(1,1) primary key, cola DECIMAL(8, 4),colb DECIMAL, colc numeric(8,1), cold numeric)",
-                "CREATE TABLE tablenumc (id int IDENTITY(1,1) primary key, cola DECIMAL(8, 4),colb DECIMAL, colc numeric(8,1), cold numeric)",
-                "CREATE TABLE tablenumd (id int IDENTITY(1,1) primary key, cola DECIMAL(8, 4),colb DECIMAL, colc numeric(8,1), cold numeric)");
+                "CREATE TABLE tablenuma (id int GENERATED ALWAYS AS IDENTITY (START WITH -1, INCREMENT BY 1), cola DECIMAL(8, 4),colb DECIMAL, colc numeric(8,1), cold numeric, primary key (id))",
+                "CREATE TABLE tablenumb (id int GENERATED ALWAYS AS IDENTITY (START WITH -1, INCREMENT BY 1), cola DECIMAL(8, 4),colb DECIMAL, colc numeric(8,1), cold numeric, primary key (id))",
+                "CREATE TABLE tablenumc (id int GENERATED ALWAYS AS IDENTITY (START WITH -1, INCREMENT BY 1), cola DECIMAL(8, 4),colb DECIMAL, colc numeric(8,1), cold numeric, primary key (id))",
+                "CREATE TABLE tablenumd (id int GENERATED ALWAYS AS IDENTITY (START WITH -1, INCREMENT BY 1), cola DECIMAL(8, 4),colb DECIMAL, colc numeric(8,1), cold numeric, primary key (id))");
         TestHelper.enableTableCdc(connection, "tablenuma");
         TestHelper.enableTableCdc(connection, "tablenumb");
         TestHelper.enableTableCdc(connection, "tablenumc");
