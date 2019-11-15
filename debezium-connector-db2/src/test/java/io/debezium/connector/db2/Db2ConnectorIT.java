@@ -92,8 +92,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         }
 
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
-        final List<SourceRecord> tableA = records.recordsForTopic("testdb.db2inst1.tablea");
-        final List<SourceRecord> tableB = records.recordsForTopic("testdb.db2inst1.tableb");
+        final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
         Assertions.assertThat(tableA).hasSize(RECORDS_PER_TABLE);
         Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
@@ -119,8 +119,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         connection.execute("DELETE FROM tableB");
         final SourceRecords deleteRecords = consumeRecordsByTopic(2 * RECORDS_PER_TABLE);
-        final List<SourceRecord> deleteTableA = deleteRecords.recordsForTopic("testdb.db2inst1.tablea");
-        final List<SourceRecord> deleteTableB = deleteRecords.recordsForTopic("testdb.db2inst1.tableb");
+        final List<SourceRecord> deleteTableA = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> deleteTableB = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
         Assertions.assertThat(deleteTableA).isNullOrEmpty();
         Assertions.assertThat(deleteTableB).hasSize(2 * RECORDS_PER_TABLE);
 
@@ -172,8 +172,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         connection.execute("DELETE FROM tableB");
         final SourceRecords deleteRecords = consumeRecordsByTopic(RECORDS_PER_TABLE);
-        final List<SourceRecord> deleteTableA = deleteRecords.recordsForTopic("testdb.db2inst1.tablea");
-        final List<SourceRecord> deleteTableB = deleteRecords.recordsForTopic("testdb.db2inst1.tableb");
+        final List<SourceRecord> deleteTableA = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> deleteTableB = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
         Assertions.assertThat(deleteTableA).isNullOrEmpty();
         Assertions.assertThat(deleteTableB).hasSize(RECORDS_PER_TABLE);
 
@@ -218,7 +218,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         connection.execute("UPDATE tableb SET colb='z'");
 
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * 2);
-        final List<SourceRecord> tableB = records.recordsForTopic("testdb.db2inst1.tableb");
+        final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
         Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE * 2);
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final SourceRecord recordB = tableB.get(i);
@@ -274,8 +274,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
                 "UPDATE tableb SET id=100 WHERE id=1");
 
         final SourceRecords records = consumeRecordsByTopic(6);
-        final List<SourceRecord> tableA = records.recordsForTopic("testdb.db2inst1.tablea");
-        final List<SourceRecord> tableB = records.recordsForTopic("testdb.db2inst1.tableb");
+        final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
         Assertions.assertThat(tableA).hasSize(3);
         Assertions.assertThat(tableB).hasSize(3);
 
@@ -380,9 +380,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         assertConnectorIsRunning();
         final SourceRecords records2 = consumeRecordsByTopic(4);
 
-        final List<SourceRecord> tableA = records1.recordsForTopic("testdb.db2inst1.tablea");
-        tableA.addAll(records2.recordsForTopic("testdb.db2inst1.tablea"));
-        final List<SourceRecord> tableB = records2.recordsForTopic("testdb.db2inst1.tableb");
+        final List<SourceRecord> tableA = records1.recordsForTopic("testdb.DB2INST1.TABLEA");
+        tableA.addAll(records2.recordsForTopic("testdb.DB2INST1.TABLEA"));
+        final List<SourceRecord> tableB = records2.recordsForTopic("testdb.DB2INST1.TABLEB");
         Assertions.assertThat(tableA).hasSize(3);
         Assertions.assertThat(tableB).hasSize(3);
 
@@ -491,8 +491,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         assertConnectorIsRunning();
 
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
-        final List<SourceRecord> tableA = records.recordsForTopic("testdb.db2inst1.tablea");
-        List<SourceRecord> tableB = records.recordsForTopic("testdb.db2inst1.tableb");
+        final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+        List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
 
         Assertions.assertThat(tableA).hasSize(RECORDS_PER_TABLE);
         Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
@@ -573,8 +573,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         assertConnectorIsRunning();
 
         final SourceRecords sourceRecords = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
-        final List<SourceRecord> tableA = sourceRecords.recordsForTopic("testdb.db2inst1.tablea");
-        final List<SourceRecord> tableB = sourceRecords.recordsForTopic("testdb.db2inst1.tableb");
+        final List<SourceRecord> tableA = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> tableB = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
 
         Assertions.assertThat(tableA).hasSize(RECORDS_PER_TABLE);
         Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
@@ -635,8 +635,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         }
 
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
-        final List<SourceRecord> tableA = records.recordsForTopic("testdb.db2inst1.tablea");
-        final List<SourceRecord> tableB = records.recordsForTopic("testdb.db2inst1.tableb");
+        final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
         Assertions.assertThat(tableA == null || tableA.isEmpty()).isTrue();
         Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
 
@@ -670,8 +670,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         }
 
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
-        final List<SourceRecord> tableA = records.recordsForTopic("testdb.db2inst1.tablea");
-        final List<SourceRecord> tableB = records.recordsForTopic("testdb.db2inst1.tableb");
+        final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
         Assertions.assertThat(tableA == null || tableA.isEmpty()).isTrue();
         Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
 
@@ -786,7 +786,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         }
 
         start(Db2Connector.class, config, record -> {
-            if (!"testdb.db2inst1.tablea.Envelope".equals(record.valueSchema().name())) {
+            if (!"testdb.DB2INST1.TABLEA.Envelope".equals(record.valueSchema().name())) {
                 return false;
             }
             final Struct envelope = (Struct) record.value();
@@ -836,8 +836,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         records = sourceRecords.allRecordsInOrder();
         assertThat(records).hasSize(RECORDS_PER_TABLE);
 
-        List<SourceRecord> tableA = sourceRecords.recordsForTopic("testdb.db2inst1.tablea");
-        List<SourceRecord> tableB = sourceRecords.recordsForTopic("testdb.db2inst1.tableb");
+        List<SourceRecord> tableA = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
+        List<SourceRecord> tableB = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
         for (int i = 0; i < RECORDS_PER_TABLE / 2; i++) {
             final int id = HALF_ID + i;
             final SourceRecord recordA = tableA.get(i);
@@ -868,8 +868,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         }
 
         sourceRecords = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
-        tableA = sourceRecords.recordsForTopic("testdb.db2inst1.tablea");
-        tableB = sourceRecords.recordsForTopic("testdb.db2inst1.tableb");
+        tableA = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
+        tableB = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
 
         Assertions.assertThat(tableA).hasSize(RECORDS_PER_TABLE);
         Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
@@ -976,19 +976,19 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         // Wait for snapshot completion
         SourceRecords records = consumeRecordsByTopic(1);
-        assertThat(records.recordsForTopic("testdb.db2inst1.keyless").get(0).key()).isNull();
-        assertThat(records.recordsForTopic("testdb.db2inst1.keyless").get(0).keySchema()).isNull();
+        assertThat(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).key()).isNull();
+        assertThat(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).keySchema()).isNull();
 
         connection.execute(
                 "INSERT INTO keyless VALUES(2, 'k')");
         records = consumeRecordsByTopic(1);
-        assertThat((Struct) records.recordsForTopic("testdb.db2inst1.keyless").get(0).key()).isNull();
-        assertThat((Struct) records.recordsForTopic("testdb.db2inst1.keyless").get(0).key()).isNull();
+        assertThat((Struct) records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).key()).isNull();
+        assertThat((Struct) records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).key()).isNull();
 
         connection.execute(
                 "UPDATE keyless SET id=3 WHERE ID=2");
         records = consumeRecordsByTopic(3);
-        final SourceRecord update1 = records.recordsForTopic("testdb.db2inst1.keyless").get(0);
+        final SourceRecord update1 = records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0);
 
         assertThat(update1.key()).isNull();
         assertThat(update1.keySchema()).isNull();
@@ -998,9 +998,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         connection.execute(
                 "DELETE FROM keyless WHERE id=3");
         records = consumeRecordsByTopic(2);
-        assertThat(records.recordsForTopic("testdb.db2inst1.keyless").get(0).key()).isNull();
-        assertThat(records.recordsForTopic("testdb.db2inst1.keyless").get(0).keySchema()).isNull();
-        assertNull(records.recordsForTopic("testdb.db2inst1.keyless").get(1).value());
+        assertThat(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).key()).isNull();
+        assertThat(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).keySchema()).isNull();
+        assertNull(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(1).value());
 
         stopConnector();
     }
