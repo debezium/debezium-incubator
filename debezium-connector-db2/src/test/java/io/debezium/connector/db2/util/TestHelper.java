@@ -79,7 +79,7 @@ public class TestHelper {
         jdbcConfiguration.forEach(
                 (field, value) -> builder.with(Db2ConnectorConfig.DATABASE_CONFIG_PREFIX + field, value));
 
-        return builder.with(RelationalDatabaseConnectorConfig.SERVER_NAME, "localhost")
+        return builder.with(RelationalDatabaseConnectorConfig.SERVER_NAME, "testdb")
                 .with(Db2ConnectorConfig.DATABASE_HISTORY, FileDatabaseHistory.class)
                 .with(FileDatabaseHistory.FILE_PATH, DB_HISTORY_PATH);
     }
