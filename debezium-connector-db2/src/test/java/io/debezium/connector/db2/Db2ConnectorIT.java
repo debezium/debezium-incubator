@@ -61,6 +61,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     @After
     public void after() throws SQLException {
         if (connection != null) {
+            TestHelper.disableTableCdc(connection, "tableb");
+            TestHelper.disableTableCdc(connection, "tablea");
+            connection.execute("DROP TABLE tablea","DROP TABLE tableb");
             connection.close();
         }
     }
