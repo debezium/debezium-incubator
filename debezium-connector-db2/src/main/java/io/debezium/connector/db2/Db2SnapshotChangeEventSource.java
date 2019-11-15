@@ -166,7 +166,7 @@ public class Db2SnapshotChangeEventSource extends RelationalSnapshotChangeEventS
                 throw new InterruptedException("Interrupted while reading structure of schema " + schema);
             }
 
-            LOGGER.info("Reading structure of schema '{}'", snapshotContext.catalogName);
+            LOGGER.info("Reading structure of schema '{}'", schema);
             /**
             jdbcConnection.readSchema(
                     snapshotContext.tables,
