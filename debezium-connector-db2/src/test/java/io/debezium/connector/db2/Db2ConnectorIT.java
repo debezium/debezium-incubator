@@ -100,11 +100,11 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             final SourceRecord recordA = tableA.get(i);
             final SourceRecord recordB = tableB.get(i);
             final List<SchemaAndValueField> expectedRowA = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, i + ID_START),
-                    new SchemaAndValueField("cola", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
+                    new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
             final List<SchemaAndValueField> expectedRowB = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, i + ID_START),
-                    new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
+                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
 
             final Struct keyA = (Struct) recordA.key();
             final Struct valueA = (Struct) recordA.value();
@@ -128,8 +128,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             final SourceRecord deleteRecord = deleteTableB.get(i * 2);
             final SourceRecord tombstoneRecord = deleteTableB.get(i * 2 + 1);
             final List<SchemaAndValueField> expectedDeleteRow = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, i + ID_START),
-                    new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
+                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
 
             final Struct deleteKey = (Struct) deleteRecord.key();
             final Struct deleteValue = (Struct) deleteRecord.value();
@@ -180,8 +180,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final SourceRecord deleteRecord = deleteTableB.get(i);
             final List<SchemaAndValueField> expectedDeleteRow = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, i + ID_START),
-                    new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
+                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
 
             final Struct deleteKey = (Struct) deleteRecord.key();
             final Struct deleteValue = (Struct) deleteRecord.value();
@@ -223,8 +223,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final SourceRecord recordB = tableB.get(i);
             final List<SchemaAndValueField> expectedRowB = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, i + ID_START),
-                    new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
+                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
 
             final Struct keyB = (Struct) recordB.key();
             final Struct valueB = (Struct) recordB.value();
@@ -235,11 +235,11 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final SourceRecord recordB = tableB.get(i + RECORDS_PER_TABLE);
             final List<SchemaAndValueField> expectedBefore = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, i + ID_START),
-                    new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
+                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
             final List<SchemaAndValueField> expectedAfter = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, i + ID_START),
-                    new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "z"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
+                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "z"));
 
             final Struct keyB = (Struct) recordB.key();
             final Struct valueB = (Struct) recordB.value();
@@ -280,15 +280,15 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         Assertions.assertThat(tableB).hasSize(3);
 
         final List<SchemaAndValueField> expectedDeleteRowA = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 1),
-                new SchemaAndValueField("cola", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
+                new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
         final List<SchemaAndValueField> expectedDeleteKeyA = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 1));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1));
         final List<SchemaAndValueField> expectedInsertRowA = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 100),
-                new SchemaAndValueField("cola", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
+                new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
         final List<SchemaAndValueField> expectedInsertKeyA = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 100));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100));
 
         final SourceRecord deleteRecordA = tableA.get(0);
         final SourceRecord tombstoneRecordA = tableA.get(1);
@@ -312,15 +312,15 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         assertNull(insertValueA.get("before"));
 
         final List<SchemaAndValueField> expectedDeleteRowB = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 1),
-                new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
+                new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
         final List<SchemaAndValueField> expectedDeleteKeyB = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 1));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1));
         final List<SchemaAndValueField> expectedInsertRowB = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 100),
-                new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
+                new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
         final List<SchemaAndValueField> expectedInsertKeyB = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 100));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100));
 
         final SourceRecord deleteRecordB = tableB.get(0);
         final SourceRecord tombstoneRecordB = tableB.get(1);
@@ -356,7 +356,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         start(Db2Connector.class, config, record -> {
             final Struct envelope = (Struct) record.value();
-            return envelope != null && "c".equals(envelope.get("op")) && (envelope.getStruct("after").getInt32("id") == 100);
+            return envelope != null && "c".equals(envelope.get("op")) && (envelope.getStruct("after").getInt32("ID") == 100);
         });
         assertConnectorIsRunning();
 
@@ -387,15 +387,15 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         Assertions.assertThat(tableB).hasSize(3);
 
         final List<SchemaAndValueField> expectedDeleteRowA = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 1),
-                new SchemaAndValueField("cola", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
+                new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
         final List<SchemaAndValueField> expectedDeleteKeyA = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 1));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1));
         final List<SchemaAndValueField> expectedInsertRowA = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 100),
-                new SchemaAndValueField("cola", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
+                new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
         final List<SchemaAndValueField> expectedInsertKeyA = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 100));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100));
 
         final SourceRecord deleteRecordA = tableA.get(0);
         final SourceRecord tombstoneRecordA = tableA.get(1);
@@ -419,15 +419,15 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         assertNull(insertValueA.get("before"));
 
         final List<SchemaAndValueField> expectedDeleteRowB = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 1),
-                new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
+                new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
         final List<SchemaAndValueField> expectedDeleteKeyB = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 1));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1));
         final List<SchemaAndValueField> expectedInsertRowB = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 100),
-                new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
+                new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
         final List<SchemaAndValueField> expectedInsertKeyB = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, 100));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100));
 
         final SourceRecord deleteRecordB = tableB.get(0);
         final SourceRecord tombstoneRecordB = tableB.get(1);
@@ -502,11 +502,11 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             final SourceRecord recordA = tableA.get(i);
             final SourceRecord recordB = tableB.get(i);
             final List<SchemaAndValueField> expectedRowA = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, id),
-                    new SchemaAndValueField("cola", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
+                    new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
             final List<SchemaAndValueField> expectedRowB = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, id),
-                    new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
+                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
 
             final Struct valueA = (Struct) recordA.value();
             assertRecord((Struct) valueA.get("after"), expectedRowA);
@@ -584,11 +584,11 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             final SourceRecord recordA = tableA.get(i);
             final SourceRecord recordB = tableB.get(i);
             final List<SchemaAndValueField> expectedRowA = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, id),
-                    new SchemaAndValueField("cola", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
+                    new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
             final List<SchemaAndValueField> expectedRowB = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, id),
-                    new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
+                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
 
             final Struct valueA = (Struct) recordA.value();
             assertRecord((Struct) valueA.get("after"), expectedRowA);
@@ -708,22 +708,22 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         Schema expectedSchemaA = SchemaBuilder.struct()
                 .optional()
                 .name("testdb.db2inst1.blacklist_column_table_a.Value")
-                .field("id", Schema.INT32_SCHEMA)
+                .field("ID", Schema.INT32_SCHEMA)
                 .field("name", Schema.OPTIONAL_STRING_SCHEMA)
                 .build();
         Struct expectedValueA = new Struct(expectedSchemaA)
-                .put("id", 10)
+                .put("ID", 10)
                 .put("name", "some_name");
 
         Schema expectedSchemaB = SchemaBuilder.struct()
                 .optional()
                 .name("testdb.db2inst1.blacklist_column_table_b.Value")
-                .field("id", Schema.INT32_SCHEMA)
+                .field("ID", Schema.INT32_SCHEMA)
                 .field("name", Schema.OPTIONAL_STRING_SCHEMA)
                 .field("amount", Schema.OPTIONAL_INT32_SCHEMA)
                 .build();
         Struct expectedValueB = new Struct(expectedSchemaB)
-                .put("id", 11)
+                .put("ID", 11)
                 .put("name", "some_name")
                 .put("amount", 447);
 
@@ -791,8 +791,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             }
             final Struct envelope = (Struct) record.value();
             final Struct after = envelope.getStruct("after");
-            final Integer id = after.getInt32("id");
-            final String value = after.getString("cola");
+            final Integer id = after.getInt32("ID");
+            final String value = after.getString("COLA");
             return id != null && id == HALF_ID && "a".equals(value);
         });
         assertConnectorIsRunning();
@@ -804,8 +804,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             connection.execute("INSERT INTO tablea VALUES(-2, '-a')");
             final SourceRecords records = consumeRecordsByTopic(1);
             final List<SchemaAndValueField> expectedRow = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, -2),
-                    new SchemaAndValueField("cola", Schema.OPTIONAL_STRING_SCHEMA, "-a"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, -2),
+                    new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "-a"));
             assertRecord(((Struct) records.allRecordsInOrder().get(0).value()).getStruct(Envelope.FieldName.AFTER), expectedRow);
         }
 
@@ -824,8 +824,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         SourceRecord lastRecordForOffset = records.get(RECORDS_PER_TABLE - 1);
         Struct value = (Struct) lastRecordForOffset.value();
         final List<SchemaAndValueField> expectedLastRow = Arrays.asList(
-                new SchemaAndValueField("id", Schema.INT32_SCHEMA, HALF_ID - 1),
-                new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, HALF_ID - 1),
+                new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
         assertRecord((Struct) value.get("after"), expectedLastRow);
 
         stopConnector();
@@ -843,11 +843,11 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             final SourceRecord recordA = tableA.get(i);
             final SourceRecord recordB = tableB.get(i);
             final List<SchemaAndValueField> expectedRowA = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, id),
-                    new SchemaAndValueField("cola", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
+                    new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
             final List<SchemaAndValueField> expectedRowB = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, id),
-                    new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
+                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
 
             final Struct valueA = (Struct) recordA.value();
             assertRecord((Struct) valueA.get("after"), expectedRowA);
@@ -879,11 +879,11 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             final SourceRecord recordA = tableA.get(i);
             final SourceRecord recordB = tableB.get(i);
             final List<SchemaAndValueField> expectedRowA = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, id),
-                    new SchemaAndValueField("cola", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
+                    new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
             final List<SchemaAndValueField> expectedRowB = Arrays.asList(
-                    new SchemaAndValueField("id", Schema.INT32_SCHEMA, id),
-                    new SchemaAndValueField("colb", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
+                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
 
             final Struct valueA = (Struct) recordA.value();
             assertRecord((Struct) valueA.get("after"), expectedRowA);
@@ -965,14 +965,14 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         assertConnectorIsRunning();
 
         final List<SchemaAndValueField> key = Arrays.asList(
-                new SchemaAndValueField("id", Schema.OPTIONAL_INT32_SCHEMA, 1),
-                new SchemaAndValueField("name", Schema.OPTIONAL_STRING_SCHEMA, "k"));
+                new SchemaAndValueField("ID", Schema.OPTIONAL_INT32_SCHEMA, 1),
+                new SchemaAndValueField("NAME", Schema.OPTIONAL_STRING_SCHEMA, "k"));
         final List<SchemaAndValueField> key2 = Arrays.asList(
-                new SchemaAndValueField("id", Schema.OPTIONAL_INT32_SCHEMA, 2),
-                new SchemaAndValueField("name", Schema.OPTIONAL_STRING_SCHEMA, "k"));
+                new SchemaAndValueField("ID", Schema.OPTIONAL_INT32_SCHEMA, 2),
+                new SchemaAndValueField("NAME", Schema.OPTIONAL_STRING_SCHEMA, "k"));
         final List<SchemaAndValueField> key3 = Arrays.asList(
-                new SchemaAndValueField("id", Schema.OPTIONAL_INT32_SCHEMA, 3),
-                new SchemaAndValueField("name", Schema.OPTIONAL_STRING_SCHEMA, "k"));
+                new SchemaAndValueField("ID", Schema.OPTIONAL_INT32_SCHEMA, 3),
+                new SchemaAndValueField("NAME", Schema.OPTIONAL_STRING_SCHEMA, "k"));
 
         // Wait for snapshot completion
         SourceRecords records = consumeRecordsByTopic(1);
