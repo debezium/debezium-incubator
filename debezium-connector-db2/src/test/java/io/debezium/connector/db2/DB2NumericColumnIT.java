@@ -87,7 +87,7 @@ public class DB2NumericColumnIT extends AbstractConnectorTest {
     public void decimalModeConfigString() throws Exception {
         final Configuration config = TestHelper.defaultConfig()
                 .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-                .with(Db2ConnectorConfig.TABLE_WHITELIST, "dbo.tablenuma")
+                .with(Db2ConnectorConfig.TABLE_WHITELIST, "db2inst1.tablenuma")
                 .with(Db2ConnectorConfig.DECIMAL_HANDLING_MODE, DecimalHandlingMode.STRING).build();
 
         start(Db2Connector.class, config);
@@ -119,7 +119,7 @@ public class DB2NumericColumnIT extends AbstractConnectorTest {
     public void decimalModeConfigDouble() throws Exception {
         final Configuration config = TestHelper.defaultConfig()
                 .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-                .with(Db2ConnectorConfig.TABLE_WHITELIST, "dbo.tablenumb")
+                .with(Db2ConnectorConfig.TABLE_WHITELIST, "db2inst1.tablenumb")
                 .with(Db2ConnectorConfig.DECIMAL_HANDLING_MODE, DecimalHandlingMode.DOUBLE).build();
 
         start(Db2Connector.class, config);
