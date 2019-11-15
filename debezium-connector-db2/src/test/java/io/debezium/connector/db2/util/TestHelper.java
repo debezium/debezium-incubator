@@ -42,10 +42,11 @@ public class TestHelper {
 
     private static final String STATEMENTS_PLACEHOLDER = "#";
 
-    private static final String ENABLE_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('start','asncdc');";
-    private static final String DISABLE_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('stop','asncdc');";
-    private static final String ENABLE_TABLE_CDC = "CALL ASNCDC.ADDTABLE('db2inst1', '#' );VALUES ASNCDC.ASNCDCSERVICES('reinit','asncdc');";
-    private static final String DISABLE_TABLE_CDC = "CALL ASNCDC.REMOVETABLE('db2inst1', '#' );VALUES ASNCDC.ASNCDCSERVICES('reinit','asncdc');";
+    private static final String ENABLE_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('start','asncdc')";
+    private static final String DISABLE_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('stop','asncdc')";
+    private static final String ENABLE_TABLE_CDC = "CALL ASNCDC.ADDTABLE('db2inst1', '#' )";
+    private static final String DISABLE_TABLE_CDC = "CALL ASNCDC.REMOVETABLE('db2inst1', '#' )";
+    private static final String RESTART_ASN_CDC = "VALUES ASNCDC.ASNCDCSERVICES('reinit','asncdc')";
 
     public static JdbcConfiguration adminJdbcConfig() {
         return JdbcConfiguration.copy(Configuration.fromSystemProperties("database."))
@@ -122,7 +123,7 @@ public class TestHelper {
     public static void enableTableCdc(Db2Connection connection, String name) throws SQLException {
         Objects.requireNonNull(name);
         String enableCdcForTableStmt = ENABLE_TABLE_CDC.replace(STATEMENTS_PLACEHOLDER, name);
-        connection.execute(enableCdcForTableStmt);
+        connection.execute(enableCdcForTableStmt, RESTART_ASN_CDC);
     }
 
     /**
@@ -135,7 +136,7 @@ public class TestHelper {
     public static void disableTableCdc(Db2Connection connection, String name) throws SQLException {
         Objects.requireNonNull(name);
         String disableCdcForTableStmt = DISABLE_TABLE_CDC.replace(STATEMENTS_PLACEHOLDER, name);
-        connection.execute(disableCdcForTableStmt);
+        connection.execute(disableCdcForTableStmt, RESTART_ASN_CDC);
     }
 
     public static void waitForSnapshotToBeCompleted() throws InterruptedException {
