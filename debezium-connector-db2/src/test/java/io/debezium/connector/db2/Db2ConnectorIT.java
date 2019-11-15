@@ -55,7 +55,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         initializeConnectorTestFramework();
         Testing.Files.delete(TestHelper.DB_HISTORY_PATH);
-        // Testing.Print.enable();
+        Testing.Print.enable();
     }
 
     @After
