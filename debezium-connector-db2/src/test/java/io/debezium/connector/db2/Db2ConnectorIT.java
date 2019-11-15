@@ -612,7 +612,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         final int ID_START = 10;
         final Configuration config = TestHelper.defaultConfig()
                 .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
-                .with(Db2ConnectorConfig.TABLE_WHITELIST, "dbo.tableb")
+                .with(Db2ConnectorConfig.TABLE_WHITELIST, "db2inst1.tableb")
                 .build();
         connection.execute(
                 "INSERT INTO tableb VALUES(1, 'b')");
@@ -647,7 +647,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         final int ID_START = 10;
         final Configuration config = TestHelper.defaultConfig()
                 .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-                .with(Db2ConnectorConfig.TABLE_BLACKLIST, "dbo.tablea")
+                .with(Db2ConnectorConfig.TABLE_BLACKLIST, "db2inst1.tablea")
                 .build();
         connection.execute(
                 "INSERT INTO tableb VALUES(1, 'b')");
@@ -686,7 +686,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         final Configuration config = TestHelper.defaultConfig()
                 .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
-                .with(Db2ConnectorConfig.COLUMN_BLACKLIST, "dbo.blacklist_column_table_a.amount")
+                .with(Db2ConnectorConfig.COLUMN_BLACKLIST, "db2inst1.blacklist_column_table_a.amount")
                 .build();
 
         start(Db2Connector.class, config);
@@ -955,7 +955,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         final Configuration config = TestHelper.defaultConfig()
                 .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-                .with(Db2ConnectorConfig.TABLE_WHITELIST, "dbo.keyless")
+                .with(Db2ConnectorConfig.TABLE_WHITELIST, "db2inst1.keyless")
                 .build();
 
         start(Db2Connector.class, config);
