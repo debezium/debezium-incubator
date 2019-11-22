@@ -35,7 +35,7 @@ import io.debezium.util.BoundedConcurrentHashMap;
 /**
  * {@link JdbcConnection} extension to be used with Microsoft SQL Server
  *
- * @author Horia Chiorean (hchiorea@redhat.com), Jiri Pechanec
+ * @author Horia Chiorean (hchiorea@redhat.com), Jiri Pechanec, Peter Urbanetz
  *
  */
 public class Db2Connection extends JdbcConnection {
@@ -306,7 +306,7 @@ public class Db2Connection extends JdbcConnection {
                  **/
                 changeTables.add(
                         new ChangeTable(
-                                new TableId(null, rs.getString(1), rs.getString(2)),
+                                new TableId(realDatabaseName, rs.getString(1), rs.getString(2)),
                                 rs.getString(4),
                                 rs.getInt(9),
                                 Lsn.valueOf(rs.getBytes(5)),

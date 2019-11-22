@@ -12,7 +12,7 @@ import io.debezium.relational.TableId;
  * There is usually one change table for each source table. When the schema of the source table
  * is changed then two change tables could be present.
  *
- * @author Jiri Pechanec
+ * @author Jiri Pechanec, Peter Urbanetz
  *
  */
 public class ChangeTable {

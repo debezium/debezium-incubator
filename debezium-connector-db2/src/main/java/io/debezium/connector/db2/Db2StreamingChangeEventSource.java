@@ -50,7 +50,7 @@ import io.debezium.util.Metronome;
  * table with the LSN larger than in the old one. Then the change table is switched and streaming is executed
  * from the new one.</p>
  *
- * @author Jiri Pechanec
+ * @author Jiri Pechanec, Peter Urbanetz
  */
 public class Db2StreamingChangeEventSource implements StreamingChangeEventSource {
 
