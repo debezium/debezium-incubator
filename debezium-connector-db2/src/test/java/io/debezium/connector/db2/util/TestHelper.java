@@ -31,7 +31,7 @@ import io.debezium.util.Metronome;
 import io.debezium.util.Testing;
 
 /**
- * @author Horia Chiorean (hchiorea@redhat.com)
+ * @author Horia Chiorean (hchiorea@redhat.com), Luis Garcés-Erice
  */
 public class TestHelper {
 
@@ -39,13 +39,14 @@ public class TestHelper {
 
     public static final Path DB_HISTORY_PATH = Testing.Files.createTestingPath("file-db-history-connect.txt").toAbsolutePath();
     public static final String TEST_DATABASE = "testdb";
+    public static final int WAIT_FOR_CDC = 30 * 1000;
 
     private static final String STATEMENTS_PLACEHOLDER = "#";
 
     private static final String ENABLE_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('start','asncdc')";
     private static final String DISABLE_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('stop','asncdc')";
-    private static final String ENABLE_TABLE_CDC = "CALL ASNCDC.ADDTABLE('db2inst1', '#' )";
-    private static final String DISABLE_TABLE_CDC = "CALL ASNCDC.REMOVETABLE('db2inst1', '#' )";
+    private static final String ENABLE_TABLE_CDC = "CALL ASNCDC.ADDTABLE('DB2INST1', '#' )";
+    private static final String DISABLE_TABLE_CDC = "CALL ASNCDC.REMOVETABLE('DB2INST1', '#' )";
     private static final String RESTART_ASN_CDC = "VALUES ASNCDC.ASNCDCSERVICES('reinit','asncdc')";
 
     public static JdbcConfiguration adminJdbcConfig() {
@@ -123,7 +124,9 @@ public class TestHelper {
     public static void enableTableCdc(Db2Connection connection, String name) throws SQLException {
         Objects.requireNonNull(name);
         String enableCdcForTableStmt = ENABLE_TABLE_CDC.replace(STATEMENTS_PLACEHOLDER, name);
-        connection.execute(enableCdcForTableStmt, RESTART_ASN_CDC);
+        connection.execute(enableCdcForTableStmt);
+        connection.execute(RESTART_ASN_CDC);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER  = 'DB2INST1' AND SOURCE_TABLE = '" + name + "'");
     }
 
     /**
@@ -136,7 +139,8 @@ public class TestHelper {
     public static void disableTableCdc(Db2Connection connection, String name) throws SQLException {
         Objects.requireNonNull(name);
         String disableCdcForTableStmt = DISABLE_TABLE_CDC.replace(STATEMENTS_PLACEHOLDER, name);
-        connection.execute(disableCdcForTableStmt, RESTART_ASN_CDC);
+        connection.execute(disableCdcForTableStmt);
+        connection.execute(RESTART_ASN_CDC);
     }
 
     public static void waitForSnapshotToBeCompleted() throws InterruptedException {
@@ -162,6 +166,15 @@ public class TestHelper {
                 throw new IllegalStateException(e);
             }
             metronome.pause();
+        }
+    }
+
+    public static void waitForCDC() {
+        try {
+            Thread.sleep(WAIT_FOR_CDC);
+        }
+        catch (Exception e) {
+
         }
     }
 }
