@@ -19,7 +19,7 @@ import io.debezium.relational.ValueConverter;
 /**
  * Conversion of SQL Server specific datatypes.
  *
- * @author Jiri Pechanec
+ * @author Jiri Pechanec, Peter Urbanetz
  *
  */
 public class Db2ValueConverters extends JdbcValueConverters {
