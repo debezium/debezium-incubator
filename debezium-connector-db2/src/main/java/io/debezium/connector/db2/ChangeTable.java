@@ -45,7 +45,7 @@ public class ChangeTable {
     private Lsn stopLsn;
 
     /**
-     * Numeric identifier of change table in SQL Server schema
+     * Numeric identifier of change table in DB2 schema
      */
     private final int changeTableObjectId;
 
