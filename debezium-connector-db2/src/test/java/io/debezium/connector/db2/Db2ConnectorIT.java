@@ -125,11 +125,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         connection.execute("DELETE FROM tableB");
 
-        try {
-            Thread.sleep(TestHelper.WAIT_FOR_CDC);
-        }
-        catch (Exception e) {
-        }
+        TestHelper.waitForCDC();
 
         final SourceRecords deleteRecords = consumeRecordsByTopic(2 * RECORDS_PER_TABLE);
         final List<SourceRecord> deleteTableA = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
@@ -156,68 +152,60 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         stopConnector();
     }
-    //
-    // @Test
-    // public void deleteWithoutTombstone() throws Exception {
-    // final int RECORDS_PER_TABLE = 5;
-    // final int TABLES = 2;
-    // final int ID_START = 10;
-    // final Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-    // .with(Db2ConnectorConfig.TOMBSTONES_ON_DELETE, false)
-    // .build();
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    //
-    // // Wait for snapshot completion
-    // consumeRecordsByTopic(1);
-    //
-    // for (int i = 0; i < RECORDS_PER_TABLE; i++) {
-    // final int id = ID_START + i;
-    // connection.execute(
-    // "INSERT INTO tablea VALUES(" + id + ", 'a')");
-    // connection.execute(
-    // "INSERT INTO tableb VALUES(" + id + ", 'b')");
-    // }
-    //
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
-    //
-    // final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
-    //
-    // connection.execute("DELETE FROM tableB");
-    //
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
-    //
-    // final SourceRecords deleteRecords = consumeRecordsByTopic(RECORDS_PER_TABLE);
-    // final List<SourceRecord> deleteTableA = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
-    // final List<SourceRecord> deleteTableB = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
-    // Assertions.assertThat(deleteTableA).isNullOrEmpty();
-    // Assertions.assertThat(deleteTableB).hasSize(RECORDS_PER_TABLE);
-    //
-    // for (int i = 0; i < RECORDS_PER_TABLE; i++) {
-    // final SourceRecord deleteRecord = deleteTableB.get(i);
-    // final List<SchemaAndValueField> expectedDeleteRow = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
-    // new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-    //
-    // final Struct deleteKey = (Struct) deleteRecord.key();
-    // final Struct deleteValue = (Struct) deleteRecord.value();
-    // assertRecord((Struct) deleteValue.get("before"), expectedDeleteRow);
-    // assertNull(deleteValue.get("after"));
-    // }
-    //
-    // stopConnector();
-    // }
-    //
+    
+     @Test
+     public void deleteWithoutTombstone() throws Exception {
+     final int RECORDS_PER_TABLE = 5;
+     final int TABLES = 2;
+     final int ID_START = 10;
+     final Configuration config = TestHelper.defaultConfig()
+     .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+     .with(Db2ConnectorConfig.TOMBSTONES_ON_DELETE, false)
+     .build();
+    
+     start(Db2Connector.class, config);
+     assertConnectorIsRunning();
+    
+     // Wait for snapshot completion
+     consumeRecordsByTopic(1);
+    
+     for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+     final int id = ID_START + i;
+     connection.execute(
+     "INSERT INTO tablea VALUES(" + id + ", 'a')");
+     connection.execute(
+     "INSERT INTO tableb VALUES(" + id + ", 'b')");
+     }
+    
+     TestHelper.waitForCDC();
+    
+     final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
+    
+     connection.execute("DELETE FROM tableB");
+    
+     TestHelper.waitForCDC();
+    
+     final SourceRecords deleteRecords = consumeRecordsByTopic(RECORDS_PER_TABLE);
+     final List<SourceRecord> deleteTableA = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
+     final List<SourceRecord> deleteTableB = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
+     Assertions.assertThat(deleteTableA).isNullOrEmpty();
+     Assertions.assertThat(deleteTableB).hasSize(RECORDS_PER_TABLE);
+    
+     for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+     final SourceRecord deleteRecord = deleteTableB.get(i);
+     final List<SchemaAndValueField> expectedDeleteRow = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
+     new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+    
+     final Struct deleteKey = (Struct) deleteRecord.key();
+     final Struct deleteValue = (Struct) deleteRecord.value();
+     assertRecord((Struct) deleteValue.get("before"), expectedDeleteRow);
+     assertNull(deleteValue.get("after"));
+     }
+    
+     stopConnector();
+     }
+    
     /*
      * This fails with an 0x4 update type error
      */
@@ -252,11 +240,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     // }
     // connection.execute(tableBUpdates);
     //
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
+    // TestHelper.waitForCDC();
     //
     // final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * 2);
     // final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
@@ -291,111 +275,106 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     // stopConnector();
     // }
 
-    // @Test
-    // public void updatePrimaryKey() throws Exception {
-    //
-    // final Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-    // .build();
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    //
-    // // Testing.Print.enable();
-    // // Wait for snapshot completion
-    // consumeRecordsByTopic(1);
-    //
-    // connection.execute("INSERT INTO tableb VALUES(1, 'b')");
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
-    // consumeRecordsByTopic(1);
-    //
-    // connection.setAutoCommit(false);
-    //
-    // connection.execute(
-    // "UPDATE tablea SET id=100 WHERE id=1",
-    // "UPDATE tableb SET id=100 WHERE id=1");
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
-    //
-    // final SourceRecords records = consumeRecordsByTopic(6);
-    // final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
-    // final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
-    // Assertions.assertThat(tableA).hasSize(3);
-    // Assertions.assertThat(tableB).hasSize(3);
-    //
-    // final List<SchemaAndValueField> expectedDeleteRowA = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
-    // new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
-    // final List<SchemaAndValueField> expectedDeleteKeyA = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1));
-    // final List<SchemaAndValueField> expectedInsertRowA = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
-    // new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
-    // final List<SchemaAndValueField> expectedInsertKeyA = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100));
-    //
-    // final SourceRecord deleteRecordA = tableA.get(0);
-    // final SourceRecord tombstoneRecordA = tableA.get(1);
-    // final SourceRecord insertRecordA = tableA.get(2);
-    //
-    // final Struct deleteKeyA = (Struct) deleteRecordA.key();
-    // final Struct deleteValueA = (Struct) deleteRecordA.value();
-    // assertRecord(deleteValueA.getStruct("before"), expectedDeleteRowA);
-    // assertRecord(deleteKeyA, expectedDeleteKeyA);
-    // assertNull(deleteValueA.get("after"));
-    //
-    // final Struct tombstoneKeyA = (Struct) tombstoneRecordA.key();
-    // final Struct tombstoneValueA = (Struct) tombstoneRecordA.value();
-    // assertRecord(tombstoneKeyA, expectedDeleteKeyA);
-    // assertNull(tombstoneValueA);
-    //
-    // final Struct insertKeyA = (Struct) insertRecordA.key();
-    // final Struct insertValueA = (Struct) insertRecordA.value();
-    // assertRecord(insertValueA.getStruct("after"), expectedInsertRowA);
-    // assertRecord(insertKeyA, expectedInsertKeyA);
-    // assertNull(insertValueA.get("before"));
-    //
-    // final List<SchemaAndValueField> expectedDeleteRowB = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
-    // new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-    // final List<SchemaAndValueField> expectedDeleteKeyB = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1));
-    // final List<SchemaAndValueField> expectedInsertRowB = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
-    // new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-    // final List<SchemaAndValueField> expectedInsertKeyB = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100));
-    //
-    // final SourceRecord deleteRecordB = tableB.get(0);
-    // final SourceRecord tombstoneRecordB = tableB.get(1);
-    // final SourceRecord insertRecordB = tableB.get(2);
-    //
-    // final Struct deletekeyB = (Struct) deleteRecordB.key();
-    // final Struct deleteValueB = (Struct) deleteRecordB.value();
-    // assertRecord(deleteValueB.getStruct("before"), expectedDeleteRowB);
-    // assertRecord(deletekeyB, expectedDeleteKeyB);
-    // assertNull(deleteValueB.get("after"));
-    //
-    // final Struct tombstonekeyB = (Struct) tombstoneRecordB.key();
-    // final Struct tombstoneValueB = (Struct) tombstoneRecordB.value();
-    // assertRecord(tombstonekeyB, expectedDeleteKeyB);
-    // assertNull(tombstoneValueB);
-    //
-    // final Struct insertkeyB = (Struct) insertRecordB.key();
-    // final Struct insertValueB = (Struct) insertRecordB.value();
-    // assertRecord(insertValueB.getStruct("after"), expectedInsertRowB);
-    // assertRecord(insertkeyB, expectedInsertKeyB);
-    // assertNull(insertValueB.get("before"));
-    //
-    // stopConnector();
-    // }
+     @Test
+     public void updatePrimaryKey() throws Exception {
+    
+     final Configuration config = TestHelper.defaultConfig()
+     .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+     .build();
+    
+     start(Db2Connector.class, config);
+     assertConnectorIsRunning();
+    
+     // Testing.Print.enable();
+     // Wait for snapshot completion
+     consumeRecordsByTopic(1);
+    
+     connection.execute("INSERT INTO tableb VALUES(1, 'b')");
+     
+     TestHelper.waitForCDC();
+     
+     consumeRecordsByTopic(1);
+    
+     connection.setAutoCommit(false);
+    
+     connection.execute(
+     "UPDATE tablea SET id=100 WHERE id=1",
+     "UPDATE tableb SET id=100 WHERE id=1");
+     
+     TestHelper.waitForCDC();
+    
+     final SourceRecords records = consumeRecordsByTopic(6);
+     final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+     final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
+     Assertions.assertThat(tableA).hasSize(3);
+     Assertions.assertThat(tableB).hasSize(3);
+    
+     final List<SchemaAndValueField> expectedDeleteRowA = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
+     new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+     final List<SchemaAndValueField> expectedDeleteKeyA = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1));
+     final List<SchemaAndValueField> expectedInsertRowA = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
+     new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+     final List<SchemaAndValueField> expectedInsertKeyA = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100));
+    
+     final SourceRecord deleteRecordA = tableA.get(0);
+     final SourceRecord tombstoneRecordA = tableA.get(1);
+     final SourceRecord insertRecordA = tableA.get(2);
+    
+     final Struct deleteKeyA = (Struct) deleteRecordA.key();
+     final Struct deleteValueA = (Struct) deleteRecordA.value();
+     assertRecord(deleteValueA.getStruct("before"), expectedDeleteRowA);
+     assertRecord(deleteKeyA, expectedDeleteKeyA);
+     assertNull(deleteValueA.get("after"));
+    
+     final Struct tombstoneKeyA = (Struct) tombstoneRecordA.key();
+     final Struct tombstoneValueA = (Struct) tombstoneRecordA.value();
+     assertRecord(tombstoneKeyA, expectedDeleteKeyA);
+     assertNull(tombstoneValueA);
+    
+     final Struct insertKeyA = (Struct) insertRecordA.key();
+     final Struct insertValueA = (Struct) insertRecordA.value();
+     assertRecord(insertValueA.getStruct("after"), expectedInsertRowA);
+     assertRecord(insertKeyA, expectedInsertKeyA);
+     assertNull(insertValueA.get("before"));
+    
+     final List<SchemaAndValueField> expectedDeleteRowB = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
+     new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+     final List<SchemaAndValueField> expectedDeleteKeyB = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1));
+     final List<SchemaAndValueField> expectedInsertRowB = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
+     new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+     final List<SchemaAndValueField> expectedInsertKeyB = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100));
+    
+     final SourceRecord deleteRecordB = tableB.get(0);
+     final SourceRecord tombstoneRecordB = tableB.get(1);
+     final SourceRecord insertRecordB = tableB.get(2);
+    
+     final Struct deletekeyB = (Struct) deleteRecordB.key();
+     final Struct deleteValueB = (Struct) deleteRecordB.value();
+     assertRecord(deleteValueB.getStruct("before"), expectedDeleteRowB);
+     assertRecord(deletekeyB, expectedDeleteKeyB);
+     assertNull(deleteValueB.get("after"));
+    
+     final Struct tombstonekeyB = (Struct) tombstoneRecordB.key();
+     final Struct tombstoneValueB = (Struct) tombstoneRecordB.value();
+     assertRecord(tombstonekeyB, expectedDeleteKeyB);
+     assertNull(tombstoneValueB);
+    
+     final Struct insertkeyB = (Struct) insertRecordB.key();
+     final Struct insertValueB = (Struct) insertRecordB.value();
+     assertRecord(insertValueB.getStruct("after"), expectedInsertRowB);
+     assertRecord(insertkeyB, expectedInsertKeyB);
+     assertNull(insertValueB.get("before"));
+    
+     stopConnector();
+     }
 
     /*
      * No idea why this fails, even if the connector is not stopped
@@ -417,12 +396,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     // // Wait for snapshot completion
     // consumeRecordsByTopic(1);
     // connection.execute("INSERT INTO tableb VALUES(1, 'b')");
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
     //
-    // }
+    // TestHelper.waitForCDC();
+    //
     // consumeRecordsByTopic(1);
     //
     // connection.setAutoCommit(false);
@@ -543,20 +519,12 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     // "INSERT INTO tableb VALUES(" + id + ", 'b')");
     // }
     //
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
+    // TestHelper.waitForCDC();
     //
     // consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
     // stopConnector();
     //
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
+    // TestHelper.waitForCDC();
     //
     // for (int i = 0; i < RECORDS_PER_TABLE; i++) {
     // final int id = ID_RESTART + i;
@@ -566,20 +534,12 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     // "INSERT INTO tableb VALUES(" + id + ", 'b')");
     // }
     //
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
+    // TestHelper.waitForCDC();
     //
     // start(Db2Connector.class, config);
     // assertConnectorIsRunning();
     //
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
+    // TestHelper.waitForCDC();
     //
     // final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
     // final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
@@ -609,284 +569,268 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     // }
     // }
 
-    // @Test
-    // // @FixFor("DBZ-1069")
-    // public void verifyOffsets() throws Exception {
-    // final int RECORDS_PER_TABLE = 5;
-    // final int TABLES = 2;
-    // final int ID_START = 10;
-    // final int ID_RESTART = 100;
-    // final Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-    // .build();
-    //
-    // for (int i = 0; i < RECORDS_PER_TABLE; i++) {
-    // final int id = ID_START + i;
-    // connection.execute(
-    // "INSERT INTO tablea VALUES(" + id + ", 'a')");
-    // connection.execute(
-    // "INSERT INTO tableb VALUES(" + id + ", 'b')");
-    // }
-    //
-    // for (int i = 0; !connection.getMaxLsn().isAvailable(); i++) {
-    // if (i == 30) {
-    // org.junit.Assert.fail("Initial changes not written to CDC structures");
-    // }
-    // Testing.debug("Waiting for initial changes to be propagated to CDC structures");
-    // Thread.sleep(1000);
-    // }
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    //
-    // List<SourceRecord> records = consumeRecordsByTopic(1 + RECORDS_PER_TABLE * TABLES).allRecordsInOrder();
-    // records = records.subList(1, records.size());
-    // for (Iterator<SourceRecord> it = records.iterator(); it.hasNext();) {
-    // SourceRecord record = it.next();
-    // assertThat(record.sourceOffset().get("snapshot")).as("Snapshot phase").isEqualTo(true);
-    // if (it.hasNext()) {
-    // assertThat(record.sourceOffset().get("snapshot_completed")).as("Snapshot in progress").isEqualTo(false);
-    // }
-    // else {
-    // assertThat(record.sourceOffset().get("snapshot_completed")).as("Snapshot completed").isEqualTo(true);
-    // }
-    // }
-    //
-    // stopConnector();
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
-    // for (int i = 0; i < RECORDS_PER_TABLE; i++) {
-    // final int id = ID_RESTART + i;
-    // connection.execute(
-    // "INSERT INTO tablea VALUES(" + id + ", 'a')");
-    // connection.execute(
-    // "INSERT INTO tableb VALUES(" + id + ", 'b')");
-    // }
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
-    // final SourceRecords sourceRecords = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
-    // final List<SourceRecord> tableA = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
-    // final List<SourceRecord> tableB = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
-    //
-    // Assertions.assertThat(tableA).hasSize(RECORDS_PER_TABLE);
-    // Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
-    //
-    // for (int i = 0; i < RECORDS_PER_TABLE; i++) {
-    // final int id = i + ID_RESTART;
-    // final SourceRecord recordA = tableA.get(i);
-    // final SourceRecord recordB = tableB.get(i);
-    // final List<SchemaAndValueField> expectedRowA = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
-    // new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
-    // final List<SchemaAndValueField> expectedRowB = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
-    // new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-    //
-    // final Struct valueA = (Struct) recordA.value();
-    // assertRecord((Struct) valueA.get("after"), expectedRowA);
-    // assertNull(valueA.get("before"));
-    //
-    // final Struct valueB = (Struct) recordB.value();
-    // assertRecord((Struct) valueB.get("after"), expectedRowB);
-    // assertNull(valueB.get("before"));
-    //
-    // assertThat(recordA.sourceOffset().get("snapshot")).as("Streaming phase").isNull();
-    // assertThat(recordA.sourceOffset().get("snapshot_completed")).as("Streaming phase").isNull();
-    // assertThat(recordA.sourceOffset().get("change_lsn")).as("LSN present").isNotNull();
-    //
-    // assertThat(recordB.sourceOffset().get("snapshot")).as("Streaming phase").isNull();
-    // assertThat(recordB.sourceOffset().get("snapshot_completed")).as("Streaming phase").isNull();
-    // assertThat(recordB.sourceOffset().get("change_lsn")).as("LSN present").isNotNull();
-    // }
-    // }
+     @Test
+     // @FixFor("DBZ-1069")
+     public void verifyOffsets() throws Exception {
+     final int RECORDS_PER_TABLE = 5;
+     final int TABLES = 2;
+     final int ID_START = 10;
+     final int ID_RESTART = 100;
+     final Configuration config = TestHelper.defaultConfig()
+     .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+     .build();
+    
+     for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+     final int id = ID_START + i;
+     connection.execute(
+     "INSERT INTO tablea VALUES(" + id + ", 'a')");
+     connection.execute(
+     "INSERT INTO tableb VALUES(" + id + ", 'b')");
+     }
+    
+     for (int i = 0; !connection.getMaxLsn().isAvailable(); i++) {
+     if (i == 30) {
+     org.junit.Assert.fail("Initial changes not written to CDC structures");
+     }
+     Testing.debug("Waiting for initial changes to be propagated to CDC structures");
+     Thread.sleep(1000);
+     }
+     start(Db2Connector.class, config);
+     assertConnectorIsRunning();
+    
+     List<SourceRecord> records = consumeRecordsByTopic(1 + RECORDS_PER_TABLE * TABLES).allRecordsInOrder();
+     records = records.subList(1, records.size());
+     for (Iterator<SourceRecord> it = records.iterator(); it.hasNext();) {
+     SourceRecord record = it.next();
+     assertThat(record.sourceOffset().get("snapshot")).as("Snapshot phase").isEqualTo(true);
+     if (it.hasNext()) {
+     assertThat(record.sourceOffset().get("snapshot_completed")).as("Snapshot in progress").isEqualTo(false);
+     }
+     else {
+     assertThat(record.sourceOffset().get("snapshot_completed")).as("Snapshot completed").isEqualTo(true);
+     }
+     }
+    
+     stopConnector();
+     
+     TestHelper.waitForCDC();
+     
+     for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+     final int id = ID_RESTART + i;
+     connection.execute(
+     "INSERT INTO tablea VALUES(" + id + ", 'a')");
+     connection.execute(
+     "INSERT INTO tableb VALUES(" + id + ", 'b')");
+     }
+    
+     start(Db2Connector.class, config);
+     assertConnectorIsRunning();
+     
+     TestHelper.waitForCDC();
+     
+     final SourceRecords sourceRecords = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
+     final List<SourceRecord> tableA = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
+     final List<SourceRecord> tableB = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
+    
+     Assertions.assertThat(tableA).hasSize(RECORDS_PER_TABLE);
+     Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
+    
+     for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+     final int id = i + ID_RESTART;
+     final SourceRecord recordA = tableA.get(i);
+     final SourceRecord recordB = tableB.get(i);
+     final List<SchemaAndValueField> expectedRowA = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
+     new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+     final List<SchemaAndValueField> expectedRowB = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
+     new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+    
+     final Struct valueA = (Struct) recordA.value();
+     assertRecord((Struct) valueA.get("after"), expectedRowA);
+     assertNull(valueA.get("before"));
+    
+     final Struct valueB = (Struct) recordB.value();
+     assertRecord((Struct) valueB.get("after"), expectedRowB);
+     assertNull(valueB.get("before"));
+    
+     assertThat(recordA.sourceOffset().get("snapshot")).as("Streaming phase").isNull();
+     assertThat(recordA.sourceOffset().get("snapshot_completed")).as("Streaming phase").isNull();
+     assertThat(recordA.sourceOffset().get("change_lsn")).as("LSN present").isNotNull();
+    
+     assertThat(recordB.sourceOffset().get("snapshot")).as("Streaming phase").isNull();
+     assertThat(recordB.sourceOffset().get("snapshot_completed")).as("Streaming phase").isNull();
+     assertThat(recordB.sourceOffset().get("change_lsn")).as("LSN present").isNotNull();
+     }
+     }
 
-    // @Test
-    // public void whitelistTable() throws Exception {
-    // final int RECORDS_PER_TABLE = 5;
-    // final int TABLES = 1;
-    // final int ID_START = 10;
-    // final Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
-    // .with(Db2ConnectorConfig.TABLE_WHITELIST, "db2inst1.tableb")
-    // .build();
-    // connection.execute(
-    // "INSERT INTO tableb VALUES(1, 'b')");
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    //
-    // // Wait for snapshot completion
-    // consumeRecordsByTopic(1);
-    //
-    // for (int i = 0; i < RECORDS_PER_TABLE; i++) {
-    // final int id = ID_START + i;
-    // connection.execute(
-    // "INSERT INTO tablea VALUES(" + id + ", 'a')");
-    // connection.execute(
-    // "INSERT INTO tableb VALUES(" + id + ", 'b')");
-    // }
-    //
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
-    //
-    // final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
-    // final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
-    // final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
-    // Assertions.assertThat(tableA == null || tableA.isEmpty()).isTrue();
-    // Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
-    //
-    // stopConnector();
-    // }
+     @Test
+     public void whitelistTable() throws Exception {
+     final int RECORDS_PER_TABLE = 5;
+     final int TABLES = 1;
+     final int ID_START = 10;
+     final Configuration config = TestHelper.defaultConfig()
+     .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+     .with(Db2ConnectorConfig.TABLE_WHITELIST, "db2inst1.tableb")
+     .build();
+     connection.execute(
+     "INSERT INTO tableb VALUES(1, 'b')");
+    
+     start(Db2Connector.class, config);
+     assertConnectorIsRunning();
+    
+     // Wait for snapshot completion
+     consumeRecordsByTopic(1);
+    
+     for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+     final int id = ID_START + i;
+     connection.execute(
+     "INSERT INTO tablea VALUES(" + id + ", 'a')");
+     connection.execute(
+     "INSERT INTO tableb VALUES(" + id + ", 'b')");
+     }
+    
+     TestHelper.waitForCDC();
+    
+     final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
+     final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+     final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
+     Assertions.assertThat(tableA == null || tableA.isEmpty()).isTrue();
+     Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
+    
+     stopConnector();
+     }
 
-    // @Test
-    // public void blacklistTable() throws Exception {
-    // final int RECORDS_PER_TABLE = 5;
-    // final int TABLES = 1;
-    // final int ID_START = 10;
-    // final Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-    // .with(Db2ConnectorConfig.TABLE_BLACKLIST, "db2inst1.tablea")
-    // .build();
-    // connection.execute(
-    // "INSERT INTO tableb VALUES(1, 'b')");
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    //
-    // // Wait for snapshot completion
-    // consumeRecordsByTopic(1);
-    //
-    // for (int i = 0; i < RECORDS_PER_TABLE; i++) {
-    // final int id = ID_START + i;
-    // connection.execute(
-    // "INSERT INTO tablea VALUES(" + id + ", 'a')");
-    // connection.execute(
-    // "INSERT INTO tableb VALUES(" + id + ", 'b')");
-    // }
-    //
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
-    //
-    // final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
-    // final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
-    // final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
-    // Assertions.assertThat(tableA == null || tableA.isEmpty()).isTrue();
-    // Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
-    //
-    // stopConnector();
-    // }
+     @Test
+     public void blacklistTable() throws Exception {
+     final int RECORDS_PER_TABLE = 5;
+     final int TABLES = 1;
+     final int ID_START = 10;
+     final Configuration config = TestHelper.defaultConfig()
+     .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+     .with(Db2ConnectorConfig.TABLE_BLACKLIST, "db2inst1.tablea")
+     .build();
+     connection.execute(
+     "INSERT INTO tableb VALUES(1, 'b')");
+    
+     start(Db2Connector.class, config);
+     assertConnectorIsRunning();
+    
+     // Wait for snapshot completion
+     consumeRecordsByTopic(1);
+    
+     for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+     final int id = ID_START + i;
+     connection.execute(
+     "INSERT INTO tablea VALUES(" + id + ", 'a')");
+     connection.execute(
+     "INSERT INTO tableb VALUES(" + id + ", 'b')");
+     }
+    
+     TestHelper.waitForCDC();
+    
+     final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
+     final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+     final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
+     Assertions.assertThat(tableA == null || tableA.isEmpty()).isTrue();
+     Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
+    
+     stopConnector();
+     }
 
-    // @Test
-    // // @FixFor("DBZ-1067")
-    // public void blacklistColumn() throws Exception {
-    // connection.execute(
-    // "CREATE TABLE BLACKLIST_COLUMN_TABLE_A (id int not null, name varchar(30), amount integer, primary key(id))",
-    // "CREATE TABLE BLACKLIST_COLUMN_TABLE_B (id int not null, name varchar(30), amount integer, primary key(id))");
-    // TestHelper.enableTableCdc(connection, "BLACKLIST_COLUMN_TABLE_A");
-    // TestHelper.enableTableCdc(connection, "BLACKLIST_COLUMN_TABLE_B");
-    //
-    // final Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
-    // .with(Db2ConnectorConfig.COLUMN_BLACKLIST, "DB2INST1.BLACKLIST_COLUMN_TABLE_A.AMOUNT")
-    // .build();
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    //
-    // // Wait for snapshot completion
-    // consumeRecordsByTopic(1);
-    //
-    // connection.execute("INSERT INTO BLACKLIST_COLUMN_TABLE_A VALUES(10, 'some_name', 120)");
-    // connection.execute("INSERT INTO BLACKLIST_COLUMN_TABLE_B VALUES(11, 'some_name', 447)");
-    //
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    // }
-    //
-    // final SourceRecords records = consumeRecordsByTopic(2);
-    // final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.BLACKLIST_COLUMN_TABLE_A");
-    // final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.BLACKLIST_COLUMN_TABLE_B");
-    //
-    // Schema expectedSchemaA = SchemaBuilder.struct()
-    // .optional()
-    // .name("testdb.DB2INST1.BLACKLIST_COLUMN_TABLE_A.Value")
-    // .field("ID", Schema.INT32_SCHEMA)
-    // .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-    // .build();
-    // Struct expectedValueA = new Struct(expectedSchemaA)
-    // .put("ID", 10)
-    // .put("NAME", "some_name");
-    //
-    // Schema expectedSchemaB = SchemaBuilder.struct()
-    // .optional()
-    // .name("testdb.DB2INST1.BLACKLIST_COLUMN_TABLE_B.Value")
-    // .field("ID", Schema.INT32_SCHEMA)
-    // .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-    // .field("AMOUNT", Schema.OPTIONAL_INT32_SCHEMA)
-    // .build();
-    // Struct expectedValueB = new Struct(expectedSchemaB)
-    // .put("ID", 11)
-    // .put("NAME", "some_name")
-    // .put("AMOUNT", 447);
-    //
-    // Assertions.assertThat(tableA).hasSize(1);
-    // SourceRecordAssert.assertThat(tableA.get(0))
-    // .valueAfterFieldIsEqualTo(expectedValueA)
-    // .valueAfterFieldSchemaIsEqualTo(expectedSchemaA);
-    //
-    // Assertions.assertThat(tableB).hasSize(1);
-    // SourceRecordAssert.assertThat(tableB.get(0))
-    // .valueAfterFieldIsEqualTo(expectedValueB)
-    // .valueAfterFieldSchemaIsEqualTo(expectedSchemaB);
-    //
-    // stopConnector();
-    // }
+     @Test
+     // @FixFor("DBZ-1067")
+     public void blacklistColumn() throws Exception {
+     connection.execute(
+     "CREATE TABLE BLACKLIST_COLUMN_TABLE_A (id int not null, name varchar(30), amount integer, primary key(id))",
+     "CREATE TABLE BLACKLIST_COLUMN_TABLE_B (id int not null, name varchar(30), amount integer, primary key(id))");
+     TestHelper.enableTableCdc(connection, "BLACKLIST_COLUMN_TABLE_A");
+     TestHelper.enableTableCdc(connection, "BLACKLIST_COLUMN_TABLE_B");
+    
+     final Configuration config = TestHelper.defaultConfig()
+     .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+     .with(Db2ConnectorConfig.COLUMN_BLACKLIST, "DB2INST1.BLACKLIST_COLUMN_TABLE_A.AMOUNT")
+     .build();
+    
+     start(Db2Connector.class, config);
+     assertConnectorIsRunning();
+    
+     // Wait for snapshot completion
+     consumeRecordsByTopic(1);
+    
+     connection.execute("INSERT INTO BLACKLIST_COLUMN_TABLE_A VALUES(10, 'some_name', 120)");
+     connection.execute("INSERT INTO BLACKLIST_COLUMN_TABLE_B VALUES(11, 'some_name', 447)");
+    
+     TestHelper.waitForCDC();
+    
+     final SourceRecords records = consumeRecordsByTopic(2);
+     final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.BLACKLIST_COLUMN_TABLE_A");
+     final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.BLACKLIST_COLUMN_TABLE_B");
+    
+     Schema expectedSchemaA = SchemaBuilder.struct()
+     .optional()
+     .name("testdb.DB2INST1.BLACKLIST_COLUMN_TABLE_A.Value")
+     .field("ID", Schema.INT32_SCHEMA)
+     .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+     .build();
+     Struct expectedValueA = new Struct(expectedSchemaA)
+     .put("ID", 10)
+     .put("NAME", "some_name");
+    
+     Schema expectedSchemaB = SchemaBuilder.struct()
+     .optional()
+     .name("testdb.DB2INST1.BLACKLIST_COLUMN_TABLE_B.Value")
+     .field("ID", Schema.INT32_SCHEMA)
+     .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
+     .field("AMOUNT", Schema.OPTIONAL_INT32_SCHEMA)
+     .build();
+     Struct expectedValueB = new Struct(expectedSchemaB)
+     .put("ID", 11)
+     .put("NAME", "some_name")
+     .put("AMOUNT", 447);
+    
+     Assertions.assertThat(tableA).hasSize(1);
+     SourceRecordAssert.assertThat(tableA.get(0))
+     .valueAfterFieldIsEqualTo(expectedValueA)
+     .valueAfterFieldSchemaIsEqualTo(expectedSchemaA);
+    
+     Assertions.assertThat(tableB).hasSize(1);
+     SourceRecordAssert.assertThat(tableB.get(0))
+     .valueAfterFieldIsEqualTo(expectedValueB)
+     .valueAfterFieldSchemaIsEqualTo(expectedSchemaB);
+    
+     stopConnector();
+     }
 
-    // /**
-    // * Passing the "applicationName" property which can be asserted from the connected sessions".
-    // */
-    // @Test
-    // // @FixFor("DBZ-964")
-    // public void shouldPropagateDatabaseDriverProperties() throws Exception {
-    // final Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
-    // .with("database.clientProgramName", "Debezium App DBZ-964")
-    // .build();
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    //
-    // // consuming one record to make sure the connector establishes the DB connection which happens asynchronously
-    // // after the start() call
-    // connection.execute("INSERT INTO tablea VALUES(964, 'a')");
-    // consumeRecordsByTopic(1);
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    //
-    // }
-    // connection.query("select count(1) from SYSIBMADM.APPLICATIONS where APPL_NAME = 'Debezium App DBZ-964'", rs -> {
-    // rs.next();
-    // assertThat(rs.getInt(1)).isGreaterThanOrEqualTo(1);
-    // });
-    // }
+     /**
+     * Passing the "applicationName" property which can be asserted from the connected sessions".
+     */
+     @Test
+     // @FixFor("DBZ-964")
+     public void shouldPropagateDatabaseDriverProperties() throws Exception {
+     final Configuration config = TestHelper.defaultConfig()
+     .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+     .with("database.clientProgramName", "Debezium App DBZ-964")
+     .build();
+    
+     start(Db2Connector.class, config);
+     assertConnectorIsRunning();
+    
+     // consuming one record to make sure the connector establishes the DB connection which happens asynchronously
+     // after the start() call
+     connection.execute("INSERT INTO tablea VALUES(964, 'a')");
+     consumeRecordsByTopic(1);
+     try {
+     Thread.sleep(TestHelper.WAIT_FOR_CDC);
+     }
+     catch (Exception e) {
+    
+     }
+     connection.query("select count(1) from SYSIBMADM.APPLICATIONS where APPL_NAME = 'Debezium App DBZ-964'", rs -> {
+     rs.next();
+     assertThat(rs.getInt(1)).isGreaterThanOrEqualTo(1);
+     });
+     }
 
     private void restartInTheMiddleOfTx(boolean restartJustAfterSnapshot, boolean afterStreaming) throws Exception {
         final int RECORDS_PER_TABLE = 30;
@@ -906,11 +850,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             consumeRecordsByTopic(1);
             stopConnector();
             connection.execute("INSERT INTO tablea VALUES(-1, '-a')");
-            try {
-                Thread.sleep(TestHelper.WAIT_FOR_CDC);
-            }
-            catch (Exception e) {
-            }
+            TestHelper.waitForCDC();
 
         }
 
@@ -931,11 +871,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         if (afterStreaming) {
             connection.execute("INSERT INTO tablea VALUES(-2, '-a')");
-            try {
-                Thread.sleep(TestHelper.WAIT_FOR_CDC);
-            }
-            catch (Exception e) {
-            }
+            TestHelper.waitForCDC();
             final SourceRecords records = consumeRecordsByTopic(1);
             final List<SchemaAndValueField> expectedRow = Arrays.asList(
                     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, -2),
@@ -953,11 +889,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         }
         connection.connection().commit();
 
-        try {
-            Thread.sleep(TestHelper.WAIT_FOR_CDC);
-        }
-        catch (Exception e) {
-        }
+        TestHelper.waitForCDC();
 
         List<SourceRecord> records = consumeRecordsByTopic(RECORDS_PER_TABLE).allRecordsInOrder();
 
@@ -972,11 +904,9 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         stopConnector();
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
-        try {
-            Thread.sleep(TestHelper.WAIT_FOR_CDC);
-        }
-        catch (Exception e) {
-        }
+        
+        TestHelper.waitForCDC();
+        
         SourceRecords sourceRecords = consumeRecordsByTopic(RECORDS_PER_TABLE);
         records = sourceRecords.allRecordsInOrder();
         assertThat(records).hasSize(RECORDS_PER_TABLE);
@@ -1012,11 +942,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             connection.connection().commit();
         }
 
-        try {
-            Thread.sleep(TestHelper.WAIT_FOR_CDC);
-        }
-        catch (Exception e) {
-        }
+        TestHelper.waitForCDC();
 
         sourceRecords = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
         tableA = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
@@ -1073,116 +999,107 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     // restartInTheMiddleOfTx(false, false);
     // }
 
-    // @Test
-    // // @FixFor("DBZ-1242")
-    // public void testEmptySchemaWarningAfterApplyingFilters() throws Exception {
-    // // This captures all logged messages, allowing us to verify log message was written.
-    // final LogInterceptor logInterceptor = new LogInterceptor();
-    //
-    // Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-    // .with(Db2ConnectorConfig.TABLE_WHITELIST, "my_products")
-    // .build();
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    // waitForAvailableRecords(100, TimeUnit.MILLISECONDS);
-    //
-    // stopConnector(value -> assertThat(logInterceptor.containsWarnMessage(NO_MONITORED_TABLES_WARNING)).isTrue());
-    // }
+     @Test
+     // @FixFor("DBZ-1242")
+     public void testEmptySchemaWarningAfterApplyingFilters() throws Exception {
+     // This captures all logged messages, allowing us to verify log message was written.
+     final LogInterceptor logInterceptor = new LogInterceptor();
+    
+     Configuration config = TestHelper.defaultConfig()
+     .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+     .with(Db2ConnectorConfig.TABLE_WHITELIST, "my_products")
+     .build();
+    
+     start(Db2Connector.class, config);
+     assertConnectorIsRunning();
+     waitForAvailableRecords(100, TimeUnit.MILLISECONDS);
+    
+     stopConnector(value -> assertThat(logInterceptor.containsWarnMessage(NO_MONITORED_TABLES_WARNING)).isTrue());
+     }
 
-    // @Test
-    // // @FixFor("DBZ-1242")
-    // public void testNoEmptySchemaWarningAfterApplyingFilters() throws Exception {
-    // // This captures all logged messages, allowing us to verify log message was written.
-    // final LogInterceptor logInterceptor = new LogInterceptor();
-    //
-    // Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-    // .build();
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    // waitForAvailableRecords(100, TimeUnit.MILLISECONDS);
-    //
-    // stopConnector(value -> assertThat(logInterceptor.containsWarnMessage(NO_MONITORED_TABLES_WARNING)).isFalse());
-    // }
+     @Test
+     // @FixFor("DBZ-1242")
+     public void testNoEmptySchemaWarningAfterApplyingFilters() throws Exception {
+     // This captures all logged messages, allowing us to verify log message was written.
+     final LogInterceptor logInterceptor = new LogInterceptor();
+    
+     Configuration config = TestHelper.defaultConfig()
+     .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+     .build();
+    
+     start(Db2Connector.class, config);
+     assertConnectorIsRunning();
+     waitForAvailableRecords(100, TimeUnit.MILLISECONDS);
+    
+     stopConnector(value -> assertThat(logInterceptor.containsWarnMessage(NO_MONITORED_TABLES_WARNING)).isFalse());
+     }
 
-    // @Test
-    // // @FixFor("DBZ-916")
-    // public void keylessTable() throws Exception {
-    // connection.execute(
-    // "CREATE TABLE keyless (id int, name varchar(30))",
-    // "INSERT INTO keyless VALUES(1, 'k')");
-    // TestHelper.enableTableCdc(connection, "KEYLESS");
-    //
-    // final Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-    // .with(Db2ConnectorConfig.TABLE_WHITELIST, "db2inst1.keyless")
-    // .build();
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    //
-    // final List<SchemaAndValueField> key = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.OPTIONAL_INT32_SCHEMA, 1),
-    // new SchemaAndValueField("NAME", Schema.OPTIONAL_STRING_SCHEMA, "k"));
-    // final List<SchemaAndValueField> key2 = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.OPTIONAL_INT32_SCHEMA, 2),
-    // new SchemaAndValueField("NAME", Schema.OPTIONAL_STRING_SCHEMA, "k"));
-    // final List<SchemaAndValueField> key3 = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.OPTIONAL_INT32_SCHEMA, 3),
-    // new SchemaAndValueField("NAME", Schema.OPTIONAL_STRING_SCHEMA, "k"));
-    //
-    // // Wait for snapshot completion
-    // SourceRecords records = consumeRecordsByTopic(1);
-    // assertThat(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).key()).isNull();
-    // assertThat(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).keySchema()).isNull();
-    //
-    // connection.execute(
-    // "INSERT INTO keyless VALUES(2, 'k')");
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    //
-    // }
-    // records = consumeRecordsByTopic(1);
-    // assertThat((Struct) records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).key()).isNull();
-    // assertThat((Struct) records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).keySchema()).isNull();
-    //
-    // connection.execute(
-    // "UPDATE keyless SET id=3 WHERE ID=2");
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    //
-    // }
-    // records = consumeRecordsByTopic(3);
-    //
-    // final SourceRecord update1 = records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0);
-    //
-    // assertThat(update1.key()).isNull();
-    // assertThat(update1.keySchema()).isNull();
-    // assertRecord(((Struct) update1.value()).getStruct(Envelope.FieldName.BEFORE), key2);
-    // assertRecord(((Struct) update1.value()).getStruct(Envelope.FieldName.AFTER), key3);
-    //
-    // connection.execute(
-    // "DELETE FROM keyless WHERE id=3");
-    // try {
-    // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-    // }
-    // catch (Exception e) {
-    //
-    // }
-    // records = consumeRecordsByTopic(2);
-    // assertThat(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).key()).isNull();
-    // assertThat(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).keySchema()).isNull();
-    // assertNull(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(1).value());
-    //
-    // stopConnector();
-    // }
+     @Test
+     // @FixFor("DBZ-916")
+     public void keylessTable() throws Exception {
+     connection.execute(
+     "CREATE TABLE keyless (id int, name varchar(30))",
+     "INSERT INTO keyless VALUES(1, 'k')");
+     TestHelper.enableTableCdc(connection, "KEYLESS");
+    
+     final Configuration config = TestHelper.defaultConfig()
+     .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+     .with(Db2ConnectorConfig.TABLE_WHITELIST, "db2inst1.keyless")
+     .build();
+    
+     start(Db2Connector.class, config);
+     assertConnectorIsRunning();
+    
+     final List<SchemaAndValueField> key = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.OPTIONAL_INT32_SCHEMA, 1),
+     new SchemaAndValueField("NAME", Schema.OPTIONAL_STRING_SCHEMA, "k"));
+     final List<SchemaAndValueField> key2 = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.OPTIONAL_INT32_SCHEMA, 2),
+     new SchemaAndValueField("NAME", Schema.OPTIONAL_STRING_SCHEMA, "k"));
+     final List<SchemaAndValueField> key3 = Arrays.asList(
+     new SchemaAndValueField("ID", Schema.OPTIONAL_INT32_SCHEMA, 3),
+     new SchemaAndValueField("NAME", Schema.OPTIONAL_STRING_SCHEMA, "k"));
+    
+     // Wait for snapshot completion
+     SourceRecords records = consumeRecordsByTopic(1);
+     assertThat(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).key()).isNull();
+     assertThat(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).keySchema()).isNull();
+    
+     connection.execute(
+     "INSERT INTO keyless VALUES(2, 'k')");
+     
+     TestHelper.waitForCDC();
+     
+     records = consumeRecordsByTopic(1);
+     assertThat((Struct) records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).key()).isNull();
+     assertThat((Struct) records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).keySchema()).isNull();
+    
+     connection.execute(
+     "UPDATE keyless SET id=3 WHERE ID=2");
+     
+     TestHelper.waitForCDC();
+     
+     records = consumeRecordsByTopic(3);
+    
+     final SourceRecord update1 = records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0);
+    
+     assertThat(update1.key()).isNull();
+     assertThat(update1.keySchema()).isNull();
+     assertRecord(((Struct) update1.value()).getStruct(Envelope.FieldName.BEFORE), key2);
+     assertRecord(((Struct) update1.value()).getStruct(Envelope.FieldName.AFTER), key3);
+    
+     connection.execute(
+     "DELETE FROM keyless WHERE id=3");
+     
+     TestHelper.waitForCDC();
+     
+     records = consumeRecordsByTopic(2);
+     assertThat(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).key()).isNull();
+     assertThat(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(0).keySchema()).isNull();
+     assertNull(records.recordsForTopic("testdb.DB2INST1.KEYLESS").get(1).value());
+    
+     stopConnector();
+     }
 
     private void assertRecord(Struct record, List<SchemaAndValueField> expected) {
         expected.forEach(schemaAndValueField -> schemaAndValueField.assertFor(record));
