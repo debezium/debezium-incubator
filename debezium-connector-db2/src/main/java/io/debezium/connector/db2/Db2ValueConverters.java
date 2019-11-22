@@ -17,7 +17,7 @@ import io.debezium.relational.Column;
 import io.debezium.relational.ValueConverter;
 
 /**
- * Conversion of SQL Server specific datatypes.
+ * Conversion of DB2 specific datatypes.
  *
  * @author Jiri Pechanec, Peter Urbanetz
  *
@@ -87,7 +87,7 @@ public class Db2ValueConverters extends JdbcValueConverters {
     }
 
     /**
-     * Time precision in SQL Server is defined in scale, the default one is 7
+     * Time precision in DB2 is defined in scale, the default one is 7
      */
     @Override
     protected int getTimePrecision(Column column) {

@@ -20,7 +20,7 @@ import io.debezium.schema.TopicSelector;
 import io.debezium.util.SchemaNameAdjuster;
 
 /**
- * Logical representation of SQL Server schema.
+ * Logical representation of DB2 schema.
  *
  * @author Jiri Pechanec
  */
@@ -42,7 +42,7 @@ public class Db2DatabaseSchema extends HistorizedRelationalDatabaseSchema {
     public void applySchemaChange(SchemaChangeEvent schemaChange) {
         LOGGER.debug("Applying schema change event {}", schemaChange);
 
-        // just a single table per DDL event for SQL Server
+        // just a single table per DDL event for DB2
         Table table = schemaChange.getTables().iterator().next();
         buildAndRegisterSchema(table);
         tables().overwriteTable(table);

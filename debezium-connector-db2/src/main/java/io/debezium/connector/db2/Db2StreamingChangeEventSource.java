@@ -32,10 +32,10 @@ import io.debezium.util.Clock;
 import io.debezium.util.Metronome;
 
 /**
- * <p>A {@link StreamingChangeEventSource} based on SQL Server change data capture functionality.
+ * <p>A {@link StreamingChangeEventSource} based on DB2 change data capture functionality.
  * A main loop polls database DDL change and change data tables and turns them into change events.</p>
  *
- * <p>The connector uses CDC functionality of SQL Server that is implemented as as a process that monitors
+ * <p>The connector uses CDC functionality of DB2 that is implemented as as a process that monitors
  * source table and write changes from the table into the change table.</p>
  *
  * <p>The main loop keeps a pointer to the LSN of changes that were already processed. It queries all change
@@ -43,7 +43,7 @@ import io.debezium.util.Metronome;
  * is converted into the event message and sent downstream. The process repeats until all result sets are
  * empty. The LSN is marked and the procedure repeats.</p>
  *
- * <p>The schema changes detection follows the procedure recommended by SQL Server CDC documentation.
+ * <p>The schema changes detection follows the procedure recommended by DB2 CDC documentation.
  * The database operator should create one more capture process (and table) when a table schema is updated.
  * The code detects presence of two change tables for a single source table. It decides which table is the new one
  * depending on LSNs stored in them. The loop streams changes from the older table till there are events in new
@@ -119,7 +119,7 @@ public class Db2StreamingChangeEventSource implements StreamingChangeEventSource
 
                 // Shouldn't happen if the agent is running, but it is better to guard against such situation
                 if (!currentMaxLsn.isAvailable()) {
-                    LOGGER.warn("No maximum LSN recorded in the database; please ensure that the SQL Server Agent is running");
+                    LOGGER.warn("No maximum LSN recorded in the database; please ensure that the DB2 Agent is running");
                     metronome.pause();
                     continue;
                 }

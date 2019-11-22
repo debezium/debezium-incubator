@@ -35,7 +35,7 @@ import io.debezium.relational.history.HistoryRecordComparator;
 import io.debezium.relational.history.KafkaDatabaseHistory;
 
 /**
- * The list of configuration options for SQL Server connector
+ * The list of configuration options for DB2 connector
  *
  * @author Jiri Pechanec
  */
