@@ -33,7 +33,7 @@ import io.debezium.relational.TableId;
 import io.debezium.util.BoundedConcurrentHashMap;
 
 /**
- * {@link JdbcConnection} extension to be used with Microsoft SQL Server
+ * {@link JdbcConnection} extension to be used with Microsoft DB2
  *
  * @author Horia Chiorean (hchiorea@redhat.com), Jiri Pechanec, Peter Urbanetz
  *
@@ -136,7 +136,7 @@ public class Db2Connection extends JdbcConnection {
     }
 
     /**
-     * Provides all changes recorded by the SQL Server CDC capture process for a given table.
+     * Provides all changes recorded by the DB2 CDC capture process for a given table.
      *
      * @param tableId  - the requested table changes
      * @param fromLsn  - closed lower bound of interval of changes to be provided
@@ -154,7 +154,7 @@ public class Db2Connection extends JdbcConnection {
     }
 
     /**
-     * Provides all changes recorder by the SQL Server CDC capture process for a set of tables.
+     * Provides all changes recorder by the DB2 CDC capture process for a set of tables.
      *
      * @param changeTables    - the requested tables to obtain changes for
      * @param intervalFromLsn - closed lower bound of interval of changes to be provided
