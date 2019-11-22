@@ -34,7 +34,7 @@ import io.debezium.util.Clock;
 import io.debezium.util.SchemaNameAdjuster;
 
 /**
- * The main task executing streaming from SQL Server.
+ * The main task executing streaming from DB2.
  * Responsible for lifecycle management the streaming code.
  *
  * @author Jiri Pechanec

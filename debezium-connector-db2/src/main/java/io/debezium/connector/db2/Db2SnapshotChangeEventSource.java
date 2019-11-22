@@ -34,6 +34,7 @@ public class Db2SnapshotChangeEventSource extends RelationalSnapshotChangeEventS
 
     /**
      * Code 4096 corresponds to SNAPSHOT isolation level, which is not a part of the standard but SQL Server specific.
+     * Need to port this to DB2 (lga-zurich).
      */
     private static final int TRANSACTION_SNAPSHOT = 4096;
 

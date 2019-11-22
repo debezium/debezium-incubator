@@ -10,7 +10,7 @@ import java.util.Arrays;
 import io.debezium.util.Strings;
 
 /**
- * A logical representation of SQL Server LSN (log sequence number) position. When LSN is not available
+ * A logical representation of DB2 LSN (log sequence number) position. When LSN is not available
  * it is replaced with {@link Lsn.NULL} constant.
  *
  * @author Jiri Pechanec

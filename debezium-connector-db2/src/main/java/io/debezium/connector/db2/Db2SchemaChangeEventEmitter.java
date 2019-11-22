@@ -14,7 +14,7 @@ import io.debezium.schema.SchemaChangeEvent;
 import io.debezium.schema.SchemaChangeEvent.SchemaChangeEventType;
 
 /**
- * {@link SchemaChangeEventEmitter} implementation based on SQL Server.
+ * {@link SchemaChangeEventEmitter} implementation based on DB2.
  *
  * @author Jiri Pechanec
  */

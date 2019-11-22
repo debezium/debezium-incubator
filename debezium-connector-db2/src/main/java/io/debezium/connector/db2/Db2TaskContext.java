@@ -8,7 +8,7 @@ package io.debezium.connector.db2;
 import io.debezium.connector.common.CdcSourceTaskContext;
 
 /**
- * A state (context) associated with a SQL Server task
+ * A state (context) associated with a DB2 task
  *
  * @author Jiri Pechanec
  *
