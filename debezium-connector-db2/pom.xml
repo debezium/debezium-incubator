@@ -130,7 +130,7 @@
                                     <color>yellow</color>
                                 </log>
                                 <wait>
-                                    <time>300000</time> <!-- 300 seconds max -->
+                                    <time>900000</time> <!-- 900 seconds max -->
                                     <log>STOP    : DATABASE: TESTDB   : DEACTIVATED: NO</log>
                                 </wait>
                             </run>
