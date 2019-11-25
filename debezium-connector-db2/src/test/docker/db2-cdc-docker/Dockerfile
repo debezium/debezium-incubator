@@ -19,3 +19,5 @@ RUN mkdir /var/custom
 RUN chmod -R  777 /var/custom
 
 ADD cdcsetup.sh /var/custom
+
+RUN chmod 777 /var/custom/cdcsetup.sh
