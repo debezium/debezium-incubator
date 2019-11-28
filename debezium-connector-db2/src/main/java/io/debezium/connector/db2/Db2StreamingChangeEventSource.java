@@ -54,10 +54,11 @@ import io.debezium.util.Metronome;
  */
 public class Db2StreamingChangeEventSource implements StreamingChangeEventSource {
 
-    private static final int COL_COMMIT_LSN = 5;
-    private static final int COL_ROW_LSN = 6;
-    private static final int COL_OPERATION = 1;
-    private static final int COL_DATA = 8;
+
+     private static final int COL_COMMIT_LSN = 2;
+     private static final int COL_ROW_LSN = 3;
+     private static final int COL_OPERATION = 1;
+     private static final int COL_DATA = 5;
 
     private static final Pattern MISSING_CDC_FUNCTION_CHANGES_ERROR = Pattern.compile("Invalid object name 'cdc.fn_cdc_get_all_changes_(.*)'\\.");
 

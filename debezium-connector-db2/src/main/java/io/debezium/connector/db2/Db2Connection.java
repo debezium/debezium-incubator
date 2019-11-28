@@ -59,21 +59,14 @@ public class Db2Connection extends JdbcConnection {
 
     private static final String GET_ALL_CHANGES_FOR_TABLE = "SELECT "
             + "CASE "
-            + "  WHEN IBMSNAP_OPERATION = 'D' AND OPNEXT ='I' THEN 3 "
-            + "  WHEN IBMSNAP_OPERATION = 'I' AND OPB ='D' THEN 4 "
-            + "  WHEN IBMSNAP_OPERATION = 'D' THEN 1 "
-            + "  WHEN IBMSNAP_OPERATION = 'I' THEN 2 "
-            + " END "
-            + " OPCODE , NULL, "
-            + " a.*  "
-            + "FROM( "
-            + "    SELECT "
-            + "      (LEAD(cdc.IBMSNAP_OPERATION,1,'X') OVER (PARTITION BY cdc.IBMSNAP_COMMITSEQ ORDER BY cdc.IBMSNAP_OPERATION)) AS OPNEXT, "
-            + "      (LAG(cdc.IBMSNAP_OPERATION,1,'X') OVER (PARTITION BY cdc.IBMSNAP_COMMITSEQ ORDER BY cdc.IBMSNAP_OPERATION)) AS OPB, "
-            + "      cdc.* "
-            + "    FROM ASNCDC.# cdc "
-            + "        WHERE   IBMSNAP_COMMITSEQ >  ? AND  IBMSNAP_COMMITSEQ <= ? "
-            + "    ) a  "
+            + "WHEN IBMSNAP_OPERATION = 'D' AND (LEAD(cdc.IBMSNAP_OPERATION,1,'X') OVER (PARTITION BY cdc.IBMSNAP_COMMITSEQ ORDER BY cdc.IBMSNAP_OPERATION)) ='I' THEN 3 "
+            + "WHEN IBMSNAP_OPERATION = 'I' AND (LAG(cdc.IBMSNAP_OPERATION,1,'X') OVER (PARTITION BY cdc.IBMSNAP_COMMITSEQ ORDER BY cdc.IBMSNAP_OPERATION)) ='D' THEN 4 "
+            + "WHEN IBMSNAP_OPERATION = 'D' THEN 1 "
+            + "WHEN IBMSNAP_OPERATION = 'I' THEN 2 "
+            + "END "
+            + "OPCODE,"
+            + "cdc.* "
+            + "FROM ASNCDC.# cdc WHERE   IBMSNAP_COMMITSEQ > ? AND IBMSNAP_COMMITSEQ <= ? "
             + "order by IBMSNAP_COMMITSEQ, IBMSNAP_INTENTSEQ";
 
     private static final String GET_LIST_OF_CDC_ENABLED_TABLES = "select r.SOURCE_OWNER, r.SOURCE_TABLE, r.CD_OWNER, r.CD_TABLE, r.CD_NEW_SYNCHPOINT, r.CD_OLD_SYNCHPOINT, t.TBSPACEID, t.TABLEID , CAST((t.TBSPACEID * 65536 +  t.TABLEID )AS INTEGER )from "
@@ -94,7 +87,7 @@ public class Db2Connection extends JdbcConnection {
             + "inner join syscat.columns as c  on t.tabname = c.tabname and t.tabschema = c.tabschema and c.KEYSEQ > 0 AND "
             + "t.tbspaceid = CAST(BITAND( ? , 4294901760) / 65536 AS SMALLINT) AND t.tableid=  CAST(BITAND( ? , 65535) AS SMALLINT)";
 
-    private static final int CHANGE_TABLE_DATA_COLUMN_OFFSET = 7;
+    private static final int CHANGE_TABLE_DATA_COLUMN_OFFSET = 4;
 
     private static final String URL_PATTERN = "jdbc:db2://${" + JdbcConfiguration.HOSTNAME + "}:${" + JdbcConfiguration.PORT + "}/${" + JdbcConfiguration.DATABASE + "}";
 
