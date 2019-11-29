@@ -5,6 +5,7 @@
  */
 package io.debezium.connector.db2;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 
 import io.debezium.util.Strings;
@@ -163,5 +164,18 @@ public class Lsn implements Comparable<Lsn>, Nullable {
      */
     public boolean isBetween(Lsn from, Lsn to) {
         return this.compareTo(from) >= 0 && this.compareTo(to) < 0;
+    }
+    
+    /**
+     * Return the next LSN in sequence
+     */
+    public Lsn increment() {
+        final BigInteger bi = new BigInteger(this.toString().replace(":", ""), 16).add(BigInteger.ONE);
+        final byte[] biByteArray = bi.toByteArray();
+        final byte[] lsnByteArray = new byte[16];
+        for (int i = 0; i < biByteArray.length ; i++) {
+            lsnByteArray[i + 16 - biByteArray.length] = biByteArray[i];
+        }
+        return Lsn.valueOf(lsnByteArray);
     }
 }
