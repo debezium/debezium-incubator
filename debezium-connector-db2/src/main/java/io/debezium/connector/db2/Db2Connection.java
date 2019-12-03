@@ -66,7 +66,7 @@ public class Db2Connection extends JdbcConnection {
             + "END "
             + "OPCODE,"
             + "cdc.* "
-            + "FROM ASNCDC.# cdc WHERE   IBMSNAP_COMMITSEQ > ? AND IBMSNAP_COMMITSEQ <= ? "
+            + "FROM ASNCDC.# cdc WHERE   IBMSNAP_COMMITSEQ >= ? AND IBMSNAP_COMMITSEQ <= ? "
             + "order by IBMSNAP_COMMITSEQ, IBMSNAP_INTENTSEQ";
 
     private static final String GET_LIST_OF_CDC_ENABLED_TABLES = "select r.SOURCE_OWNER, r.SOURCE_TABLE, r.CD_OWNER, r.CD_TABLE, r.CD_NEW_SYNCHPOINT, r.CD_OLD_SYNCHPOINT, t.TBSPACEID, t.TABLEID , CAST((t.TBSPACEID * 65536 +  t.TABLEID )AS INTEGER )from "
@@ -187,14 +187,17 @@ public class Db2Connection extends JdbcConnection {
      * @throws SQLException
      */
     public Lsn incrementLsn(Lsn lsn) throws SQLException {
-        final String query = INCREMENT_LSN;
-        return prepareQueryAndMap(query, statement -> {
-            statement.setBytes(1, lsn.getBinary());
-        }, singleResultMapper(rs -> {
-            final Lsn ret = Lsn.valueOf(rs.getBytes(1));
-            LOGGER.trace("Increasing lsn from {} to {}", lsn, ret);
-            return ret;
-        }, "Increment LSN query must return exactly one value"));
+        // final String query = INCREMENT_LSN;
+        // return prepareQueryAndMap(query, statement -> {
+        // statement.setBytes(1, lsn.getBinary());
+        // }, singleResultMapper(rs -> {
+        // final Lsn ret = Lsn.valueOf(rs.getBytes(1));
+        // // String lsn64str = ret.toString();
+        // // BigInteger sum =
+        // LOGGER.trace("Increasing lsn from {} to {}", lsn, ret);
+        // return ret;
+        // }, "Increment LSN query must return exactly one value"));
+        return lsn.increment();
     }
 
     /**
