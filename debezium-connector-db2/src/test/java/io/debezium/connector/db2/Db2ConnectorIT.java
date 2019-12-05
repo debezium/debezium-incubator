@@ -10,7 +10,6 @@ import static org.junit.Assert.assertNull;
 
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
