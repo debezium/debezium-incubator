@@ -460,6 +460,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
 
+        TestHelper.waitForCDC();
+
         List<SourceRecord> records = consumeRecordsByTopic(1 + RECORDS_PER_TABLE * TABLES).allRecordsInOrder();
         records = records.subList(1, records.size());
         for (Iterator<SourceRecord> it = records.iterator(); it.hasNext();) {
