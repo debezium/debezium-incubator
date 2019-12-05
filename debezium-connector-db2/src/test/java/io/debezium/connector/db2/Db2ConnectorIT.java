@@ -204,67 +204,6 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     }
 
     @Test
-    public void update() throws Exception {
-        final int RECORDS_PER_TABLE = 5;
-        final int ID_START = 10;
-        final Configuration config = TestHelper.defaultConfig()
-                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-                .build();
-
-        start(Db2Connector.class, config);
-        assertConnectorIsRunning();
-
-        // Wait for snapshot completion
-        consumeRecordsByTopic(1);
-
-        connection.setAutoCommit(false);
-        final String[] tableBInserts = new String[RECORDS_PER_TABLE];
-        for (int i = 0; i < RECORDS_PER_TABLE; i++) {
-            final int id = ID_START + i;
-            tableBInserts[i] = "INSERT INTO tableb VALUES(" + id + ", 'b')";
-        }
-        connection.execute(tableBInserts);
-        connection.setAutoCommit(true);
-
-        connection.execute("UPDATE tableb SET colb='z'");
-
-        TestHelper.waitForCDC();
-
-        final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * 2);
-        final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
-        Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE * 2);
-        for (int i = 0; i < RECORDS_PER_TABLE; i++) {
-            final SourceRecord recordB = tableB.get(i);
-            final List<SchemaAndValueField> expectedRowB = Arrays.asList(
-                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
-                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-
-            final Struct keyB = (Struct) recordB.key();
-            final Struct valueB = (Struct) recordB.value();
-            assertRecord((Struct) valueB.get("after"), expectedRowB);
-            assertNull(valueB.get("before"));
-        }
-
-        for (int i = 0; i < RECORDS_PER_TABLE; i++) {
-            final SourceRecord recordB = tableB.get(i + RECORDS_PER_TABLE);
-            final List<SchemaAndValueField> expectedBefore = Arrays.asList(
-                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
-                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-            final List<SchemaAndValueField> expectedAfter = Arrays.asList(
-                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
-                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "z"));
-
-            final Struct keyB = (Struct) recordB.key();
-            final Struct valueB = (Struct) recordB.value();
-            assertRecord((Struct) valueB.get("before"), expectedBefore);
-            assertRecord((Struct) valueB.get("after"), expectedAfter);
-        }
-
-        stopConnector();
-    }
-
-    // urb not working
-    @Test
     public void updatePrimaryKey() throws Exception {
 
         final Configuration config = TestHelper.defaultConfig()
