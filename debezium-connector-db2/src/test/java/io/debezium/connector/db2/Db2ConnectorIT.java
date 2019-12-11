@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -27,6 +28,7 @@ import io.debezium.connector.db2.util.TestHelper;
 import io.debezium.data.Envelope;
 import io.debezium.data.SchemaAndValueField;
 import io.debezium.embedded.AbstractConnectorTest;
+import io.debezium.junit.logging.LogInterceptor;
 import io.debezium.util.Testing;
 
 /**
@@ -482,6 +484,47 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         }
     }
 
+    @Test
+    public void whitelistTable() throws Exception {
+        final int RECORDS_PER_TABLE = 5;
+        final int TABLES = 1;
+        final int ID_START = 10;
+        final Configuration config = TestHelper.defaultConfig()
+                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+                .with(Db2ConnectorConfig.TABLE_WHITELIST, "db2inst1.tableb")
+                .build();
+        connection.execute(
+                "INSERT INTO tableb VALUES(1, 'b')");
+
+        start(Db2Connector.class, config);
+        assertConnectorIsRunning();
+
+        // Wait for snapshot completion
+        consumeRecordsByTopic(1);
+
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
+        for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+            final int id = ID_START + i;
+            connection.execute(
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
+            connection.execute(
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
+        }
+
+        TestHelper.refreshAndWait(connection);
+
+        final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
+        final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
+        Assertions.assertThat(tableA == null || tableA.isEmpty()).isTrue();
+        Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
+
+        stopConnector();
+    }
+
     private void restartInTheMiddleOfTx(boolean restartJustAfterSnapshot, boolean afterStreaming) throws Exception {
         final int RECORDS_PER_TABLE = 30;
         final int TABLES = 2;
@@ -630,34 +673,34 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     }
 
     // @Test
-    // // @FixFor("DBZ-1128")
-    // public void restartInTheMiddleOfTxAfterSnapshot() throws Exception {
-    // restartInTheMiddleOfTx(true, false);
-    // }
+    // @FixFor("DBZ-1128")
+    public void restartInTheMiddleOfTxAfterSnapshot() throws Exception {
+        restartInTheMiddleOfTx(true, false);
+    }
 
     // @Test
-    // // @FixFor("DBZ-1128")
-    // public void restartInTheMiddleOfTxAfterCompletedTx() throws Exception {
-    // restartInTheMiddleOfTx(false, true);
-    // }
+    // @FixFor("DBZ-1128")
+    public void restartInTheMiddleOfTxAfterCompletedTx() throws Exception {
+        restartInTheMiddleOfTx(false, true);
+    }
 
-    // @Test
-    // // @FixFor("DBZ-1242")
-    // public void testEmptySchemaWarningAfterApplyingFilters() throws Exception {
-    // // This captures all logged messages, allowing us to verify log message was written.
-    // final LogInterceptor logInterceptor = new LogInterceptor();
-    //
-    // Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-    // .with(Db2ConnectorConfig.TABLE_WHITELIST, "my_products")
-    // .build();
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    // waitForAvailableRecords(100, TimeUnit.MILLISECONDS);
-    //
-    // stopConnector(value -> assertThat(logInterceptor.containsWarnMessage(NO_MONITORED_TABLES_WARNING)).isTrue());
-    // }
+    @Test
+    // @FixFor("DBZ-1242")
+    public void testEmptySchemaWarningAfterApplyingFilters() throws Exception {
+        // This captures all logged messages, allowing us to verify log message was written.
+        final LogInterceptor logInterceptor = new LogInterceptor();
+
+        Configuration config = TestHelper.defaultConfig()
+                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+                .with(Db2ConnectorConfig.TABLE_WHITELIST, "my_products")
+                .build();
+
+        start(Db2Connector.class, config);
+        assertConnectorIsRunning();
+        waitForAvailableRecords(100, TimeUnit.MILLISECONDS);
+
+        stopConnector(value -> assertThat(logInterceptor.containsWarnMessage(NO_MONITORED_TABLES_WARNING)).isTrue());
+    }
 
     private void assertRecord(Struct record, List<SchemaAndValueField> expected) {
         expected.forEach(schemaAndValueField -> schemaAndValueField.assertFor(record));
