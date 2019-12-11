@@ -59,6 +59,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     @After
     public void after() throws SQLException {
         if (connection != null) {
+            TestHelper.disableDbCdc(connection);
             TestHelper.disableTableCdc(connection, "TABLEB");
             TestHelper.disableTableCdc(connection, "TABLEA");
             connection.execute("DROP TABLE tablea", "DROP TABLE tableb");
@@ -159,230 +160,230 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         stopConnector();
     }
 
-    // @Test
-    // public void deleteWithoutTombstone() throws Exception {
-    // final int RECORDS_PER_TABLE = 5;
-    // final int TABLES = 2;
-    // final int ID_START = 10;
-    // final Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-    // .with(Db2ConnectorConfig.TOMBSTONES_ON_DELETE, false)
-    // .build();
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    //
-    // // Wait for snapshot completion
-    // consumeRecordsByTopic(1);
-    //
-    // TestHelper.enableDbCdc(connection);
-    // connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
-    // TestHelper.refreshAndWait(connection);
-    //
-    // for (int i = 0; i < RECORDS_PER_TABLE; i++) {
-    // final int id = ID_START + i;
-    // connection.execute(
-    // "INSERT INTO tablea VALUES(" + id + ", 'a')");
-    // connection.execute(
-    // "INSERT INTO tableb VALUES(" + id + ", 'b')");
-    // }
-    //
-    // TestHelper.refreshAndWait(connection);
-    //
-    // final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
-    //
-    // connection.execute("DELETE FROM tableB");
-    //
-    // TestHelper.refreshAndWait(connection);
-    //
-    // final SourceRecords deleteRecords = consumeRecordsByTopic(RECORDS_PER_TABLE);
-    // final List<SourceRecord> deleteTableA = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
-    // final List<SourceRecord> deleteTableB = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
-    // Assertions.assertThat(deleteTableA).isNullOrEmpty();
-    // Assertions.assertThat(deleteTableB).hasSize(RECORDS_PER_TABLE);
-    //
-    // for (int i = 0; i < RECORDS_PER_TABLE; i++) {
-    // final SourceRecord deleteRecord = deleteTableB.get(i);
-    // final List<SchemaAndValueField> expectedDeleteRow = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
-    // new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-    //
-    // final Struct deleteKey = (Struct) deleteRecord.key();
-    // final Struct deleteValue = (Struct) deleteRecord.value();
-    // assertRecord((Struct) deleteValue.get("before"), expectedDeleteRow);
-    // assertNull(deleteValue.get("after"));
-    // }
-    //
-    // stopConnector();
-    // }
+    @Test
+    public void deleteWithoutTombstone() throws Exception {
+        final int RECORDS_PER_TABLE = 5;
+        final int TABLES = 2;
+        final int ID_START = 10;
+        final Configuration config = TestHelper.defaultConfig()
+                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+                .with(Db2ConnectorConfig.TOMBSTONES_ON_DELETE, false)
+                .build();
 
-    // @Test
-    // public void updatePrimaryKey() throws Exception {
-    //
-    // final Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-    // .build();
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    //
-    // // Testing.Print.enable();
-    // // Wait for snapshot completion
-    // // consumeRecordsByTopic(1);
-    //
-    // connection.execute("INSERT INTO tableb VALUES(1, 'b')");
-    //
-    // // TestHelper.waitForCDC();
-    //
-    // consumeRecordsByTopic(2);
-    //
-    // TestHelper.enableDbCdc(connection);
-    // connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
-    // TestHelper.refreshAndWait(connection);
-    //
-    // connection.setAutoCommit(false);
-    //
-    // connection.execute(
-    // "UPDATE tablea SET id=100 WHERE id=1",
-    // "UPDATE tableb SET id=100 WHERE id=1");
-    //
-    // // TestHelper.waitForCDC();
-    // TestHelper.refreshAndWait(connection);
-    //
-    // final SourceRecords records = consumeRecordsByTopic(2);
-    // final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
-    // final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
-    // Assertions.assertThat(tableA).hasSize(1);
-    // Assertions.assertThat(tableB).hasSize(1);
-    //
-    // final SourceRecord updaterecordA = tableA.get(0);
-    //
-    // final List<SchemaAndValueField> expectedBeforeA = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
-    // new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
-    // final List<SchemaAndValueField> expectedAfterA = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
-    // new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
-    //
-    // final Struct keyA = (Struct) updaterecordA.key();
-    // final Struct valueA = (Struct) updaterecordA.value();
-    // assertRecord((Struct) valueA.get("before"), expectedBeforeA);
-    // assertRecord((Struct) valueA.get("after"), expectedAfterA);
-    //
-    // final SourceRecord updaterecordB = tableB.get(0);
-    //
-    // final List<SchemaAndValueField> expectedBeforeB = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
-    // new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-    // final List<SchemaAndValueField> expectedAfterB = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
-    // new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-    //
-    // final Struct keyB = (Struct) updaterecordB.key();
-    // final Struct valueB = (Struct) updaterecordB.value();
-    // assertRecord((Struct) valueB.get("before"), expectedBeforeB);
-    // assertRecord((Struct) valueB.get("after"), expectedAfterB);
-    //
-    // stopConnector();
-    // }
+        start(Db2Connector.class, config);
+        assertConnectorIsRunning();
 
-    // @Test
-    // // @FixFor("DBZ-1152")
-    // public void updatePrimaryKeyWithRestartInMiddle() throws Exception {
-    //
-    // final Configuration config = TestHelper.defaultConfig()
-    // .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
-    // .build();
-    //
-    // start(Db2Connector.class, config, record -> {
-    // final Struct envelope = (Struct) record.value();
-    // return envelope != null && "c".equals(envelope.get("op")) && (envelope.getStruct("after").getInt32("ID") == 100);
-    // });
-    //
-    // assertConnectorIsRunning();
-    //
-    // connection.execute("INSERT INTO tableb VALUES(1, 'b')");
-    //
-    // consumeRecordsByTopic(2);
-    //
-    // TestHelper.enableDbCdc(connection);
-    // connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
-    // TestHelper.refreshAndWait(connection);
-    //
-    // connection.setAutoCommit(false);
-    //
-    // connection.execute(
-    // "INSERT INTO tablea VALUES(11, 'c')",
-    // "INSERT INTO tableb VALUES(11, 'c')",
-    // "UPDATE tablea SET id=100 WHERE id=1",
-    // "UPDATE tableb SET id=100 WHERE id=1"
-    //
-    // );
-    //
-    // TestHelper.refreshAndWait(connection);
-    // final SourceRecords records1 = consumeRecordsByTopic(1);
-    // stopConnector();
-    //
-    // start(Db2Connector.class, config);
-    // assertConnectorIsRunning();
-    // final SourceRecords records2 = consumeRecordsByTopic(3);
-    //
-    // final List<SourceRecord> tableA = records1.recordsForTopic("testdb.DB2INST1.TABLEA");
-    // tableA.addAll(records2.recordsForTopic("testdb.DB2INST1.TABLEA"));
-    // final List<SourceRecord> tableB = records2.recordsForTopic("testdb.DB2INST1.TABLEB");
-    // Assertions.assertThat(tableA).hasSize(2);
-    // Assertions.assertThat(tableB).hasSize(2);
-    //
-    // final SourceRecord insertrecordA = tableA.get(0);
-    // final SourceRecord updaterecordA = tableA.get(1);
-    //
-    // final List<SchemaAndValueField> insertexpectedAfterA = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 11),
-    // new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "c"));
-    //
-    // final Struct insertkeyA = (Struct) insertrecordA.key();
-    // final Struct insertvalueA = (Struct) insertrecordA.value();
-    // assertNull(insertvalueA.get("before"));
-    // assertRecord((Struct) insertvalueA.get("after"), insertexpectedAfterA);
-    //
-    // final List<SchemaAndValueField> updateexpectedBeforeA = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
-    // new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
-    // final List<SchemaAndValueField> updateexpectedAfterA = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
-    // new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
-    //
-    // final Struct updatekeyA = (Struct) updaterecordA.key();
-    // final Struct updatevalueA = (Struct) updaterecordA.value();
-    // assertRecord((Struct) updatevalueA.get("before"), updateexpectedBeforeA);
-    // assertRecord((Struct) updatevalueA.get("after"), updateexpectedAfterA);
-    //
-    // final SourceRecord insertrecordB = tableB.get(0);
-    // final SourceRecord updaterecordB = tableB.get(1);
-    //
-    // final List<SchemaAndValueField> insertexpectedAfterB = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 11),
-    // new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "c"));
-    //
-    // final Struct insertkeyB = (Struct) insertrecordB.key();
-    // final Struct insertvalueB = (Struct) insertrecordB.value();
-    // assertNull(insertvalueB.get("before"));
-    // assertRecord((Struct) insertvalueB.get("after"), insertexpectedAfterB);
-    //
-    // final List<SchemaAndValueField> updateexpectedBeforeB = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
-    // new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-    // final List<SchemaAndValueField> updateexpectedAfterB = Arrays.asList(
-    // new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
-    // new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-    //
-    // final Struct updatekeyB = (Struct) updaterecordB.key();
-    // final Struct updatevalueB = (Struct) updaterecordB.value();
-    // assertRecord((Struct) updatevalueB.get("before"), updateexpectedBeforeB);
-    // assertRecord((Struct) updatevalueB.get("after"), updateexpectedAfterB);
-    //
-    // stopConnector();
-    // }
+        // Wait for snapshot completion
+        consumeRecordsByTopic(1);
+
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
+        for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+            final int id = ID_START + i;
+            connection.execute(
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
+            connection.execute(
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
+        }
+
+        TestHelper.refreshAndWait(connection);
+
+        final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
+
+        connection.execute("DELETE FROM tableB");
+
+        TestHelper.refreshAndWait(connection);
+
+        final SourceRecords deleteRecords = consumeRecordsByTopic(RECORDS_PER_TABLE);
+        final List<SourceRecord> deleteTableA = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> deleteTableB = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
+        Assertions.assertThat(deleteTableA).isNullOrEmpty();
+        Assertions.assertThat(deleteTableB).hasSize(RECORDS_PER_TABLE);
+
+        for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+            final SourceRecord deleteRecord = deleteTableB.get(i);
+            final List<SchemaAndValueField> expectedDeleteRow = Arrays.asList(
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, i + ID_START),
+                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+
+            final Struct deleteKey = (Struct) deleteRecord.key();
+            final Struct deleteValue = (Struct) deleteRecord.value();
+            assertRecord((Struct) deleteValue.get("before"), expectedDeleteRow);
+            assertNull(deleteValue.get("after"));
+        }
+
+        stopConnector();
+    }
+
+    @Test
+    public void updatePrimaryKey() throws Exception {
+
+        final Configuration config = TestHelper.defaultConfig()
+                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+                .build();
+
+        start(Db2Connector.class, config);
+        assertConnectorIsRunning();
+
+        // Testing.Print.enable();
+        // Wait for snapshot completion
+        // consumeRecordsByTopic(1);
+
+        connection.execute("INSERT INTO tableb VALUES(1, 'b')");
+
+        // TestHelper.waitForCDC();
+
+        consumeRecordsByTopic(2);
+
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
+        connection.setAutoCommit(false);
+
+        connection.execute(
+                "UPDATE tablea SET id=100 WHERE id=1",
+                "UPDATE tableb SET id=100 WHERE id=1");
+
+        // TestHelper.waitForCDC();
+        TestHelper.refreshAndWait(connection);
+
+        final SourceRecords records = consumeRecordsByTopic(2);
+        final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
+        Assertions.assertThat(tableA).hasSize(1);
+        Assertions.assertThat(tableB).hasSize(1);
+
+        final SourceRecord updaterecordA = tableA.get(0);
+
+        final List<SchemaAndValueField> expectedBeforeA = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
+                new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+        final List<SchemaAndValueField> expectedAfterA = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
+                new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+
+        final Struct keyA = (Struct) updaterecordA.key();
+        final Struct valueA = (Struct) updaterecordA.value();
+        assertRecord((Struct) valueA.get("before"), expectedBeforeA);
+        assertRecord((Struct) valueA.get("after"), expectedAfterA);
+
+        final SourceRecord updaterecordB = tableB.get(0);
+
+        final List<SchemaAndValueField> expectedBeforeB = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
+                new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+        final List<SchemaAndValueField> expectedAfterB = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
+                new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+
+        final Struct keyB = (Struct) updaterecordB.key();
+        final Struct valueB = (Struct) updaterecordB.value();
+        assertRecord((Struct) valueB.get("before"), expectedBeforeB);
+        assertRecord((Struct) valueB.get("after"), expectedAfterB);
+
+        stopConnector();
+    }
+
+    @Test
+    // @FixFor("DBZ-1152")
+    public void updatePrimaryKeyWithRestartInMiddle() throws Exception {
+
+        final Configuration config = TestHelper.defaultConfig()
+                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+                .build();
+
+        start(Db2Connector.class, config, record -> {
+            final Struct envelope = (Struct) record.value();
+            return envelope != null && "c".equals(envelope.get("op")) && (envelope.getStruct("after").getInt32("ID") == 100);
+        });
+
+        assertConnectorIsRunning();
+
+        connection.execute("INSERT INTO tableb VALUES(1, 'b')");
+
+        consumeRecordsByTopic(2);
+
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
+        connection.setAutoCommit(false);
+
+        connection.execute(
+                "INSERT INTO tablea VALUES(11, 'c')",
+                "INSERT INTO tableb VALUES(11, 'c')",
+                "UPDATE tablea SET id=100 WHERE id=1",
+                "UPDATE tableb SET id=100 WHERE id=1"
+
+        );
+
+        TestHelper.refreshAndWait(connection);
+        final SourceRecords records1 = consumeRecordsByTopic(1);
+        stopConnector();
+
+        start(Db2Connector.class, config);
+        assertConnectorIsRunning();
+        final SourceRecords records2 = consumeRecordsByTopic(3);
+
+        final List<SourceRecord> tableA = records1.recordsForTopic("testdb.DB2INST1.TABLEA");
+        tableA.addAll(records2.recordsForTopic("testdb.DB2INST1.TABLEA"));
+        final List<SourceRecord> tableB = records2.recordsForTopic("testdb.DB2INST1.TABLEB");
+        Assertions.assertThat(tableA).hasSize(2);
+        Assertions.assertThat(tableB).hasSize(2);
+
+        final SourceRecord insertrecordA = tableA.get(0);
+        final SourceRecord updaterecordA = tableA.get(1);
+
+        final List<SchemaAndValueField> insertexpectedAfterA = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 11),
+                new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "c"));
+
+        final Struct insertkeyA = (Struct) insertrecordA.key();
+        final Struct insertvalueA = (Struct) insertrecordA.value();
+        assertNull(insertvalueA.get("before"));
+        assertRecord((Struct) insertvalueA.get("after"), insertexpectedAfterA);
+
+        final List<SchemaAndValueField> updateexpectedBeforeA = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
+                new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+        final List<SchemaAndValueField> updateexpectedAfterA = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
+                new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+
+        final Struct updatekeyA = (Struct) updaterecordA.key();
+        final Struct updatevalueA = (Struct) updaterecordA.value();
+        assertRecord((Struct) updatevalueA.get("before"), updateexpectedBeforeA);
+        assertRecord((Struct) updatevalueA.get("after"), updateexpectedAfterA);
+
+        final SourceRecord insertrecordB = tableB.get(0);
+        final SourceRecord updaterecordB = tableB.get(1);
+
+        final List<SchemaAndValueField> insertexpectedAfterB = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 11),
+                new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "c"));
+
+        final Struct insertkeyB = (Struct) insertrecordB.key();
+        final Struct insertvalueB = (Struct) insertrecordB.value();
+        assertNull(insertvalueB.get("before"));
+        assertRecord((Struct) insertvalueB.get("after"), insertexpectedAfterB);
+
+        final List<SchemaAndValueField> updateexpectedBeforeB = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
+                new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+        final List<SchemaAndValueField> updateexpectedAfterB = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
+                new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+
+        final Struct updatekeyB = (Struct) updaterecordB.key();
+        final Struct updatevalueB = (Struct) updaterecordB.value();
+        assertRecord((Struct) updatevalueB.get("before"), updateexpectedBeforeB);
+        assertRecord((Struct) updatevalueB.get("after"), updateexpectedAfterB);
+
+        stopConnector();
+    }
 
     @Test
     // @FixFor("DBZ-1069")
@@ -395,6 +396,10 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
                 .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
                 .build();
 
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START + i;
             connection.execute(
@@ -402,7 +407,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             connection.execute(
                     "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
-
+        TestHelper.refreshAndWait(connection);
         for (int i = 0; !connection.getMaxLsn().isAvailable(); i++) {
             if (i == 30) {
                 org.junit.Assert.fail("Initial changes not written to CDC structures");
@@ -412,6 +417,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         }
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
+        TestHelper.refreshAndWait(connection);
 
         List<SourceRecord> records = consumeRecordsByTopic(1 + RECORDS_PER_TABLE * TABLES).allRecordsInOrder();
         records = records.subList(1, records.size());
@@ -427,10 +433,6 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         }
 
         stopConnector();
-
-        TestHelper.enableDbCdc(connection);
-        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
-        TestHelper.refreshAndWait(connection);
 
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_RESTART + i;
@@ -517,19 +519,19 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         // Wait for snapshot to be completed or a first streaming message delivered
         consumeRecordsByTopic(1);
 
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
         if (afterStreaming) {
             connection.execute("INSERT INTO tablea VALUES(-2, '-a')");
-            TestHelper.waitForCDC();
+            // TestHelper.waitForCDC();
             final SourceRecords records = consumeRecordsByTopic(1);
             final List<SchemaAndValueField> expectedRow = Arrays.asList(
                     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, -2),
                     new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "-a"));
             assertRecord(((Struct) records.allRecordsInOrder().get(0).value()).getStruct(Envelope.FieldName.AFTER), expectedRow);
         }
-
-        TestHelper.enableDbCdc(connection);
-        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
-        TestHelper.refreshAndWait(connection);
 
         connection.setAutoCommit(false);
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {

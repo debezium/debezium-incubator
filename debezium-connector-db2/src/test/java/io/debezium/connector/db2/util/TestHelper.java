@@ -42,7 +42,7 @@ public class TestHelper {
 
     public static final Path DB_HISTORY_PATH = Testing.Files.createTestingPath("file-db-history-connect.txt").toAbsolutePath();
     public static final String TEST_DATABASE = "testdb";
-    public static final int WAIT_FOR_CDC = 90 * 1000;
+    public static final int WAIT_FOR_CDC = 30 * 1000;
 
     private static final String STATEMENTS_PLACEHOLDER = "#";
 
@@ -137,7 +137,7 @@ public class TestHelper {
      * @throws SQLException
      *             if anything unexpected fails
      */
-    protected static void disableDbCdc(Db2Connection connection) throws SQLException {
+    public static void disableDbCdc(Db2Connection connection) throws SQLException {
         connection.execute(DISABLE_DB_CDC);
     }
 
