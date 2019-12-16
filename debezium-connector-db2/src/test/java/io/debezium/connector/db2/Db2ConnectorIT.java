@@ -27,6 +27,7 @@ import io.debezium.connector.db2.Db2ConnectorConfig.SnapshotMode;
 import io.debezium.connector.db2.util.TestHelper;
 import io.debezium.data.Envelope;
 import io.debezium.data.SchemaAndValueField;
+import io.debezium.doc.FixFor;
 import io.debezium.embedded.AbstractConnectorTest;
 import io.debezium.junit.logging.LogInterceptor;
 import io.debezium.util.Testing;
@@ -43,8 +44,6 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     @Before
     public void before() throws SQLException {
         connection = TestHelper.testConnection();
-        // TestHelper.enableDbCdc(connection);
-        // TestHelper.waitForCDC();
         connection.execute("DELETE FROM ASNCDC.IBMSNAP_REGISTER");
         connection.execute(
                 "CREATE TABLE tablea (id int not null, cola varchar(30), primary key (id))",
@@ -52,7 +51,6 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
                 "INSERT INTO tablea VALUES(1, 'a')");
         TestHelper.enableTableCdc(connection, "TABLEA");
         TestHelper.enableTableCdc(connection, "TABLEB");
-
         initializeConnectorTestFramework();
         Testing.Files.delete(TestHelper.DB_HISTORY_PATH);
         Testing.Print.enable();
@@ -68,7 +66,6 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             connection.execute("DELETE FROM ASNCDC.IBMSNAP_REGISTER");
             connection.execute("DELETE FROM ASNCDC.IBMQREP_COLVERSION");
             connection.execute("DELETE FROM ASNCDC.IBMQREP_TABVERSION");
-
             connection.close();
         }
     }
@@ -84,7 +81,6 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
-
         // Wait for snapshot completion
         consumeRecordsByTopic(1);
 
@@ -99,11 +95,6 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             connection.execute(
                     "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
-        // try {
-        // Thread.sleep(TestHelper.WAIT_FOR_CDC);
-        // }
-        // catch (Exception e) {
-        // }
         TestHelper.refreshAndWait(connection);
 
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
@@ -158,7 +149,6 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             final Struct tombstoneValue = (Struct) tombstoneRecord.value();
             assertNull(tombstoneValue);
         }
-
         stopConnector();
     }
 
@@ -229,14 +219,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
 
-        // Testing.Print.enable();
-        // Wait for snapshot completion
-        // consumeRecordsByTopic(1);
-
         connection.execute("INSERT INTO tableb VALUES(1, 'b')");
-
-        // TestHelper.waitForCDC();
-
         consumeRecordsByTopic(2);
 
         TestHelper.enableDbCdc(connection);
@@ -249,7 +232,6 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
                 "UPDATE tablea SET id=100 WHERE id=1",
                 "UPDATE tableb SET id=100 WHERE id=1");
 
-        // TestHelper.waitForCDC();
         TestHelper.refreshAndWait(connection);
 
         final SourceRecords records = consumeRecordsByTopic(2);
@@ -290,7 +272,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     }
 
     @Test
-    // @FixFor("DBZ-1152")
+    @FixFor("DBZ-1152")
     public void updatePrimaryKeyWithRestartInMiddle() throws Exception {
 
         final Configuration config = TestHelper.defaultConfig()
@@ -388,7 +370,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     }
 
     @Test
-    // @FixFor("DBZ-1069")
+    @FixFor("DBZ-1069")
     public void verifyOffsets() throws Exception {
         final int RECORDS_PER_TABLE = 5;
         final int TABLES = 2;
@@ -682,7 +664,6 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             connection.connection().commit();
         }
 
-        // TestHelper.waitForCDC();
         TestHelper.refreshAndWait(connection);
 
         sourceRecords = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
@@ -714,13 +695,13 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     }
 
     @Test
-    // @FixFor("DBZ-1128")
+    @FixFor("DBZ-1128")
     public void restartInTheMiddleOfTxAfterSnapshot() throws Exception {
         restartInTheMiddleOfTx(true, false);
     }
 
     @Test
-    // @FixFor("DBZ-1128")
+    @FixFor("DBZ-1128")
     public void restartInTheMiddleOfTxAfterCompletedTx() throws Exception {
         restartInTheMiddleOfTx(false, true);
     }
@@ -732,7 +713,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     }
 
     @Test
-    // @FixFor("DBZ-1242")
+    @FixFor("DBZ-1242")
     public void testEmptySchemaWarningAfterApplyingFilters() throws Exception {
         // This captures all logged messages, allowing us to verify log message was written.
         final LogInterceptor logInterceptor = new LogInterceptor();
