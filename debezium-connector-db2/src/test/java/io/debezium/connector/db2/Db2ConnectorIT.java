@@ -10,6 +10,7 @@ import static org.junit.Assert.assertNull;
 
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -26,6 +27,7 @@ import io.debezium.connector.db2.Db2ConnectorConfig.SnapshotMode;
 import io.debezium.connector.db2.util.TestHelper;
 import io.debezium.data.Envelope;
 import io.debezium.data.SchemaAndValueField;
+import io.debezium.doc.FixFor;
 import io.debezium.embedded.AbstractConnectorTest;
 import io.debezium.junit.logging.LogInterceptor;
 import io.debezium.util.Testing;
@@ -42,15 +44,13 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     @Before
     public void before() throws SQLException {
         connection = TestHelper.testConnection();
-        TestHelper.enableDbCdc(connection);
-        TestHelper.waitForCDC();
+        connection.execute("DELETE FROM ASNCDC.IBMSNAP_REGISTER");
         connection.execute(
                 "CREATE TABLE tablea (id int not null, cola varchar(30), primary key (id))",
                 "CREATE TABLE tableb (id int not null, colb varchar(30), primary key (id))",
                 "INSERT INTO tablea VALUES(1, 'a')");
         TestHelper.enableTableCdc(connection, "TABLEA");
         TestHelper.enableTableCdc(connection, "TABLEB");
-
         initializeConnectorTestFramework();
         Testing.Files.delete(TestHelper.DB_HISTORY_PATH);
         Testing.Print.enable();
@@ -59,9 +59,13 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     @After
     public void after() throws SQLException {
         if (connection != null) {
+            TestHelper.disableDbCdc(connection);
             TestHelper.disableTableCdc(connection, "TABLEB");
             TestHelper.disableTableCdc(connection, "TABLEA");
             connection.execute("DROP TABLE tablea", "DROP TABLE tableb");
+            connection.execute("DELETE FROM ASNCDC.IBMSNAP_REGISTER");
+            connection.execute("DELETE FROM ASNCDC.IBMQREP_COLVERSION");
+            connection.execute("DELETE FROM ASNCDC.IBMQREP_TABVERSION");
             connection.close();
         }
     }
@@ -77,9 +81,12 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
-
         // Wait for snapshot completion
         consumeRecordsByTopic(1);
+
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
 
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START + i;
@@ -88,11 +95,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             connection.execute(
                     "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
-        try {
-            Thread.sleep(TestHelper.WAIT_FOR_CDC);
-        }
-        catch (Exception e) {
-        }
+        TestHelper.refreshAndWait(connection);
 
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
         final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
@@ -122,7 +125,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         connection.execute("DELETE FROM tableB");
 
-        TestHelper.waitForCDC();
+        TestHelper.refreshAndWait(connection);
 
         final SourceRecords deleteRecords = consumeRecordsByTopic(2 * RECORDS_PER_TABLE);
         final List<SourceRecord> deleteTableA = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
@@ -146,7 +149,6 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             final Struct tombstoneValue = (Struct) tombstoneRecord.value();
             assertNull(tombstoneValue);
         }
-
         stopConnector();
     }
 
@@ -166,6 +168,10 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         // Wait for snapshot completion
         consumeRecordsByTopic(1);
 
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
         for (int i = 0; i < RECORDS_PER_TABLE; i++) {
             final int id = ID_START + i;
             connection.execute(
@@ -174,13 +180,13 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
                     "INSERT INTO tableb VALUES(" + id + ", 'b')");
         }
 
-        TestHelper.waitForCDC();
+        TestHelper.refreshAndWait(connection);
 
         final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
 
         connection.execute("DELETE FROM tableB");
 
-        TestHelper.waitForCDC();
+        TestHelper.refreshAndWait(connection);
 
         final SourceRecords deleteRecords = consumeRecordsByTopic(RECORDS_PER_TABLE);
         final List<SourceRecord> deleteTableA = deleteRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
@@ -213,15 +219,12 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
 
-        // Testing.Print.enable();
-        // Wait for snapshot completion
-        consumeRecordsByTopic(1);
-
         connection.execute("INSERT INTO tableb VALUES(1, 'b')");
+        consumeRecordsByTopic(2);
 
-        TestHelper.waitForCDC();
-
-        consumeRecordsByTopic(1);
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
 
         connection.setAutoCommit(false);
 
@@ -229,7 +232,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
                 "UPDATE tablea SET id=100 WHERE id=1",
                 "UPDATE tableb SET id=100 WHERE id=1");
 
-        TestHelper.waitForCDC();
+        TestHelper.refreshAndWait(connection);
 
         final SourceRecords records = consumeRecordsByTopic(2);
         final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
@@ -269,7 +272,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     }
 
     @Test
-    // @FixFor("DBZ-1152")
+    @FixFor("DBZ-1152")
     public void updatePrimaryKeyWithRestartInMiddle() throws Exception {
 
         final Configuration config = TestHelper.defaultConfig()
@@ -280,15 +283,16 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             final Struct envelope = (Struct) record.value();
             return envelope != null && "c".equals(envelope.get("op")) && (envelope.getStruct("after").getInt32("ID") == 100);
         });
+
         assertConnectorIsRunning();
-        // Testing.Print.enable();
-        // Wait for snapshot completion
-        consumeRecordsByTopic(1);
+
         connection.execute("INSERT INTO tableb VALUES(1, 'b')");
 
-        TestHelper.waitForCDC();
+        consumeRecordsByTopic(2);
 
-        consumeRecordsByTopic(1);
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
 
         connection.setAutoCommit(false);
 
@@ -299,12 +303,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
                 "UPDATE tableb SET id=100 WHERE id=1"
 
         );
-        try {
-            Thread.sleep(TestHelper.WAIT_FOR_CDC);
-        }
-        catch (Exception e) {
 
-        }
+        TestHelper.refreshAndWait(connection);
         final SourceRecords records1 = consumeRecordsByTopic(1);
         stopConnector();
 
@@ -369,6 +369,185 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         stopConnector();
     }
 
+    @Test
+    @FixFor("DBZ-1069")
+    public void verifyOffsets() throws Exception {
+        final int RECORDS_PER_TABLE = 5;
+        final int TABLES = 2;
+        final int ID_START = 10;
+        final int ID_RESTART = 100;
+        final Configuration config = TestHelper.defaultConfig()
+                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+                .build();
+
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
+        for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+            final int id = ID_START + i;
+            connection.execute(
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
+            connection.execute(
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
+        }
+        TestHelper.refreshAndWait(connection);
+        for (int i = 0; !connection.getMaxLsn().isAvailable(); i++) {
+            if (i == 30) {
+                org.junit.Assert.fail("Initial changes not written to CDC structures");
+            }
+            Testing.debug("Waiting for initial changes to be propagated to CDC structures");
+            Thread.sleep(1000);
+        }
+        start(Db2Connector.class, config);
+        assertConnectorIsRunning();
+        TestHelper.refreshAndWait(connection);
+
+        List<SourceRecord> records = consumeRecordsByTopic(1 + RECORDS_PER_TABLE * TABLES).allRecordsInOrder();
+        records = records.subList(1, records.size());
+        for (Iterator<SourceRecord> it = records.iterator(); it.hasNext();) {
+            SourceRecord record = it.next();
+            assertThat(record.sourceOffset().get("snapshot")).as("Snapshot phase").isEqualTo(true);
+            if (it.hasNext()) {
+                assertThat(record.sourceOffset().get("snapshot_completed")).as("Snapshot in progress").isEqualTo(false);
+            }
+            else {
+                assertThat(record.sourceOffset().get("snapshot_completed")).as("Snapshot completed").isEqualTo(true);
+            }
+        }
+
+        stopConnector();
+
+        for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+            final int id = ID_RESTART + i;
+            connection.execute(
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
+            connection.execute(
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
+        }
+
+        start(Db2Connector.class, config);
+        assertConnectorIsRunning();
+        TestHelper.refreshAndWait(connection);
+
+        final SourceRecords sourceRecords = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
+        final List<SourceRecord> tableA = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> tableB = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEB");
+
+        Assertions.assertThat(tableA).hasSize(RECORDS_PER_TABLE);
+        Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
+
+        for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+            final int id = i + ID_RESTART;
+            final SourceRecord recordA = tableA.get(i);
+            final SourceRecord recordB = tableB.get(i);
+            final List<SchemaAndValueField> expectedRowA = Arrays.asList(
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
+                    new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+            final List<SchemaAndValueField> expectedRowB = Arrays.asList(
+                    new SchemaAndValueField("ID", Schema.INT32_SCHEMA, id),
+                    new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+
+            final Struct valueA = (Struct) recordA.value();
+            assertRecord((Struct) valueA.get("after"), expectedRowA);
+            assertNull(valueA.get("before"));
+
+            final Struct valueB = (Struct) recordB.value();
+            assertRecord((Struct) valueB.get("after"), expectedRowB);
+            assertNull(valueB.get("before"));
+
+            assertThat(recordA.sourceOffset().get("snapshot")).as("Streaming phase").isNull();
+            assertThat(recordA.sourceOffset().get("snapshot_completed")).as("Streaming phase").isNull();
+            assertThat(recordA.sourceOffset().get("change_lsn")).as("LSN present").isNotNull();
+
+            assertThat(recordB.sourceOffset().get("snapshot")).as("Streaming phase").isNull();
+            assertThat(recordB.sourceOffset().get("snapshot_completed")).as("Streaming phase").isNull();
+            assertThat(recordB.sourceOffset().get("change_lsn")).as("LSN present").isNotNull();
+        }
+    }
+
+    @Test
+    public void whitelistTable() throws Exception {
+        final int RECORDS_PER_TABLE = 5;
+        final int TABLES = 1;
+        final int ID_START = 10;
+        final Configuration config = TestHelper.defaultConfig()
+                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+                .with(Db2ConnectorConfig.TABLE_WHITELIST, "db2inst1.tableb")
+                .build();
+        connection.execute(
+                "INSERT INTO tableb VALUES(1, 'b')");
+
+        start(Db2Connector.class, config);
+        assertConnectorIsRunning();
+
+        // Wait for snapshot completion
+        consumeRecordsByTopic(1);
+
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
+        for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+            final int id = ID_START + i;
+            connection.execute(
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
+            connection.execute(
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
+        }
+
+        TestHelper.refreshAndWait(connection);
+
+        final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
+        final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
+        Assertions.assertThat(tableA == null || tableA.isEmpty()).isTrue();
+        Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
+
+        stopConnector();
+    }
+
+    @Test
+    public void blacklistTable() throws Exception {
+        final int RECORDS_PER_TABLE = 5;
+        final int TABLES = 1;
+        final int ID_START = 10;
+        final Configuration config = TestHelper.defaultConfig()
+                .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
+                .with(Db2ConnectorConfig.TABLE_BLACKLIST, "db2inst1.tablea")
+                .build();
+        connection.execute(
+                "INSERT INTO tableb VALUES(1, 'b')");
+
+        start(Db2Connector.class, config);
+        assertConnectorIsRunning();
+
+        // Wait for snapshot completion
+        consumeRecordsByTopic(1);
+
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
+        for (int i = 0; i < RECORDS_PER_TABLE; i++) {
+            final int id = ID_START + i;
+            connection.execute(
+                    "INSERT INTO tablea VALUES(" + id + ", 'a')");
+            connection.execute(
+                    "INSERT INTO tableb VALUES(" + id + ", 'b')");
+        }
+
+        TestHelper.refreshAndWait(connection);
+
+        final SourceRecords records = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
+        final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
+        final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
+        Assertions.assertThat(tableA == null || tableA.isEmpty()).isTrue();
+        Assertions.assertThat(tableB).hasSize(RECORDS_PER_TABLE);
+
+        stopConnector();
+    }
+
     private void restartInTheMiddleOfTx(boolean restartJustAfterSnapshot, boolean afterStreaming) throws Exception {
         final int RECORDS_PER_TABLE = 30;
         final int TABLES = 2;
@@ -387,7 +566,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             consumeRecordsByTopic(1);
             stopConnector();
             connection.execute("INSERT INTO tablea VALUES(-1, '-a')");
-            TestHelper.waitForCDC();
+            TestHelper.refreshAndWait(connection);
 
         }
 
@@ -406,9 +585,13 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         // Wait for snapshot to be completed or a first streaming message delivered
         consumeRecordsByTopic(1);
 
+        TestHelper.enableDbCdc(connection);
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
+        TestHelper.refreshAndWait(connection);
+
         if (afterStreaming) {
             connection.execute("INSERT INTO tablea VALUES(-2, '-a')");
-            TestHelper.waitForCDC();
+            TestHelper.refreshAndWait(connection);
             final SourceRecords records = consumeRecordsByTopic(1);
             final List<SchemaAndValueField> expectedRow = Arrays.asList(
                     new SchemaAndValueField("ID", Schema.INT32_SCHEMA, -2),
@@ -426,7 +609,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         }
         connection.connection().commit();
 
-        TestHelper.waitForCDC();
+        // TestHelper.waitForCDC();
+        TestHelper.refreshAndWait(connection);
 
         List<SourceRecord> records = consumeRecordsByTopic(RECORDS_PER_TABLE).allRecordsInOrder();
 
@@ -442,7 +626,8 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
 
-        TestHelper.waitForCDC();
+        // TestHelper.waitForCDC();
+        TestHelper.refreshAndWait(connection);
 
         SourceRecords sourceRecords = consumeRecordsByTopic(RECORDS_PER_TABLE);
         records = sourceRecords.allRecordsInOrder();
@@ -479,7 +664,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
             connection.connection().commit();
         }
 
-        TestHelper.waitForCDC();
+        TestHelper.refreshAndWait(connection);
 
         sourceRecords = consumeRecordsByTopic(RECORDS_PER_TABLE * TABLES);
         tableA = sourceRecords.recordsForTopic("testdb.DB2INST1.TABLEA");
@@ -510,19 +695,25 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
     }
 
     @Test
-    // @FixFor("DBZ-1128")
+    @FixFor("DBZ-1128")
     public void restartInTheMiddleOfTxAfterSnapshot() throws Exception {
         restartInTheMiddleOfTx(true, false);
     }
 
     @Test
-    // @FixFor("DBZ-1128")
+    @FixFor("DBZ-1128")
     public void restartInTheMiddleOfTxAfterCompletedTx() throws Exception {
         restartInTheMiddleOfTx(false, true);
     }
 
     @Test
-    // @FixFor("DBZ-1242")
+    // @FixFor("DBZ-1128")
+    public void restartInTheMiddleOfTx() throws Exception {
+        restartInTheMiddleOfTx(false, false);
+    }
+
+    @Test
+    @FixFor("DBZ-1242")
     public void testEmptySchemaWarningAfterApplyingFilters() throws Exception {
         // This captures all logged messages, allowing us to verify log message was written.
         final LogInterceptor logInterceptor = new LogInterceptor();

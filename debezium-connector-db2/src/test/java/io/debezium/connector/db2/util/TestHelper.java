@@ -8,7 +8,10 @@ package io.debezium.connector.db2.util;
 
 import java.lang.management.ManagementFactory;
 import java.nio.file.Path;
+import java.sql.Clob;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -45,6 +48,7 @@ public class TestHelper {
 
     private static final String ENABLE_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('start','asncdc')";
     private static final String DISABLE_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('stop','asncdc')";
+    private static final String STATUS_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('status','asncdc')";
     private static final String ENABLE_TABLE_CDC = "CALL ASNCDC.ADDTABLE('DB2INST1', '#' )";
     private static final String DISABLE_TABLE_CDC = "CALL ASNCDC.REMOVETABLE('DB2INST1', '#' )";
     private static final String RESTART_ASN_CDC = "VALUES ASNCDC.ASNCDCSERVICES('reinit','asncdc')";
@@ -101,6 +105,30 @@ public class TestHelper {
      */
     public static void enableDbCdc(Db2Connection connection) throws SQLException {
         connection.execute(ENABLE_DB_CDC);
+        // waitForCDC();
+        Statement stmt = connection.connection().createStatement();
+        boolean isNotrunning = true;
+        int count = 0;
+        while (isNotrunning) {
+            ResultSet rs = stmt.executeQuery(STATUS_DB_CDC);
+            while (rs.next()) {
+                Clob clob = rs.getClob(1);
+                String test = clob.getSubString(1, (int) clob.length());
+                if (test.contains("is doing work")) {
+                    isNotrunning = false;
+                }
+                else {
+                    try {
+                        Thread.sleep(1000);
+                    }
+                    catch (InterruptedException e) {
+                    }
+                }
+                if (count++ > 30) {
+                    throw new SQLException("ASNCAP server did not start.");
+                }
+            }
+        }
     }
 
     /**
@@ -109,7 +137,7 @@ public class TestHelper {
      * @throws SQLException
      *             if anything unexpected fails
      */
-    protected static void disableDbCdc(Db2Connection connection) throws SQLException {
+    public static void disableDbCdc(Db2Connection connection) throws SQLException {
         connection.execute(DISABLE_DB_CDC);
     }
 
@@ -125,8 +153,9 @@ public class TestHelper {
         Objects.requireNonNull(name);
         String enableCdcForTableStmt = ENABLE_TABLE_CDC.replace(STATEMENTS_PLACEHOLDER, name);
         connection.execute(enableCdcForTableStmt);
-        connection.execute(RESTART_ASN_CDC);
+
         connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER  = 'DB2INST1' AND SOURCE_TABLE = '" + name + "'");
+        connection.execute(RESTART_ASN_CDC);
     }
 
     /**
@@ -167,6 +196,11 @@ public class TestHelper {
             }
             metronome.pause();
         }
+    }
+
+    public static void refreshAndWait(Db2Connection connection) throws SQLException {
+        connection.execute(RESTART_ASN_CDC);
+        waitForCDC();
     }
 
     public static void waitForCDC() {
