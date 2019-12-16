@@ -124,9 +124,9 @@ public class TestHelper {
                     catch (InterruptedException e) {
                     }
                 }
-                if (count++ > 30)
+                if (count++ > 30) {
                     throw new SQLException("ASNCAP server did not start.");
-
+                }
             }
         }
     }
