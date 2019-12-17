@@ -105,7 +105,6 @@ public class TestHelper {
      */
     public static void enableDbCdc(Db2Connection connection) throws SQLException {
         connection.execute(ENABLE_DB_CDC);
-        // waitForCDC();
         Statement stmt = connection.connection().createStatement();
         boolean isNotrunning = true;
         int count = 0;
