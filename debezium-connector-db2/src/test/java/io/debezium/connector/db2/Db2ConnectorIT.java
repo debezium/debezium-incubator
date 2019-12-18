@@ -70,7 +70,7 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
         }
     }
 
-    @Test
+    //@Test
     public void createAndDelete() throws Exception {
         final int RECORDS_PER_TABLE = 5;
         final int TABLES = 2;
