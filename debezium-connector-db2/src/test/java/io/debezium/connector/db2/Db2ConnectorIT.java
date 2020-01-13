@@ -152,39 +152,77 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
 
         TestHelper.refreshAndWait(connection);
 
-        final SourceRecords records = consumeRecordsByTopic(2);
+        final SourceRecords records = consumeRecordsByTopic(6);
         final List<SourceRecord> tableA = records.recordsForTopic("testdb.DB2INST1.TABLEA");
         final List<SourceRecord> tableB = records.recordsForTopic("testdb.DB2INST1.TABLEB");
-        Assertions.assertThat(tableA).hasSize(1);
-        Assertions.assertThat(tableB).hasSize(1);
+        Assertions.assertThat(tableA).hasSize(3);
+        Assertions.assertThat(tableB).hasSize(3);
 
-        final SourceRecord updaterecordA = tableA.get(0);
-
-        final List<SchemaAndValueField> expectedBeforeA = Arrays.asList(
+        final List<SchemaAndValueField> expectedDeleteRowA = Arrays.asList(
                 new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
                 new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
-        final List<SchemaAndValueField> expectedAfterA = Arrays.asList(
+        final List<SchemaAndValueField> expectedDeleteKeyA = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1));
+        final List<SchemaAndValueField> expectedInsertRowA = Arrays.asList(
                 new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
                 new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+        final List<SchemaAndValueField> expectedInsertKeyA = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100));
 
-        final Struct keyA = (Struct) updaterecordA.key();
-        final Struct valueA = (Struct) updaterecordA.value();
-        assertRecord((Struct) valueA.get("before"), expectedBeforeA);
-        assertRecord((Struct) valueA.get("after"), expectedAfterA);
+        final SourceRecord deleteRecordA = tableA.get(0);
+        final SourceRecord tombstoneRecordA = tableA.get(1);
+        final SourceRecord insertRecordA = tableA.get(2);
 
-        final SourceRecord updaterecordB = tableB.get(0);
+        final Struct deleteKeyA = (Struct) deleteRecordA.key();
+        final Struct deleteValueA = (Struct) deleteRecordA.value();
+        assertRecord(deleteValueA.getStruct("before"), expectedDeleteRowA);
+        assertRecord(deleteKeyA, expectedDeleteKeyA);
+        assertNull(deleteValueA.get("after"));
 
-        final List<SchemaAndValueField> expectedBeforeB = Arrays.asList(
+        final Struct tombstoneKeyA = (Struct) tombstoneRecordA.key();
+        final Struct tombstoneValueA = (Struct) tombstoneRecordA.value();
+        assertRecord(tombstoneKeyA, expectedDeleteKeyA);
+        assertNull(tombstoneValueA);
+
+        final Struct insertKeyA = (Struct) insertRecordA.key();
+        final Struct insertValueA = (Struct) insertRecordA.value();
+        assertRecord(insertValueA.getStruct("after"), expectedInsertRowA);
+        assertRecord(insertKeyA, expectedInsertKeyA);
+        assertNull(insertValueA.get("before"));
+
+        final List<SchemaAndValueField> expectedDeleteRowB = Arrays.asList(
                 new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
                 new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-        final List<SchemaAndValueField> expectedAfterB = Arrays.asList(
+        final List<SchemaAndValueField> expectedDeleteKeyB = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1));
+        final List<SchemaAndValueField> expectedInsertRowB = Arrays.asList(
                 new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
                 new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+        final List<SchemaAndValueField> expectedInsertKeyB = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100));
 
-        final Struct keyB = (Struct) updaterecordB.key();
-        final Struct valueB = (Struct) updaterecordB.value();
-        assertRecord((Struct) valueB.get("before"), expectedBeforeB);
-        assertRecord((Struct) valueB.get("after"), expectedAfterB);
+        final SourceRecord deleteRecordB = tableB.get(0);
+        final SourceRecord tombstoneRecordB = tableB.get(1);
+        final SourceRecord insertRecordB = tableB.get(2);
+
+        final Struct deletekeyB = (Struct) deleteRecordB.key();
+        final Struct deleteValueB = (Struct) deleteRecordB.value();
+        assertRecord(deleteValueB.getStruct("before"), expectedDeleteRowB);
+        assertRecord(deletekeyB, expectedDeleteKeyB);
+        assertNull(deleteValueB.get("after"));
+        // assertThat(deleteValueB.getStruct("source").getInt64("event_serial_no")).isEqualTo(1L);
+
+        final Struct tombstonekeyB = (Struct) tombstoneRecordB.key();
+        final Struct tombstoneValueB = (Struct) tombstoneRecordB.value();
+        assertRecord(tombstonekeyB, expectedDeleteKeyB);
+        assertNull(tombstoneValueB);
+
+        final Struct insertkeyB = (Struct) insertRecordB.key();
+        final Struct insertValueB = (Struct) insertRecordB.value();
+        assertRecord(insertValueB.getStruct("after"), expectedInsertRowB);
+        assertRecord(insertkeyB, expectedInsertKeyB);
+        assertNull(insertValueB.get("before"));
+        // assertThat(insertValueB.getStruct("source").getInt64("event_serial_no")).isEqualTo(2L);
 
         stopConnector();
     }
@@ -197,92 +235,102 @@ public class Db2ConnectorIT extends AbstractConnectorTest {
                 .with(Db2ConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL)
                 .build();
 
-        start(Db2Connector.class, config, record -> {
-            final Struct envelope = (Struct) record.value();
-            return envelope != null && "c".equals(envelope.get("op")) && (envelope.getStruct("after").getInt32("ID") == 100);
-        });
-
+        start(Db2Connector.class, config);
         assertConnectorIsRunning();
 
         connection.execute("INSERT INTO tableb VALUES(1, 'b')");
-
-        consumeRecordsByTopic(2);
 
         TestHelper.enableDbCdc(connection);
         connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER = 'DB2INST1'");
         TestHelper.refreshAndWait(connection);
 
+        consumeRecordsByTopic(2);
+
         connection.setAutoCommit(false);
 
         connection.execute(
-                "INSERT INTO tablea VALUES(11, 'c')",
-                "INSERT INTO tableb VALUES(11, 'c')",
                 "UPDATE tablea SET id=100 WHERE id=1",
-                "UPDATE tableb SET id=100 WHERE id=1"
-
-        );
+                "UPDATE tableb SET id=100 WHERE id=1");
 
         TestHelper.refreshAndWait(connection);
-        final SourceRecords records1 = consumeRecordsByTopic(1);
+
+        final SourceRecords records1 = consumeRecordsByTopic(2);
         stopConnector();
 
         start(Db2Connector.class, config);
         assertConnectorIsRunning();
-        final SourceRecords records2 = consumeRecordsByTopic(3);
+
+        final SourceRecords records2 = consumeRecordsByTopic(4);
 
         final List<SourceRecord> tableA = records1.recordsForTopic("testdb.DB2INST1.TABLEA");
         tableA.addAll(records2.recordsForTopic("testdb.DB2INST1.TABLEA"));
         final List<SourceRecord> tableB = records2.recordsForTopic("testdb.DB2INST1.TABLEB");
-        Assertions.assertThat(tableA).hasSize(2);
-        Assertions.assertThat(tableB).hasSize(2);
+        Assertions.assertThat(tableA).hasSize(3);
+        Assertions.assertThat(tableB).hasSize(3);
 
-        final SourceRecord insertrecordA = tableA.get(0);
-        final SourceRecord updaterecordA = tableA.get(1);
-
-        final List<SchemaAndValueField> insertexpectedAfterA = Arrays.asList(
-                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 11),
-                new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "c"));
-
-        final Struct insertkeyA = (Struct) insertrecordA.key();
-        final Struct insertvalueA = (Struct) insertrecordA.value();
-        assertNull(insertvalueA.get("before"));
-        assertRecord((Struct) insertvalueA.get("after"), insertexpectedAfterA);
-
-        final List<SchemaAndValueField> updateexpectedBeforeA = Arrays.asList(
+        final List<SchemaAndValueField> expectedDeleteRowA = Arrays.asList(
                 new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
                 new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
-        final List<SchemaAndValueField> updateexpectedAfterA = Arrays.asList(
+        final List<SchemaAndValueField> expectedDeleteKeyA = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1));
+        final List<SchemaAndValueField> expectedInsertRowA = Arrays.asList(
                 new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
                 new SchemaAndValueField("COLA", Schema.OPTIONAL_STRING_SCHEMA, "a"));
+        final List<SchemaAndValueField> expectedInsertKeyA = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100));
 
-        final Struct updatekeyA = (Struct) updaterecordA.key();
-        final Struct updatevalueA = (Struct) updaterecordA.value();
-        assertRecord((Struct) updatevalueA.get("before"), updateexpectedBeforeA);
-        assertRecord((Struct) updatevalueA.get("after"), updateexpectedAfterA);
+        final SourceRecord deleteRecordA = tableA.get(0);
+        final SourceRecord tombstoneRecordA = tableA.get(1);
+        final SourceRecord insertRecordA = tableA.get(2);
 
-        final SourceRecord insertrecordB = tableB.get(0);
-        final SourceRecord updaterecordB = tableB.get(1);
+        final Struct deleteKeyA = (Struct) deleteRecordA.key();
+        final Struct deleteValueA = (Struct) deleteRecordA.value();
+        assertRecord(deleteValueA.getStruct("before"), expectedDeleteRowA);
+        assertRecord(deleteKeyA, expectedDeleteKeyA);
+        assertNull(deleteValueA.get("after"));
 
-        final List<SchemaAndValueField> insertexpectedAfterB = Arrays.asList(
-                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 11),
-                new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "c"));
+        final Struct tombstoneKeyA = (Struct) tombstoneRecordA.key();
+        final Struct tombstoneValueA = (Struct) tombstoneRecordA.value();
+        assertRecord(tombstoneKeyA, expectedDeleteKeyA);
+        assertNull(tombstoneValueA);
 
-        final Struct insertkeyB = (Struct) insertrecordB.key();
-        final Struct insertvalueB = (Struct) insertrecordB.value();
-        assertNull(insertvalueB.get("before"));
-        assertRecord((Struct) insertvalueB.get("after"), insertexpectedAfterB);
+        final Struct insertKeyA = (Struct) insertRecordA.key();
+        final Struct insertValueA = (Struct) insertRecordA.value();
+        assertRecord(insertValueA.getStruct("after"), expectedInsertRowA);
+        assertRecord(insertKeyA, expectedInsertKeyA);
+        assertNull(insertValueA.get("before"));
 
-        final List<SchemaAndValueField> updateexpectedBeforeB = Arrays.asList(
+        final List<SchemaAndValueField> expectedDeleteRowB = Arrays.asList(
                 new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1),
                 new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
-        final List<SchemaAndValueField> updateexpectedAfterB = Arrays.asList(
+        final List<SchemaAndValueField> expectedDeleteKeyB = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 1));
+        final List<SchemaAndValueField> expectedInsertRowB = Arrays.asList(
                 new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100),
                 new SchemaAndValueField("COLB", Schema.OPTIONAL_STRING_SCHEMA, "b"));
+        final List<SchemaAndValueField> expectedInsertKeyB = Arrays.asList(
+                new SchemaAndValueField("ID", Schema.INT32_SCHEMA, 100));
 
-        final Struct updatekeyB = (Struct) updaterecordB.key();
-        final Struct updatevalueB = (Struct) updaterecordB.value();
-        assertRecord((Struct) updatevalueB.get("before"), updateexpectedBeforeB);
-        assertRecord((Struct) updatevalueB.get("after"), updateexpectedAfterB);
+        final SourceRecord deleteRecordB = tableB.get(0);
+        final SourceRecord tombstoneRecordB = tableB.get(1);
+        final SourceRecord insertRecordB = tableB.get(2);
+
+        final Struct deletekeyB = (Struct) deleteRecordB.key();
+        final Struct deleteValueB = (Struct) deleteRecordB.value();
+        assertRecord(deleteValueB.getStruct("before"), expectedDeleteRowB);
+        assertRecord(deletekeyB, expectedDeleteKeyB);
+        assertNull(deleteValueB.get("after"));
+
+        final Struct tombstonekeyB = (Struct) tombstoneRecordB.key();
+        final Struct tombstoneValueB = (Struct) tombstoneRecordB.value();
+        assertRecord(tombstonekeyB, expectedDeleteKeyB);
+        assertNull(tombstoneValueB);
+
+        final Struct insertkeyB = (Struct) insertRecordB.key();
+        final Struct insertValueB = (Struct) insertRecordB.value();
+        assertRecord(insertValueB.getStruct("after"), expectedInsertRowB);
+        assertRecord(insertkeyB, expectedInsertKeyB);
+        assertNull(insertValueB.get("before"));
 
         stopConnector();
     }
