@@ -52,14 +52,6 @@ public class Db2ValueConverters extends JdbcValueConverters {
             case Types.TINYINT:
                 // values are an 8-bit unsigned integer value between 0 and 255, we thus need to store it in short int
                 return SchemaBuilder.int16();
-            /**
-            // Floating point
-            case microsoft.sql.Types.SMALLMONEY:
-            case microsoft.sql.Types.MONEY:
-                return SpecialValueDecimal.builder(decimalMode, column.length(), column.scale().get());
-            case microsoft.sql.Types.DATETIMEOFFSET:
-                return ZonedTimestamp.builder();
-             **/
             default:
                 return super.schemaBuilder(column);
         }
