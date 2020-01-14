@@ -94,10 +94,7 @@ public class Db2SnapshotChangeEventSource extends RelationalSnapshotChangeEventS
 
     @Override
     protected Set<TableId> getAllTableIds(SnapshotContext ctx) throws Exception {
-        // return jdbcConnection.readTableNames(ctx.catalogName, null, null, new String[] {"TABLE"});
-
         return jdbcConnection.readTableNames(null, null, null, new String[]{ "TABLE" });
-
     }
 
     @Override
