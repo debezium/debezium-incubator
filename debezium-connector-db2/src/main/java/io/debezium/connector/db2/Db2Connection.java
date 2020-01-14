@@ -187,16 +187,6 @@ public class Db2Connection extends JdbcConnection {
      * @throws SQLException
      */
     public Lsn incrementLsn(Lsn lsn) throws SQLException {
-        // final String query = INCREMENT_LSN;
-        // return prepareQueryAndMap(query, statement -> {
-        // statement.setBytes(1, lsn.getBinary());
-        // }, singleResultMapper(rs -> {
-        // final Lsn ret = Lsn.valueOf(rs.getBytes(1));
-        // // String lsn64str = ret.toString();
-        // // BigInteger sum =
-        // LOGGER.trace("Increasing lsn from {} to {}", lsn, ret);
-        // return ret;
-        // }, "Increment LSN query must return exactly one value"));
         return lsn.increment();
     }
 
