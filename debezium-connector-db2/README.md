@@ -20,7 +20,7 @@ This module contains both unit tests and integration tests.
 
 A *unit test* is a JUnit test class named `*Test.java` or `Test*.java` that never requires or uses external services, though it can use the file system and can run any components within the same JVM process. They should run very quickly, be independent of each other, and clean up after itself.
 
-An *integration test* is a JUnit test class named `*IT.java` or `IT*.java` that uses a DB2 database server running in a custom Docker container based upon the [mysql/mysql-server:5.7](https://hub.docker.com/r/mysql/mysql-server/) Docker image maintained by the DB2 team. The build will automatically start the DB2 container before the integration tests are run and automatically stop and remove it after all of the integration tests complete (regardless of whether they suceed or fail). All databases used in the integration tests are defined and populated using `*.sql` files and `*.sh` scripts in the `src/test/docker/init` directory, which are copied into the Docker image and run in lexicographical order by DB2 upon startup. Multiple test methods within a single integration test class can reuse the same database, but generally each integration test class should use its own dedicated database(s).
+An *integration test* is a JUnit test class named `*IT.java` or `IT*.java` that uses a DB2 database server running in a custom Docker container based upon the [ibmcom/db2](https://hub.docker.com/r/ibmcom/db2) Docker image maintained by the DB2 team. The build will automatically start the DB2 container before the integration tests are run and automatically stop and remove it after all of the integration tests complete (regardless of whether they suceed or fail). All databases used in the integration tests are defined and populated using `*.sql` files and `*.sh` scripts in the `src/test/docker/db2-cdc-docker` directory, which are copied into the Docker image and run by DB2 upon startup. Multiple test methods within a single integration test class can reuse the same database, but generally each integration test class should use its own dedicated database(s).
 
 Running `mvn install` will compile all code and run the unit and integration tests. If there are any compile problems or any of the unit tests fail, the build will stop immediately. Otherwise, the command will continue to create the module's artifacts, create the Docker image with DB2 and custom scripts, start the Docker container, run the integration tests, stop the container (even if there are integration test failures), and run checkstyle on the code. If there are still no problems, the build will then install the module's artifacts into the local Maven repository.
 
@@ -49,12 +49,12 @@ will start the default DB2 container and run the database server. Now you can us
 * `database.dbname` - the name of the database that your integration test will use; there is no default
 * `database.hostname` - the IP address or name of the host where the Docker container is running; defaults to `localhost` which is likely for Linux, but on OS X and Windows Docker it will have to be set to the IP address of the VM that runs Docker (which you can find by looking at the `DOCKER_HOST` environment variable).
 * `database.port` - the port on which DB2 is listening; defaults to `50000` and is what this module's Docker container uses
-* `database.user` - the name of the database user; defaults to `mysql` and is correct unless your database script uses something different
-* `database.password` - the password of the database user; defaults to `mysqlpw` and is correct unless your database script uses something different
+* `database.user` - the name of the database user; defaults to `db2inst1` and is correct unless your database script uses something different
+* `database.password` - the password of the database user; defaults to `admin` and is correct unless your database script uses something different
 
 For example, you can define these properties by passing these arguments to the JVM:
 
-    -Ddatabase.dbname=<DATABASE_NAME> -Ddatabase.hostname=<DOCKER_HOST> -Ddatabase.port=3306 -Ddatabase.user=mysqluser -Ddatabase.password=mysqlpw
+    -Ddatabase.dbname=<DATABASE_NAME> -Ddatabase.hostname=<DOCKER_HOST> -Ddatabase.port=50000 -Ddatabase.user=db2inst1 -Ddatabase.password=admin
 
 When you are finished running the integration tests from your IDE, you have to stop and remove the Docker container before you can run the next build:
 
