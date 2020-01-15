@@ -2,7 +2,7 @@
 
 echo "Compile ASN tool ..."
 cd /asncdctools/src
-./bldrtn asncdc
+/opt/ibm/db2/V11.5/samples/c/bldrtn asncdc
 
 DBNAME=$1
 DB2DIR=/opt/ibm/db2/V11.5

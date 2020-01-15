@@ -14,12 +14,16 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.source.SourceConnector;
 
+import io.debezium.annotation.ThreadSafe;
+
 /**
  * The main connector class used to instantiate configuration and execution classes
  *
- * @author Jiri Pechanec
+ * @author Jiri Pechanec, Luis Garcés-Erice
  *
  */
+
+@ThreadSafe
 public class Db2Connector extends SourceConnector {
 
     private Map<String, String> properties;
