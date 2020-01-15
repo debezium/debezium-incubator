@@ -10,7 +10,6 @@ ADD asncdcaddremove.sql /asncdctools/src
 ADD asncdctables.sql /asncdctools/src
 ADD dbsetup.sh /asncdctools/src
 ADD asncdc.c /asncdctools/src
-ADD bldrtn /asncdctools/src
 
 
 RUN chmod -R  777  /asncdctools
