@@ -91,4 +91,3 @@ database.dbname=TESTDB
 database.cdcschema=ASNCDC
 database.history.kafka.bootstrap.servers=localhost:9092
 database.history.kafka.topic=CDCTESTDB
-database.history.use.catalog.before.schema=false
