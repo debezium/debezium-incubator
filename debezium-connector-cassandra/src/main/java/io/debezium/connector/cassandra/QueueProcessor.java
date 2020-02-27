@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 
 import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
+import io.debezium.connector.base.ChangeEventQueue;
 
 /**
  * A thread that constantly polls records from the queue and emit them to Kafka via the KafkaRecordEmitter.
@@ -24,7 +25,7 @@ import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskExceptio
 public class QueueProcessor extends AbstractProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(QueueProcessor.class);
     private static final String NAME = "Change Event Queue Processor";
-    private final BlockingEventQueue<Event> blockingEventQueue;
+    private final ChangeEventQueue<Event> queue;
     private final KafkaRecordEmitter kafkaRecordEmitter;
     private final String commitLogRelocationDir;
 
@@ -45,14 +46,14 @@ public class QueueProcessor extends AbstractProcessor {
     @VisibleForTesting
     QueueProcessor(CassandraConnectorContext context, KafkaRecordEmitter emitter) {
         super(NAME, 0);
-        this.blockingEventQueue = context.getQueue();
+        this.queue = context.getQueue();
         this.kafkaRecordEmitter = emitter;
         this.commitLogRelocationDir = context.getCassandraConnectorConfig().commitLogRelocationDir();
     }
 
     @Override
     public void process() throws InterruptedException {
-        List<Event> events = blockingEventQueue.poll();
+        List<Event> events = queue.poll();
         for (Event event : events) {
             processEvent(event);
         }

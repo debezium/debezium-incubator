@@ -5,9 +5,12 @@
  */
 package io.debezium.connector.cassandra;
 
-import java.util.function.Consumer;
+import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
+import io.debezium.function.BlockingConsumer;
 
 import org.apache.kafka.connect.data.Schema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Responsible for generating ChangeRecord and/or TombstoneRecord for create/update/delete events, as well as EOF events.
@@ -16,6 +19,7 @@ public class RecordMaker {
     private final boolean emitTombstoneOnDelete;
     private final Filters filters;
     private final SourceInfo sourceInfo;
+    private static final Logger LOGGER = LoggerFactory.getLogger(RecordMaker.class);
 
     public RecordMaker(boolean emitTombstoneOnDelete, Filters filters, SourceInfo sourceInfo) {
         this.emitTombstoneOnDelete = emitTombstoneOnDelete;
@@ -23,19 +27,19 @@ public class RecordMaker {
         this.sourceInfo = sourceInfo;
     }
 
-    public void insert(RowData data, Schema keySchema, Schema valueSchema, boolean markOffset, Consumer<Record> consumer) {
+    public void insert(RowData data, Schema keySchema, Schema valueSchema, boolean markOffset, BlockingConsumer<Record> consumer) {
         createRecord(data, keySchema, valueSchema, markOffset, consumer, Record.Operation.INSERT);
     }
 
-    public void update(RowData data, Schema keySchema, Schema valueSchema, boolean markOffset, Consumer<Record> consumer) {
+    public void update(RowData data, Schema keySchema, Schema valueSchema, boolean markOffset, BlockingConsumer<Record> consumer) {
         createRecord(data, keySchema, valueSchema, markOffset, consumer, Record.Operation.UPDATE);
     }
 
-    public void delete(RowData data, Schema keySchema, Schema valueSchema, boolean markOffset, Consumer<Record> consumer) {
+    public void delete(RowData data, Schema keySchema, Schema valueSchema, boolean markOffset, BlockingConsumer<Record> consumer) {
         createRecord(data, keySchema, valueSchema, markOffset, consumer, Record.Operation.DELETE);
     }
 
-    private void createRecord(RowData data, Schema keySchema, Schema valueSchema, boolean markOffset, Consumer<Record> consumer, Record.Operation operation) {
+    private void createRecord(RowData data, Schema keySchema, Schema valueSchema, boolean markOffset, BlockingConsumer<Record> consumer, Record.Operation operation) {
         FieldFilterSelector.FieldFilter fieldFilter = filters.getFieldFilter(sourceInfo.keyspaceTable);
         RowData filteredData;
         switch (operation) {
@@ -50,12 +54,22 @@ public class RecordMaker {
         }
 
         ChangeRecord record = new ChangeRecord(sourceInfo, filteredData, keySchema, valueSchema, operation, markOffset);
-        consumer.accept(record);
+        try {
+            consumer.accept(record);
+        } catch (InterruptedException e) {
+            LOGGER.error("Interruption while enqueuing Change Event {}", record.toString());
+            throw new CassandraConnectorTaskException("Enqueuing has been interrupted: ", e);
+        }
 
         if (operation == Record.Operation.DELETE && emitTombstoneOnDelete) {
             // generate kafka tombstone event
             TombstoneRecord tombstoneRecord = new TombstoneRecord(sourceInfo, filteredData, keySchema);
-            consumer.accept(tombstoneRecord);
+            try {
+                consumer.accept(tombstoneRecord);
+            } catch (Exception e) {
+                LOGGER.error("Interruption while enqueuing Tombstone Event {}", record.toString());
+                throw new CassandraConnectorTaskException("Enqueuing has been interrupted: ", e);
+            }
         }
     }
 

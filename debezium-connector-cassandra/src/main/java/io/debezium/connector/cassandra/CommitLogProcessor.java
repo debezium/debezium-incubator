@@ -14,6 +14,9 @@ import java.nio.file.WatchEvent;
 import java.util.Arrays;
 import java.util.Collections;
 
+import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
+import io.debezium.connector.base.ChangeEventQueue;
+
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +36,7 @@ public class CommitLogProcessor extends AbstractProcessor {
     private final CommitLogReadHandlerImpl commitLogReadHandler;
     private final File cdcDir;
     private final AbstractDirectoryWatcher watcher;
-    private final BlockingEventQueue<Event> queue;
+    private final ChangeEventQueue<Event> queue;
     private final boolean latestOnly;
     private final CommitLogProcessorMetrics metrics = new CommitLogProcessorMetrics();
     private boolean initial = true;
@@ -102,15 +105,20 @@ public class CommitLogProcessor extends AbstractProcessor {
             throw new IOException("Commit log " + file.getName() + " does not exist");
         }
         try {
-            LOGGER.info("Processing commit log {}", file.getName());
-            metrics.setCommitLogFilename(file.getName());
-            commitLogReader.readCommitLogSegment(commitLogReadHandler, file, false);
-            queue.enqueue(new EOFEvent(file, true));
-            LOGGER.info("Successfully processed commit log {}", file.getName());
-        }
-        catch (IOException e) {
-            queue.enqueue(new EOFEvent(file, false));
-            LOGGER.warn("Error occurred while processing commit log " + file.getName(), e);
+            try {
+                LOGGER.info("Processing commit log {}", file.getName());
+                metrics.setCommitLogFilename(file.getName());
+                commitLogReader.readCommitLogSegment(commitLogReadHandler, file, false);
+                queue.enqueue(new EOFEvent(file, true));
+                LOGGER.info("Successfully processed commit log {}", file.getName());
+            }
+            catch (IOException e) {
+                queue.enqueue(new EOFEvent(file, false));
+                LOGGER.warn("Error occurred while processing commit log " + file.getName(), e);
+            }
+        } catch (InterruptedException e) {
+            LOGGER.error("Interruption while enqueuing EOF Event for file {}", file.getName());
+            throw new CassandraConnectorTaskException("Enqueuing has been interrupted: ", e);
         }
     }
 
