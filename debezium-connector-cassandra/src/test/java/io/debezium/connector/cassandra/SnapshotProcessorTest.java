@@ -42,7 +42,7 @@ public class SnapshotProcessorTest extends EmbeddedCassandraConnectorTestBase {
         ChangeEventQueue<Event> queue = context.getQueue();
         assertTrue(queue.remainingCapacity() == queue.totalCapacity());
         snapshotProcessor.process();
-        assertEquals(tableSize, queue.totalCapacity()-queue.remainingCapacity());
+        assertEquals(tableSize, queue.totalCapacity() - queue.remainingCapacity());
         for (Event event : queue.poll()) {
             ChangeRecord record = (ChangeRecord) event;
             Assert.assertEquals(record.getEventType(), Event.EventType.CHANGE_EVENT);

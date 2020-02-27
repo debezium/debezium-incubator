@@ -6,14 +6,14 @@
 package io.debezium.connector.cassandra;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.security.GeneralSecurityException;
-
-import io.debezium.connector.common.CdcSourceTaskContext;
-import io.debezium.connector.base.ChangeEventQueue;
+import java.util.Collections;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.Schema;
+
+import io.debezium.connector.base.ChangeEventQueue;
+import io.debezium.connector.common.CdcSourceTaskContext;
 
 /**
  * Contains contextual information and objects scoped to the lifecycle

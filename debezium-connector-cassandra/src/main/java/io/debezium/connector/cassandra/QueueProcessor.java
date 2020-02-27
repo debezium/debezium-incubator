@@ -15,8 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
 import io.debezium.connector.base.ChangeEventQueue;
+import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
 
 /**
  * A thread that constantly polls records from the queue and emit them to Kafka via the KafkaRecordEmitter.

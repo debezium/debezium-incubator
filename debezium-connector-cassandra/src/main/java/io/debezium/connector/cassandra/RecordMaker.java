@@ -5,12 +5,12 @@
  */
 package io.debezium.connector.cassandra;
 
-import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
-import io.debezium.function.BlockingConsumer;
-
 import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
+import io.debezium.function.BlockingConsumer;
 
 /**
  * Responsible for generating ChangeRecord and/or TombstoneRecord for create/update/delete events, as well as EOF events.
@@ -56,7 +56,8 @@ public class RecordMaker {
         ChangeRecord record = new ChangeRecord(sourceInfo, filteredData, keySchema, valueSchema, operation, markOffset);
         try {
             consumer.accept(record);
-        } catch (InterruptedException e) {
+        }
+        catch (InterruptedException e) {
             LOGGER.error("Interruption while enqueuing Change Event {}", record.toString());
             throw new CassandraConnectorTaskException("Enqueuing has been interrupted: ", e);
         }
@@ -66,7 +67,8 @@ public class RecordMaker {
             TombstoneRecord tombstoneRecord = new TombstoneRecord(sourceInfo, filteredData, keySchema);
             try {
                 consumer.accept(tombstoneRecord);
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 LOGGER.error("Interruption while enqueuing Tombstone Event {}", record.toString());
                 throw new CassandraConnectorTaskException("Enqueuing has been interrupted: ", e);
             }

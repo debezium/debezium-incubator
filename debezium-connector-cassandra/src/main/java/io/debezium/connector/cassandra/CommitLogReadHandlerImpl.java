@@ -4,7 +4,6 @@
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
 package io.debezium.connector.cassandra;
-import io.debezium.connector.base.ChangeEventQueue;
 
 import static io.debezium.connector.cassandra.CommitLogReadHandlerImpl.RowType.DELETE;
 import static io.debezium.connector.cassandra.CommitLogReadHandlerImpl.RowType.INSERT;
@@ -38,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.TableMetadata;
 
+import io.debezium.connector.base.ChangeEventQueue;
 import io.debezium.connector.cassandra.exceptions.CassandraConnectorSchemaException;
 import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
 import io.debezium.connector.cassandra.transforms.CassandraTypeDeserializer;

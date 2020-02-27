@@ -14,12 +14,12 @@ import java.nio.file.WatchEvent;
 import java.util.Arrays;
 import java.util.Collections;
 
-import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
-import io.debezium.connector.base.ChangeEventQueue;
-
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.debezium.connector.base.ChangeEventQueue;
+import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
 
 /**
  * The {@link CommitLogProcessor} is used to process CommitLog in CDC directory.
@@ -116,7 +116,8 @@ public class CommitLogProcessor extends AbstractProcessor {
                 queue.enqueue(new EOFEvent(file, false));
                 LOGGER.warn("Error occurred while processing commit log " + file.getName(), e);
             }
-        } catch (InterruptedException e) {
+        }
+        catch (InterruptedException e) {
             LOGGER.error("Interruption while enqueuing EOF Event for file {}", file.getName());
             throw new CassandraConnectorTaskException("Enqueuing has been interrupted: ", e);
         }

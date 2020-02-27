@@ -29,9 +29,9 @@ import com.datastax.driver.core.querybuilder.BuiltStatement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 
+import io.debezium.connector.base.ChangeEventQueue;
 import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
 import io.debezium.connector.cassandra.transforms.CassandraTypeDeserializer;
-import io.debezium.connector.base.ChangeEventQueue;
 import io.debezium.time.Conversions;
 
 /**

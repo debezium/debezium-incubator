@@ -23,8 +23,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.debezium.config.Configuration;
-import io.debezium.time.Conversions;
 import io.debezium.connector.base.ChangeEventQueue;
+import io.debezium.time.Conversions;
 
 public class QueueProcessorTest extends EmbeddedCassandraConnectorTestBase {
     private CassandraConnectorContext context;
@@ -58,7 +58,7 @@ public class QueueProcessorTest extends EmbeddedCassandraConnectorTestBase {
             queue.enqueue(record);
         }
 
-        assertEquals(recordSize, queue.totalCapacity()-queue.remainingCapacity());
+        assertEquals(recordSize, queue.totalCapacity() - queue.remainingCapacity());
         queueProcessor.process();
         verify(emitter, times(recordSize)).emit(any());
         assertTrue(queue.remainingCapacity() == queue.totalCapacity());
@@ -79,7 +79,7 @@ public class QueueProcessorTest extends EmbeddedCassandraConnectorTestBase {
             queue.enqueue(record);
         }
 
-        assertEquals(recordSize, queue.totalCapacity()-queue.remainingCapacity());
+        assertEquals(recordSize, queue.totalCapacity() - queue.remainingCapacity());
         queueProcessor.process();
         verify(emitter, times(recordSize)).emit(any());
         assertTrue(queue.remainingCapacity() == queue.totalCapacity());
@@ -93,7 +93,7 @@ public class QueueProcessorTest extends EmbeddedCassandraConnectorTestBase {
         File commitLogFile = generateCommitLogFile();
         queue.enqueue(new EOFEvent(commitLogFile, true));
 
-        assertEquals(1, queue.totalCapacity()-queue.remainingCapacity());
+        assertEquals(1, queue.totalCapacity() - queue.remainingCapacity());
         queueProcessor.process();
         verify(emitter, times(0)).emit(any());
         assertTrue(queue.remainingCapacity() == queue.totalCapacity());
