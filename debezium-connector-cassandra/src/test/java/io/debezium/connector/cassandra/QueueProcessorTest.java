@@ -61,7 +61,7 @@ public class QueueProcessorTest extends EmbeddedCassandraConnectorTestBase {
         assertEquals(recordSize, queue.totalCapacity() - queue.remainingCapacity());
         queueProcessor.process();
         verify(emitter, times(recordSize)).emit(any());
-        assertTrue(queue.remainingCapacity() == queue.totalCapacity());
+        assertEquals(queue.totalCapacity(), queue.remainingCapacity());
     }
 
     @Test
@@ -82,7 +82,7 @@ public class QueueProcessorTest extends EmbeddedCassandraConnectorTestBase {
         assertEquals(recordSize, queue.totalCapacity() - queue.remainingCapacity());
         queueProcessor.process();
         verify(emitter, times(recordSize)).emit(any());
-        assertTrue(queue.remainingCapacity() == queue.totalCapacity());
+        assertEquals(queue.totalCapacity(), queue.remainingCapacity());
     }
 
     @Test
@@ -96,6 +96,6 @@ public class QueueProcessorTest extends EmbeddedCassandraConnectorTestBase {
         assertEquals(1, queue.totalCapacity() - queue.remainingCapacity());
         queueProcessor.process();
         verify(emitter, times(0)).emit(any());
-        assertTrue(queue.remainingCapacity() == queue.totalCapacity());
+        assertEquals(queue.totalCapacity(), queue.remainingCapacity());
     }
 }

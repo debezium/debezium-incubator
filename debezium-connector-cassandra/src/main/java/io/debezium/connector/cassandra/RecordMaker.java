@@ -16,10 +16,10 @@ import io.debezium.function.BlockingConsumer;
  * Responsible for generating ChangeRecord and/or TombstoneRecord for create/update/delete events, as well as EOF events.
  */
 public class RecordMaker {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RecordMaker.class);
     private final boolean emitTombstoneOnDelete;
     private final Filters filters;
     private final SourceInfo sourceInfo;
-    private static final Logger LOGGER = LoggerFactory.getLogger(RecordMaker.class);
 
     public RecordMaker(boolean emitTombstoneOnDelete, Filters filters, SourceInfo sourceInfo) {
         this.emitTombstoneOnDelete = emitTombstoneOnDelete;

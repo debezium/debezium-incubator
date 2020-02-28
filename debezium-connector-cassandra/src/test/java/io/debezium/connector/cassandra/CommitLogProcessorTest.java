@@ -64,7 +64,7 @@ public class CommitLogProcessorTest extends EmbeddedCassandraConnectorTestBase {
 
         // check to make sure there are no records in the queue to begin with
         ChangeEventQueue<Event> queue = context.getQueue();
-        assertTrue(queue.remainingCapacity() == queue.totalCapacity());
+        assertEquals(queue.totalCapacity(), queue.remainingCapacity());
 
         // process the logs in commit log directory
         File cdcLoc = new File(DatabaseDescriptor.getCommitLogLocation());

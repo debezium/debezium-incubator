@@ -40,7 +40,7 @@ public class SnapshotProcessorTest extends EmbeddedCassandraConnectorTestBase {
         }
 
         ChangeEventQueue<Event> queue = context.getQueue();
-        assertTrue(queue.remainingCapacity() == queue.totalCapacity());
+        assertEquals(queue.totalCapacity(), queue.remainingCapacity());
         snapshotProcessor.process();
         assertEquals(tableSize, queue.totalCapacity() - queue.remainingCapacity());
         for (Event event : queue.poll()) {
@@ -72,9 +72,9 @@ public class SnapshotProcessorTest extends EmbeddedCassandraConnectorTestBase {
         }
 
         ChangeEventQueue<Event> queue = context.getQueue();
-        assertTrue(queue.remainingCapacity() == queue.totalCapacity());
+        assertEquals(queue.totalCapacity(), queue.remainingCapacity());
         snapshotProcessor.process();
-        assertTrue(queue.remainingCapacity() == queue.totalCapacity());
+        assertEquals(queue.totalCapacity(), queue.remainingCapacity());
 
         deleteTestKeyspaceTables();
         deleteTestOffsets(context);
@@ -92,16 +92,16 @@ public class SnapshotProcessorTest extends EmbeddedCassandraConnectorTestBase {
         context.getSchemaHolder().refreshSchemas();
 
         ChangeEventQueue<Event> queue = context.getQueue();
-        assertTrue(queue.remainingCapacity() == queue.totalCapacity());
+        assertEquals(queue.totalCapacity(), queue.remainingCapacity());
         snapshotProcessor.process(); // records empty table to snapshot.offset, so it won't be snapshotted again
-        assertTrue(queue.remainingCapacity() == queue.totalCapacity());
+        assertEquals(queue.totalCapacity(), queue.remainingCapacity());
 
         int tableSize = 5;
         for (int i = 0; i < tableSize; i++) {
             context.getCassandraClient().execute("INSERT INTO " + keyspaceTable("cdc_table") + "(a, b) VALUES (?, ?)", i, String.valueOf(i));
         }
         snapshotProcessor.process();
-        assertTrue(queue.remainingCapacity() == queue.totalCapacity()); // newly inserted records should be processed by commit log processor instead
+        assertEquals(queue.totalCapacity(), queue.remainingCapacity()); // newly inserted records should be processed by commit log processor instead
 
         deleteTestKeyspaceTables();
         deleteTestOffsets(context);
