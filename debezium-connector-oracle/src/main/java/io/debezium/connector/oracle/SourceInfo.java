@@ -8,6 +8,7 @@ package io.debezium.connector.oracle;
 import java.time.Instant;
 
 import io.debezium.annotation.NotThreadSafe;
+import io.debezium.connector.SnapshotRecord;
 import io.debezium.connector.common.BaseSourceInfo;
 import io.debezium.relational.TableId;
 
@@ -67,6 +68,11 @@ public class SourceInfo extends BaseSourceInfo {
 
     public void setTableId(TableId tableId) {
         this.tableId = tableId;
+    }
+
+    @Override
+    protected SnapshotRecord snapshot() {
+        return super.snapshot();
     }
 
     @Override

@@ -93,6 +93,12 @@ public class Db2OffsetContext implements OffsetContext {
         return sourceInfo.struct();
     }
 
+    @Override
+    public OffsetContext getDataCollectionOffsetContext(DataCollectionId collectionId) {
+        // Concurrent snapshot not support so mutable copy not used
+        throw new UnsupportedOperationException();
+    }
+
     public TxLogPosition getChangePosition() {
         return TxLogPosition.valueOf(sourceInfo.getCommitLsn(), sourceInfo.getChangeLsn());
     }

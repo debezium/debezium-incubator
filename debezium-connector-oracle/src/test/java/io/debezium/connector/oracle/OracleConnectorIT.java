@@ -23,6 +23,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import io.debezium.config.CommonConnectorConfig;
 import io.debezium.config.Configuration;
 import io.debezium.connector.oracle.OracleConnectorConfig.SnapshotMode;
 import io.debezium.connector.oracle.util.TestHelper;
@@ -83,6 +84,56 @@ public class OracleConnectorIT extends AbstractConnectorTest {
     public void shouldTakeSnapshot() throws Exception {
         Configuration config = TestHelper.defaultConfig()
                 .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
+                .build();
+
+        int expectedRecordCount = 0;
+        connection.execute("INSERT INTO debezium.customer VALUES (1, 'Billie-Bob', 1234.56, TO_DATE('2018/02/22', 'yyyy-mm-dd'))");
+        connection.execute("INSERT INTO debezium.customer VALUES (2, 'Bruce', 2345.67, null)");
+        connection.execute("COMMIT");
+        expectedRecordCount += 2;
+
+        start(OracleConnector.class, config);
+        assertConnectorIsRunning();
+
+        SourceRecords records = consumeRecordsByTopic(expectedRecordCount);
+        List<SourceRecord> testTableRecords = records.recordsForTopic("server1.DEBEZIUM.CUSTOMER");
+        assertThat(testTableRecords).hasSize(expectedRecordCount);
+
+        // read
+        SourceRecord record1 = testTableRecords.get(0);
+        VerifyRecord.isValidRead(record1, "ID", 1);
+        Struct after = (Struct) ((Struct) record1.value()).get("after");
+        assertThat(after.get("ID")).isEqualTo(1);
+        assertThat(after.get("NAME")).isEqualTo("Billie-Bob");
+        assertThat(after.get("SCORE")).isEqualTo(BigDecimal.valueOf(1234.56));
+        assertThat(after.get("REGISTERED")).isEqualTo(toMicroSecondsSinceEpoch(LocalDateTime.of(2018, 2, 22, 0, 0, 0)));
+
+        assertThat(record1.sourceOffset().get(SourceInfo.SNAPSHOT_KEY)).isEqualTo(true);
+        assertThat(record1.sourceOffset().get(SNAPSHOT_COMPLETED_KEY)).isEqualTo(false);
+
+        Struct source = (Struct) ((Struct) record1.value()).get("source");
+        assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo("true");
+
+        SourceRecord record2 = testTableRecords.get(1);
+        VerifyRecord.isValidRead(record2, "ID", 2);
+        after = (Struct) ((Struct) record2.value()).get("after");
+        assertThat(after.get("ID")).isEqualTo(2);
+        assertThat(after.get("NAME")).isEqualTo("Bruce");
+        assertThat(after.get("SCORE")).isEqualTo(BigDecimal.valueOf(2345.67));
+        assertThat(after.get("REGISTERED")).isNull();
+
+        assertThat(record2.sourceOffset().get(SourceInfo.SNAPSHOT_KEY)).isEqualTo(true);
+        assertThat(record2.sourceOffset().get(SNAPSHOT_COMPLETED_KEY)).isEqualTo(true);
+
+        source = (Struct) ((Struct) record2.value()).get("source");
+        assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo("last");
+    }
+
+    @Test
+    public void shouldTakeConcurrentSnapshot() throws Exception {
+        Configuration config = TestHelper.defaultConfig()
+                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
+                .with(CommonConnectorConfig.SNAPSHOT_MAX_THREADS, 10)
                 .build();
 
         int expectedRecordCount = 0;

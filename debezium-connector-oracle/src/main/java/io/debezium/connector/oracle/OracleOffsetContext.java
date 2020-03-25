@@ -30,6 +30,8 @@ public class OracleOffsetContext implements OffsetContext {
     private final SourceInfo sourceInfo;
     private final TransactionContext transactionContext;
 
+    private final OracleConnectorConfig connectorConfig;
+
     /**
      * Whether a snapshot has been completed or not.
      */
@@ -39,6 +41,7 @@ public class OracleOffsetContext implements OffsetContext {
                                 boolean snapshot, boolean snapshotCompleted, TransactionContext transactionContext) {
         partition = Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
 
+        this.connectorConfig = connectorConfig;
         sourceInfo = new SourceInfo(connectorConfig);
         sourceInfo.setScn(scn);
         sourceInfo.setLcrPosition(lcrPosition);
@@ -53,6 +56,20 @@ public class OracleOffsetContext implements OffsetContext {
         else {
             sourceInfo.setSnapshot(snapshot ? SnapshotRecord.TRUE : SnapshotRecord.FALSE);
         }
+    }
+
+    public OracleOffsetContext(OracleOffsetContext oracleOffsetContext) {
+        SourceInfo copySourceInfo = new SourceInfo(oracleOffsetContext.connectorConfig);
+        copySourceInfo.setScn(oracleOffsetContext.sourceInfo.getScn());
+        copySourceInfo.setLcrPosition(oracleOffsetContext.sourceInfo.getLcrPosition());
+        copySourceInfo.setSnapshot(oracleOffsetContext.sourceInfo.snapshot());
+
+        this.sourceInfoSchema = oracleOffsetContext.sourceInfoSchema;
+        this.partition = oracleOffsetContext.partition;
+        this.sourceInfo = copySourceInfo;
+        this.transactionContext = oracleOffsetContext.transactionContext;
+        this.connectorConfig = oracleOffsetContext.connectorConfig;
+        this.snapshotCompleted = oracleOffsetContext.snapshotCompleted;
     }
 
     public static class Builder {
@@ -139,6 +156,11 @@ public class OracleOffsetContext implements OffsetContext {
     @Override
     public Struct getSourceInfo() {
         return sourceInfo.struct();
+    }
+
+    @Override
+    public OffsetContext getDataCollectionOffsetContext(DataCollectionId collectionId) {
+        return new OracleOffsetContext(this);
     }
 
     public void setScn(long scn) {

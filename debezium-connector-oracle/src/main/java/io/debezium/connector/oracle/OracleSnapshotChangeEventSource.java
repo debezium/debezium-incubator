@@ -229,6 +229,18 @@ public class OracleSnapshotChangeEventSource extends RelationalSnapshotChangeEve
     }
 
     @Override
+    protected void prepareSnapshotWorker(Statement statement, RelationalSnapshotContext snapshotContext) throws SQLException {
+        if (connectorConfig.getPdbName() != null) {
+            statement.execute("alter session set container=" + connectorConfig.getPdbName());
+        }
+    }
+
+    @Override
+    protected boolean supportsConcurrentSnapshot() {
+        return true;
+    }
+
+    @Override
     protected void complete(SnapshotContext snapshotContext) {
         if (connectorConfig.getPdbName() != null) {
             jdbcConnection.resetSessionToCdb();

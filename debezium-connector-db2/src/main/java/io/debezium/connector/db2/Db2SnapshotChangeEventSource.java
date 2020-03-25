@@ -189,6 +189,11 @@ public class Db2SnapshotChangeEventSource extends RelationalSnapshotChangeEventS
         return Optional.of(String.format("SELECT * FROM %s.%s", tableId.schema(), tableId.table()));
     }
 
+    @Override
+    protected boolean supportsConcurrentSnapshot() {
+        return false;
+    }
+
     /**
      * Mutable context which is populated in the course of snapshotting.
      */
