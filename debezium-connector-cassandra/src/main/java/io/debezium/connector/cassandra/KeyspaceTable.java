@@ -5,6 +5,8 @@
  */
 package io.debezium.connector.cassandra;
 
+import io.debezium.schema.DataCollectionId;
+
 import java.util.Objects;
 
 import com.datastax.driver.core.TableMetadata;
@@ -12,7 +14,7 @@ import com.datastax.driver.core.TableMetadata;
 /**
  * The KeyspaceTable uniquely identifies each table in the Cassandra cluster
  */
-public class KeyspaceTable {
+public class KeyspaceTable implements DataCollectionId {
     public final String keyspace;
     public final String table;
 
@@ -50,5 +52,10 @@ public class KeyspaceTable {
     @Override
     public String toString() {
         return name();
+    }
+
+    @Override
+    public String identifier() {
+        return keyspace + "." + table;
     }
 }
