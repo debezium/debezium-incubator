@@ -11,8 +11,8 @@ import io.debezium.schema.TopicSelector;
  * Responsible for selecting the Kafka topic that the record will get send to.
  */
 public class CassandraTopicSelector {
-        public static TopicSelector<KeyspaceTable> defaultSelector(String prefix, String heartbeatPrefix) {
-            return TopicSelector.defaultSelector(prefix, heartbeatPrefix, ".",
-                    (keyspaceTable, pref, delimiter) -> String.join(delimiter, pref, keyspaceTable.keyspace, keyspaceTable.table));
-        }
+    public static TopicSelector<KeyspaceTable> defaultSelector(String prefix, String heartbeatPrefix) {
+        return TopicSelector.defaultSelector(prefix, heartbeatPrefix, ".",
+                (keyspaceTable, pref, delimiter) -> String.join(delimiter, pref, keyspaceTable.keyspace, keyspaceTable.table));
+    }
 }
