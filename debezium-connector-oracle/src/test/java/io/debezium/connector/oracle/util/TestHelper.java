@@ -28,6 +28,10 @@ public class TestHelper {
 
     public static final String CONNECTOR_USER = "c##xstrm";
 
+    public static final String CONNECTOR_NAME = "oracle";
+
+    public static final String SERVER_NAME = "server1";
+
     private static JdbcConfiguration defaultJdbcConfig() {
         return JdbcConfiguration.copy(Configuration.fromSystemProperties("database."))
                 .withDefault(JdbcConfiguration.HOSTNAME, "localhost")
