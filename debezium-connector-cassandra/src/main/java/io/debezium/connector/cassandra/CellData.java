@@ -8,6 +8,7 @@ package io.debezium.connector.cassandra;
 import java.util.Objects;
 
 import org.apache.cassandra.db.marshal.AbstractType;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -66,16 +67,30 @@ public class CellData implements KafkaRecord {
 
     @Override
     public Struct record(Schema schema) {
-        Struct cellDataStruct;
-        if(value instanceof Struct) {
-            cellDataStruct = new Struct(((Struct) value).schema());
-        } else {
-            cellDataStruct = new Struct(schema);
+        Struct struct = new Struct(schema)
+                .put(CELL_DELETION_TS_KEY, deletionTs)
+                .put(CELL_SET_KEY, true);
+
+        Schema valueSchema = schema.field(CELL_VALUE_KEY).schema();
+        if (valueSchema.type() == Schema.Type.STRUCT) {
+            Struct clonedValue = cloneValue(valueSchema, value);
+            struct.put(CELL_VALUE_KEY, clonedValue);
         }
-        cellDataStruct.put(CELL_VALUE_KEY, value)
-                      .put(CELL_DELETION_TS_KEY, deletionTs)
-                      .put(CELL_SET_KEY, true);
-        return cellDataStruct;
+        else {
+            struct.put(CELL_VALUE_KEY, value);
+        }
+
+        return struct;
+    }
+
+    private Struct cloneValue(Schema valueSchema, Object value) {
+        Struct valueStruct = (Struct) value;
+        Struct clonedValue = new Struct(valueSchema);
+        for (Field field : valueSchema.fields()) {
+            String fieldName = field.name();
+            clonedValue.put(fieldName, valueStruct.get(fieldName));
+        }
+        return clonedValue;
     }
 
     static Schema cellSchema(ColumnMetadata cm, boolean optional) {
