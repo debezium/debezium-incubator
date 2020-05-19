@@ -66,10 +66,16 @@ public class CellData implements KafkaRecord {
 
     @Override
     public Struct record(Schema schema) {
-        return new Struct(schema)
-                .put(CELL_VALUE_KEY, value)
-                .put(CELL_DELETION_TS_KEY, deletionTs)
-                .put(CELL_SET_KEY, true);
+        Struct cellDataStruct;
+        if(value instanceof Struct) {
+            cellDataStruct = new Struct(((Struct) value).schema());
+        } else {
+            cellDataStruct = new Struct(schema);
+        }
+        cellDataStruct.put(CELL_VALUE_KEY, value)
+                      .put(CELL_DELETION_TS_KEY, deletionTs)
+                      .put(CELL_SET_KEY, true);
+        return cellDataStruct;
     }
 
     static Schema cellSchema(ColumnMetadata cm, boolean optional) {
