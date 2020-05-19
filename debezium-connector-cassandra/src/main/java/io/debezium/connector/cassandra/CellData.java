@@ -83,6 +83,9 @@ public class CellData implements KafkaRecord {
         return struct;
     }
 
+    // Encountered DataException("Struct schemas do not match.") when cell value is a Struct,
+    // because equal() for Kafka Connect Schema is using the default shallow comparison.
+    // Replace the schema of value struct with the same schema object passed in to avoid this problem.
     private Struct cloneValue(Schema valueSchema, Object value) {
         Struct valueStruct = (Struct) value;
         Struct clonedValue = new Struct(valueSchema);
