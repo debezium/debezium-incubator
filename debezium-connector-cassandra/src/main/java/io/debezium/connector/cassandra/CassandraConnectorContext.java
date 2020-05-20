@@ -5,8 +5,6 @@
  */
 package io.debezium.connector.cassandra;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.Collections;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
