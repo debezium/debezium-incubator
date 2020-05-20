@@ -67,20 +67,20 @@ public class CellData implements KafkaRecord {
 
     @Override
     public Struct record(Schema schema) {
-        Struct struct = new Struct(schema)
+        Struct cellStruct = new Struct(schema)
                 .put(CELL_DELETION_TS_KEY, deletionTs)
                 .put(CELL_SET_KEY, true);
 
         Schema valueSchema = schema.field(CELL_VALUE_KEY).schema();
         if (valueSchema.type() == Schema.Type.STRUCT) {
             Struct clonedValue = cloneValue(valueSchema, value);
-            struct.put(CELL_VALUE_KEY, clonedValue);
+            cellStruct.put(CELL_VALUE_KEY, clonedValue);
         }
         else {
-            struct.put(CELL_VALUE_KEY, value);
+            cellStruct.put(CELL_VALUE_KEY, value);
         }
 
-        return struct;
+        return cellStruct;
     }
 
     // Encountered DataException("Struct schemas do not match.") when cell value is a Struct,
