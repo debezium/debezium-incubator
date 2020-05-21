@@ -71,9 +71,9 @@ public class CellData implements KafkaRecord {
                 .put(CELL_DELETION_TS_KEY, deletionTs)
                 .put(CELL_SET_KEY, true);
 
-        Schema valueSchema = schema.field(CELL_VALUE_KEY).schema();
-        if (valueSchema.type() == Schema.Type.STRUCT) {
-            Struct clonedValue = cloneValue(valueSchema, value);
+        if (value instanceof Struct) {
+            Schema valueSchema = schema.field(CELL_VALUE_KEY).schema();
+            Struct clonedValue = cloneValue(valueSchema, (Struct) value);
             cellStruct.put(CELL_VALUE_KEY, clonedValue);
         }
         else {
@@ -83,15 +83,14 @@ public class CellData implements KafkaRecord {
         return cellStruct;
     }
 
-    // Encountered DataException("Struct schemas do not match.") when cell value is a Struct,
-    // because equal() for Kafka Connect Schema is using the default shallow comparison.
-    // Replace the schema of value struct with the same schema object passed in to avoid this problem.
-    private Struct cloneValue(Schema valueSchema, Object value) {
-        Struct valueStruct = (Struct) value;
+    // Encountered DataException("Struct schemas do not match.") when value is a Struct.
+    // The error is because the valueSchema is optional, but the schema of value formed during deserialization is not.
+    // This is a temporary workaround to fix this problem.
+    private Struct cloneValue(Schema valueSchema, Struct value) {
         Struct clonedValue = new Struct(valueSchema);
         for (Field field : valueSchema.fields()) {
             String fieldName = field.name();
-            clonedValue.put(fieldName, valueStruct.get(fieldName));
+            clonedValue.put(fieldName, value.get(fieldName));
         }
         return clonedValue;
     }
