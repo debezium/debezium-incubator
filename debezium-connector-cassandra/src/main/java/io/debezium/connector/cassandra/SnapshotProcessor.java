@@ -34,6 +34,7 @@ import io.debezium.connector.base.ChangeEventQueue;
 import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
 import io.debezium.connector.cassandra.transforms.CassandraTypeDeserializer;
 import io.debezium.time.Conversions;
+import io.debezium.util.Collect;
 
 /**
  * This reader is responsible for initial bootstrapping of a table,
@@ -51,7 +52,7 @@ public class SnapshotProcessor extends AbstractProcessor {
     private static final String NAME = "Snapshot Processor";
     private static final String CASSANDRA_NOW_UNIXTIMESTAMP = "UNIXTIMESTAMPOF(NOW())";
     private static final String EXECUTION_TIME_ALIAS = "execution_time";
-    private static final Set<DataType.Name> collectionTypes = new HashSet<>(Arrays.asList(DataType.Name.LIST, DataType.Name.SET, DataType.Name.MAP));
+    private static final Set<DataType.Name> collectionTypes = Collect.unmodifiableSet(DataType.Name.LIST, DataType.Name.SET, DataType.Name.MAP);
 
     private final CassandraClient cassandraClient;
     private final ChangeEventQueue<Event> queue;
