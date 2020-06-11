@@ -7,7 +7,6 @@ package io.debezium.connector.cassandra;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
