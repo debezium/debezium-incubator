@@ -5,12 +5,6 @@
  */
 package io.debezium.connector.oracle.util;
 
-import java.nio.file.Path;
-import java.sql.SQLException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.debezium.config.Configuration;
 import io.debezium.connector.oracle.OracleConnection;
 import io.debezium.connector.oracle.OracleConnectionFactory;
@@ -20,21 +14,31 @@ import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.history.FileDatabaseHistory;
 import io.debezium.util.Testing;
 
+import java.nio.file.Path;
+import java.sql.SQLException;
+
 public class TestHelper {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TestHelper.class);
-
+//    private static final String HOST = "10.47.100.32"; //Roby
+    private static final String HOST = "10.47.100.62"; //Development
+    private static final String SCHEMA_USER = "debezium";
+    private static final String SCHEMA_PASS = "dbz";
+    private static final String DATABASE = "ORA19C_PDB01"; //dev
+//    private static final String DATABASE = "ORCLPDB";//qa
     public static final Path DB_HISTORY_PATH = Testing.Files.createTestingPath("file-db-history-connect.txt").toAbsolutePath();
 
-    public static final String CONNECTOR_USER = "c##xstrm";
+//    public static final String CONNECTOR_USER = "c##xstrm";// qa
+    public static final String CONNECTOR_USER = "c##logminer"; // dev
+//    public static final String CONNECTOR_USER_PASS = "xs";         //qa
+    public static final String CONNECTOR_USER_PASS = "lm"; //dev
 
-    private static JdbcConfiguration defaultJdbcConfig() {
+    public static JdbcConfiguration defaultJdbcConfig() {
         return JdbcConfiguration.copy(Configuration.fromSystemProperties("database."))
-                .withDefault(JdbcConfiguration.HOSTNAME, "localhost")
+                .withDefault(JdbcConfiguration.HOSTNAME, HOST)
                 .withDefault(JdbcConfiguration.PORT, 1521)
                 .withDefault(JdbcConfiguration.USER, CONNECTOR_USER)
-                .withDefault(JdbcConfiguration.PASSWORD, "xs")
-                .withDefault(JdbcConfiguration.DATABASE, "ORCLCDB")
+                .withDefault(JdbcConfiguration.PASSWORD, CONNECTOR_USER_PASS)
+                .withDefault(JdbcConfiguration.DATABASE, "ORA19C")
                 .build();
     }
 
@@ -51,9 +55,10 @@ public class TestHelper {
         );
 
         return builder.with(RelationalDatabaseConnectorConfig.SERVER_NAME, "server1")
-                .with(OracleConnectorConfig.PDB_NAME, "ORCLPDB1")
+                .with(OracleConnectorConfig.PDB_NAME, DATABASE)
                 .with(OracleConnectorConfig.XSTREAM_SERVER_NAME, "dbzxout")
                 .with(OracleConnectorConfig.DATABASE_HISTORY, FileDatabaseHistory.class)
+                .with(OracleConnectorConfig.SCHEMA_NAME, SCHEMA_USER)
                 .with(FileDatabaseHistory.FILE_PATH, DB_HISTORY_PATH);
     }
 
@@ -73,15 +78,28 @@ public class TestHelper {
     }
 
     /**
+     * Database level connection.
+     * this is PDB level connector with LogMiner adapter
+     * @return OracleConnection
+     */
+    public static OracleConnection logMinerPdbConnection() {
+        Configuration jdbcConfig = testJdbcConfig().edit()
+                .with(OracleConnectorConfig.CONNECTOR_ADAPTER, "LogMiner")
+                .with(OracleConnectorConfig.DRIVER_TYPE, "thin")
+                .build();
+        return new OracleConnection(jdbcConfig, new OracleConnectionFactory());
+    }
+
+    /**
      * Returns a JDBC configuration for the test data schema and user (NOT the XStream user).
      */
     private static JdbcConfiguration testJdbcConfig() {
         return JdbcConfiguration.copy(Configuration.fromSystemProperties("database."))
-                .withDefault(JdbcConfiguration.HOSTNAME, "localhost")
+                .withDefault(JdbcConfiguration.HOSTNAME, HOST)
                 .withDefault(JdbcConfiguration.PORT, 1521)
-                .withDefault(JdbcConfiguration.USER, "debezium")
-                .withDefault(JdbcConfiguration.PASSWORD, "dbz")
-                .withDefault(JdbcConfiguration.DATABASE, "ORCLPDB1")
+                .withDefault(JdbcConfiguration.USER, SCHEMA_USER)
+                .withDefault(JdbcConfiguration.PASSWORD, SCHEMA_PASS)
+                .withDefault(JdbcConfiguration.DATABASE, DATABASE)
                 .build();
     }
 
@@ -90,15 +108,15 @@ public class TestHelper {
      */
     private static JdbcConfiguration adminJdbcConfig() {
         return JdbcConfiguration.copy(Configuration.fromSystemProperties("database.admin."))
-                .withDefault(JdbcConfiguration.HOSTNAME, "localhost")
+                .withDefault(JdbcConfiguration.HOSTNAME, HOST)
                 .withDefault(JdbcConfiguration.PORT, 1521)
                 .withDefault(JdbcConfiguration.USER, "sys as sysdba")
                 .withDefault(JdbcConfiguration.PASSWORD, "top_secret")
-                .withDefault(JdbcConfiguration.DATABASE, "ORCLPDB1")
+                .withDefault(JdbcConfiguration.DATABASE, DATABASE)
                 .build();
     }
 
-    private static Configuration.Builder testConfig() {
+    public static Configuration.Builder testConfig() {
         JdbcConfiguration jdbcConfiguration = testJdbcConfig();
         Configuration.Builder builder = Configuration.create();
 

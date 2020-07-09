@@ -7,6 +7,7 @@ package io.debezium.connector.oracle.antlr.listener;
 
 import io.debezium.connector.oracle.antlr.OracleDdlParser;
 import io.debezium.ddl.parser.oracle.generated.PlSqlParser;
+import io.debezium.ddl.parser.oracle.generated.PlSqlParserBaseListener;
 import io.debezium.relational.Column;
 import io.debezium.relational.ColumnEditor;
 import io.debezium.relational.TableEditor;
@@ -18,11 +19,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static io.debezium.antlr.AntlrDdlParser.getText;
+import static io.debezium.connector.oracle.antlr.listener.ParserUtils.getColumnName;
+import static io.debezium.connector.oracle.antlr.listener.ParserUtils.getTableName;
 
 /**
  * Parser listener that is parsing Oracle ALTER TABLE statements
  */
-public class AlterTableParserListener extends BaseParserListener {
+public class AlterTableParserListener extends PlSqlParserBaseListener {
 
     private static final int STARTING_INDEX = 1;
     private TableEditor tableEditor;
@@ -67,7 +70,6 @@ public class AlterTableParserListener extends BaseParserListener {
         parser.runIfNotNull(() -> {
             listeners.remove(columnDefinitionParserListener);
             parser.databaseTables().overwriteTable(tableEditor.create());
-            //parser.signalAlterTable(tableEditor.tableId(), null, ctx.getParent());// todo?
         }, tableEditor);
         super.exitAlter_table(ctx);
     }
@@ -103,13 +105,9 @@ public class AlterTableParserListener extends BaseParserListener {
     public void exitColumn_definition(PlSqlParser.Column_definitionContext ctx) {
         parser.runIfNotNull(() -> {
             if (columnEditors != null) {
-                // column editor list is not null when a multiple columns are parsed in one statement
                 if (columnEditors.size() > parsingColumnIndex) {
-                    // assign next column editor to parse another column definition
                     columnDefinitionParserListener.setColumnEditor(columnEditors.get(parsingColumnIndex++));
                 } else {
-                    // all columns parsed
-                    // reset global variables for next parsed statement
                     columnEditors.forEach(columnEditor -> tableEditor.addColumn(columnEditor.create()));
                     columnEditors = null;
                     parsingColumnIndex = STARTING_INDEX;

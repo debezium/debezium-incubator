@@ -8,6 +8,7 @@ package io.debezium.connector.oracle.antlr.listener;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.debezium.ddl.parser.oracle.generated.PlSqlParserBaseListener;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
 import io.debezium.connector.oracle.antlr.OracleDdlParser;
@@ -18,7 +19,10 @@ import io.debezium.relational.Table;
 import io.debezium.relational.TableEditor;
 import io.debezium.relational.TableId;
 
-public class CreateTableParserListener extends BaseParserListener {
+import static io.debezium.connector.oracle.antlr.listener.ParserUtils.getColumnName;
+import static io.debezium.connector.oracle.antlr.listener.ParserUtils.getTableName;
+
+public class CreateTableParserListener extends PlSqlParserBaseListener {
 
     private final List<ParseTreeListener> listeners;
     private TableEditor tableEditor;
@@ -49,23 +53,23 @@ public class CreateTableParserListener extends BaseParserListener {
     public void exitCreate_table(PlSqlParser.Create_tableContext ctx) {
         Table table = getTable();
         assert table != null;
+
         parser.runIfNotNull(() -> {
             listeners.remove(columnDefinitionParserListener);
             columnDefinitionParserListener = null;
             parser.databaseTables().overwriteTable(table);
-            //parser.signalCreateTable(tableEditor.tableId(), ctx); todo ?
         }, tableEditor, table);
+
         super.exitCreate_table(ctx);
     }
 
     @Override
     public void enterColumn_definition(PlSqlParser.Column_definitionContext ctx) {
         parser.runIfNotNull(() -> {
-            String columnName = getColumnName(ctx.column_name());
+            String columnName = ParserUtils.stripeQuotes(getColumnName(ctx.column_name()));
             ColumnEditor columnEditor = Column.editor().name(columnName);
             if (columnDefinitionParserListener == null) {
                 columnDefinitionParserListener = new ColumnDefinitionParserListener(tableEditor, columnEditor, parser.dataTypeResolver());
-                // todo: this explicit call is for the first column, should it be fixed?
                 columnDefinitionParserListener.enterColumn_definition(ctx);
                 listeners.add(columnDefinitionParserListener);
             } else {
@@ -86,7 +90,7 @@ public class CreateTableParserListener extends BaseParserListener {
     public void exitOut_of_line_constraint(PlSqlParser.Out_of_line_constraintContext ctx) {
         if(ctx.PRIMARY() != null) {
             List<String> pkColumnNames = ctx.column_name().stream()
-                    .map(this::getColumnName)
+                    .map(ParserUtils::getColumnName)
                     .collect(Collectors.toList());
 
             tableEditor.setPrimaryKeyNames(pkColumnNames);

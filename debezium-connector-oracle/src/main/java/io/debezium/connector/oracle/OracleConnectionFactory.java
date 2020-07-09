@@ -5,25 +5,25 @@
  */
 package io.debezium.connector.oracle;
 
+import io.debezium.jdbc.JdbcConfiguration;
+import io.debezium.jdbc.JdbcConnection.ConnectionFactory;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-
-import io.debezium.jdbc.JdbcConfiguration;
-import io.debezium.jdbc.JdbcConnection.ConnectionFactory;
 
 public class OracleConnectionFactory implements ConnectionFactory {
 
     @Override
     public Connection connect(JdbcConfiguration config) throws SQLException {
-        String hostName = config.getHostname();
+        final String driverType = config.getString(OracleConnectorConfig.DRIVER_TYPE);
+        final String user = config.getUser();
+        final String password = config.getPassword();
+        final String hostName = config.getHostname();
         int port = config.getPort();
-        String database = config.getDatabase();
-        String user = config.getUser();
-        String password = config.getPassword();
+        final String database = config.getDatabase();
+        final String url = "jdbc:oracle:" + driverType + ":@" + hostName + ":" + port + "/" + database;
 
-        return DriverManager.getConnection(
-              "jdbc:oracle:oci:@" + hostName + ":" + port + "/" + database, user, password
-        );
+        return DriverManager.getConnection(url, user, password);
     }
 }

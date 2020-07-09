@@ -5,24 +5,6 @@
  */
 package io.debezium.connector.oracle;
 
-import static junit.framework.TestCase.assertEquals;
-import static org.fest.assertions.Assertions.assertThat;
-
-import java.math.BigDecimal;
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.source.SourceRecord;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import io.debezium.config.Configuration;
 import io.debezium.connector.oracle.OracleConnectorConfig.SnapshotMode;
 import io.debezium.connector.oracle.util.TestHelper;
@@ -32,6 +14,21 @@ import io.debezium.embedded.AbstractConnectorTest;
 import io.debezium.heartbeat.Heartbeat;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.util.Testing;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.source.SourceRecord;
+import org.junit.AfterClass;
+import org.junit.Before;
+
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static junit.framework.TestCase.assertEquals;
+import static org.fest.assertions.Assertions.assertThat;
 
 /**
  * Integration test for the Debezium Oracle connector.
@@ -41,13 +38,11 @@ import io.debezium.util.Testing;
 public class OracleConnectorIT extends AbstractConnectorTest {
 
     private static final long MICROS_PER_SECOND = TimeUnit.SECONDS.toMicros(1);
-    private static final String SNAPSHOT_COMPLETED_KEY = "snapshot_completed";
+    static final String SNAPSHOT_COMPLETED_KEY = "snapshot_completed";
+    static Configuration.Builder builder;
+    static OracleConnection connection;
 
-    private static OracleConnection connection;
-
-    @BeforeClass
-    public static void beforeClass() throws SQLException {
-        connection = TestHelper.testConnection();
+    static void beforeClass() throws SQLException {
 
         TestHelper.dropTable(connection, "debezium.customer");
 
@@ -79,11 +74,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         Testing.Files.delete(TestHelper.DB_HISTORY_PATH);
     }
 
-    @Test
     public void shouldTakeSnapshot() throws Exception {
-        Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
-                .build();
 
         int expectedRecordCount = 0;
         connection.execute("INSERT INTO debezium.customer VALUES (1, 'Billie-Bob', 1234.56, TO_DATE('2018/02/22', 'yyyy-mm-dd'))");
@@ -91,7 +82,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         connection.execute("COMMIT");
         expectedRecordCount += 2;
 
-        start(OracleConnector.class, config);
+        start(OracleConnector.class, builder.build());
         assertConnectorIsRunning();
 
         SourceRecords records = consumeRecordsByTopic(expectedRecordCount);
@@ -128,11 +119,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo("last");
     }
 
-    @Test
     public void shouldContinueWithStreamingAfterSnapshot() throws Exception {
-        Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
-                .build();
 
         int expectedRecordCount = 0;
         connection.execute("INSERT INTO debezium.customer VALUES (1, 'Billie-Bob', 1234.56, TO_DATE('2018/02/22', 'yyyy-mm-dd'))");
@@ -140,7 +127,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         connection.execute("COMMIT");
         expectedRecordCount += 2;
 
-        start(OracleConnector.class, config);
+        start(OracleConnector.class, builder.build());
         assertConnectorIsRunning();
 
         SourceRecords records = consumeRecordsByTopic(expectedRecordCount);
@@ -198,12 +185,8 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         assertThat(source.get(SourceInfo.TIMESTAMP_KEY)).isNotNull();
     }
 
-    @Test
     @FixFor("DBZ-1223")
     public void shouldStreamTransaction() throws Exception {
-        Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
-                .build();
 
         // Testing.Print.enable();
         int expectedRecordCount = 0;
@@ -212,7 +195,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         connection.execute("COMMIT");
         expectedRecordCount += 2;
 
-        start(OracleConnector.class, config);
+        start(OracleConnector.class, builder.build());
         assertConnectorIsRunning();
 
         SourceRecords records = consumeRecordsByTopic(expectedRecordCount);
@@ -259,7 +242,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         assertTxBatch(expectedRecordCount, offset);
     }
 
-    private void assertTxBatch(int expectedRecordCount, int offset) throws InterruptedException {
+    protected void assertTxBatch(int expectedRecordCount, int offset) throws InterruptedException {
         SourceRecords records;
         List<SourceRecord> testTableRecords;
         Struct after;
@@ -267,6 +250,8 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         records = consumeRecordsByTopic(expectedRecordCount);
         testTableRecords = records.recordsForTopic("server1.DEBEZIUM.CUSTOMER");
         assertThat(testTableRecords).hasSize(expectedRecordCount);
+        final Configuration configuration = builder.build();
+        final String adapter = configuration.getString(OracleConnectorConfig.CONNECTOR_ADAPTER);
 
         for (int i = 0; i < expectedRecordCount; i++) {
             SourceRecord record3 = testTableRecords.get(i);
@@ -276,13 +261,19 @@ public class OracleConnectorIT extends AbstractConnectorTest {
 
             assertThat(record3.sourceOffset().containsKey(SourceInfo.SNAPSHOT_KEY)).isFalse();
             assertThat(record3.sourceOffset().containsKey(SNAPSHOT_COMPLETED_KEY)).isFalse();
-            assertThat(record3.sourceOffset().containsKey(SourceInfo.LCR_POSITION_KEY)).isTrue();
-            assertThat(record3.sourceOffset().containsKey(SourceInfo.SCN_KEY)).isFalse();
+
+            if (!"LogMiner".equalsIgnoreCase(adapter)) {
+                assertThat(record3.sourceOffset().containsKey(SourceInfo.LCR_POSITION_KEY)).isTrue();
+                assertThat(record3.sourceOffset().containsKey(SourceInfo.SCN_KEY)).isFalse();
+            }
 
             source = (Struct) ((Struct) record3.value()).get("source");
             assertThat(source.get(SourceInfo.SNAPSHOT_KEY)).isEqualTo("false");
             assertThat(source.get(SourceInfo.SCN_KEY)).isNotNull();
-            assertThat(source.get(SourceInfo.LCR_POSITION_KEY)).isNotNull();
+            if (!"LogMiner".equalsIgnoreCase(adapter)) {
+                assertThat(source.get(SourceInfo.LCR_POSITION_KEY)).isNotNull();
+            }
+
             assertThat(source.get(SourceInfo.SERVER_NAME_KEY)).isEqualTo("server1");
             assertThat(source.get(SourceInfo.DEBEZIUM_VERSION_KEY)).isNotNull();
             assertThat(source.get(SourceInfo.TXID_KEY)).isNotNull();
@@ -290,11 +281,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         }
     }
 
-    @Test
-    public void shouldStreamAfterRestart() throws Exception {
-        Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
-                .build();
+    public void shouldStreamAfterRestart(long sleepTime) throws Exception {
 
         // Testing.Print.enable();
         int expectedRecordCount = 0;
@@ -303,8 +290,10 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         connection.execute("COMMIT");
         expectedRecordCount += 2;
 
-        start(OracleConnector.class, config);
+        start(OracleConnector.class, builder.build());
         assertConnectorIsRunning();
+
+        Thread.sleep(sleepTime);
 
         SourceRecords records = consumeRecordsByTopic(expectedRecordCount);
         List<SourceRecord> testTableRecords = records.recordsForTopic("server1.DEBEZIUM.CUSTOMER");
@@ -322,20 +311,19 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         }
         connection.connection().commit();
 
-        start(OracleConnector.class, config);
+        start(OracleConnector.class, builder.build());
         assertConnectorIsRunning();
+
+        Thread.sleep(sleepTime);
 
         assertTxBatch(expectedRecordCount, 300);
         sendTxBatch(expectedRecordCount, 400);
         sendTxBatch(expectedRecordCount, 500);
     }
 
-    @Test
     public void shouldStreamAfterRestartAfterSnapshot() throws Exception {
-        Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
-                .build();
 
+        Configuration config = builder.build();
         // Testing.Print.enable();
         int expectedRecordCount = 0;
         connection.execute("INSERT INTO debezium.customer VALUES (1, 'Billie-Bob', 1234.56, TO_DATE('2018/02/22', 'yyyy-mm-dd'))");
@@ -366,17 +354,14 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         sendTxBatch(expectedRecordCount, 200);
     }
 
-    @Test
-    public void shouldReadChangeStreamForExistingTable() throws Exception {
-        Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER")
-                .with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
+    public void shouldReadChangeStreamForExistingTable(long sleepTime) throws Exception {
+        Configuration config = builder.with(OracleConnectorConfig.SNAPSHOT_MODE, SnapshotMode.INITIAL_SCHEMA_ONLY)
                 .build();
 
         start(OracleConnector.class, config);
         assertConnectorIsRunning();
 
-        Thread.sleep(1000);
+        Thread.sleep(sleepTime);
 
         int expectedRecordCount = 0;
         connection.execute("INSERT INTO debezium.customer VALUES (1, 'Billie-Bob', 1234.56, TO_DATE('2018/02/22', 'yyyy-mm-dd'))");
@@ -455,7 +440,6 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         VerifyRecord.isValidTombstone(testTableRecords.get(6));
     }
 
-    @Test
     @FixFor("DBZ-835")
     public void deleteWithoutTombstone() throws Exception {
         Configuration config = TestHelper.defaultConfig()
@@ -498,12 +482,9 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         VerifyRecord.isValidInsert(testTableRecords.get(2), "ID", 2);
     }
 
-    @Test
     public void shouldReadChangeStreamForTableCreatedWhileStreaming() throws Exception {
         TestHelper.dropTable(connection, "debezium.customer2");
-
-        Configuration config = TestHelper.defaultConfig()
-                .with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER2")
+        Configuration config = builder.with(RelationalDatabaseConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.CUSTOMER2")
                 .build();
 
         start(OracleConnector.class, config);
@@ -539,7 +520,6 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         assertThat(after.get("REGISTERED")).isEqualTo(toMicroSecondsSinceEpoch(LocalDateTime.of(2018, 2, 22, 0, 0, 0)));
     }
 
-    @Test
     @FixFor("DBZ-800")
     public void shouldReceiveHeartbeatAlsoWhenChangingNonWhitelistedTable() throws Exception {
         TestHelper.dropTable(connection, "debezium.dbz800a");
@@ -547,7 +527,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
 
         // the low heartbeat interval should make sure that a heartbeat message is emitted after each change record
         // received from Postgres
-        Configuration config = TestHelper.defaultConfig()
+        Configuration config = builder
                 .with(Heartbeat.HEARTBEAT_INTERVAL, "1")
                 .with(OracleConnectorConfig.TABLE_WHITELIST, "ORCLPDB1\\.DEBEZIUM\\.DBZ800B")
                 .build();
@@ -581,6 +561,7 @@ public class OracleConnectorIT extends AbstractConnectorTest {
         assertThat(key.get("serverName")).isEqualTo("server1");
     }
 
+    //TODO investigate the right conversion for timestamp
     private long toMicroSecondsSinceEpoch(LocalDateTime localDateTime) {
         return localDateTime.toEpochSecond(ZoneOffset.UTC) * MICROS_PER_SECOND;
     }

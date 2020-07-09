@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.debezium.connector.oracle.xstream.LcrPosition;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
@@ -31,6 +32,11 @@ public class OracleOffsetContext implements OffsetContext {
      * Whether a snapshot has been completed or not.
      */
     private boolean snapshotCompleted;
+
+    public OracleOffsetContext(OracleConnectorConfig connectorConfig, long scn, Long commitScn, LcrPosition lcrPosition, boolean snapshot, boolean snapshotCompleted) {
+        this(connectorConfig, scn, lcrPosition, snapshot, snapshotCompleted);
+        sourceInfo.setCommitScn(commitScn);
+    }
 
     private OracleOffsetContext(OracleConnectorConfig connectorConfig, long scn, LcrPosition lcrPosition, boolean snapshot, boolean snapshotCompleted) {
         partition = Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
@@ -111,7 +117,12 @@ public class OracleOffsetContext implements OffsetContext {
             if (sourceInfo.getLcrPosition() != null) {
                 return Collections.singletonMap(SourceInfo.LCR_POSITION_KEY, sourceInfo.getLcrPosition().toString());
             }
-            return Collections.singletonMap(SourceInfo.SCN_KEY, sourceInfo.getScn());
+            Map<String, Object> offset = new HashMap<>();
+
+            offset.put(SourceInfo.SCN_KEY, sourceInfo.getScn());
+            offset.put(SourceInfo.COMMIT_SCN_KEY, sourceInfo.getCommitScn());
+
+            return offset;
         }
     }
 
@@ -129,8 +140,16 @@ public class OracleOffsetContext implements OffsetContext {
         sourceInfo.setScn(scn);
     }
 
+    public void setCommitScn(Long commitScn) {
+        sourceInfo.setCommitScn(commitScn);
+    }
+
     public long getScn() {
         return sourceInfo.getScn();
+    }
+
+    public Long getCommitScn() {
+        return sourceInfo.getCommitScn();
     }
 
     public void setLcrPosition(LcrPosition lcrPosition) {
@@ -196,9 +215,11 @@ public class OracleOffsetContext implements OffsetContext {
     public static class Loader implements OffsetContext.Loader {
 
         private final OracleConnectorConfig connectorConfig;
+        private final OracleConnectorConfig.ConnectorAdapter adapter;
 
-        public Loader(OracleConnectorConfig connectorConfig) {
+        public Loader(OracleConnectorConfig connectorConfig, OracleConnectorConfig.ConnectorAdapter adapter) {
             this.connectorConfig = connectorConfig;
+            this.adapter = adapter;
         }
 
         @Override
@@ -208,12 +229,19 @@ public class OracleOffsetContext implements OffsetContext {
 
         @Override
         public OffsetContext load(Map<String, ?> offset) {
-            LcrPosition lcrPosition = LcrPosition.valueOf((String) offset.get(SourceInfo.LCR_POSITION_KEY));
-            Long scn = lcrPosition != null ? lcrPosition.getScn() : (Long) offset.get(SourceInfo.SCN_KEY);
             boolean snapshot = Boolean.TRUE.equals(offset.get(SourceInfo.SNAPSHOT_KEY));
             boolean snapshotCompleted = Boolean.TRUE.equals(offset.get(SNAPSHOT_COMPLETED_KEY));
+            Long scn;
+            if (adapter == OracleConnectorConfig.ConnectorAdapter.LOG_MINER){
+                scn = (Long) offset.get(SourceInfo.SCN_KEY);
+                Long commitScn = (Long) offset.get(SourceInfo.COMMIT_SCN_KEY);
+                return new OracleOffsetContext(connectorConfig, scn, commitScn, null, snapshot, snapshotCompleted);
+            } else {
+                LcrPosition lcrPosition = LcrPosition.valueOf((String) offset.get(SourceInfo.LCR_POSITION_KEY));
+                scn = lcrPosition != null ? lcrPosition.getScn() : (Long) offset.get(SourceInfo.SCN_KEY);
+                return new OracleOffsetContext(connectorConfig, scn, lcrPosition, snapshot, snapshotCompleted);
+            }
 
-            return new OracleOffsetContext(connectorConfig, scn, lcrPosition, snapshot, snapshotCompleted);
         }
     }
 }

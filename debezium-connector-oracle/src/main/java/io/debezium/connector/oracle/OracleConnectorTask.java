@@ -5,17 +5,6 @@
  */
 package io.debezium.connector.oracle;
 
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
-import org.apache.kafka.connect.errors.ConnectException;
-import org.apache.kafka.connect.source.SourceRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.debezium.config.Configuration;
 import io.debezium.config.Field;
 import io.debezium.connector.base.ChangeEventQueue;
@@ -29,17 +18,27 @@ import io.debezium.relational.TableId;
 import io.debezium.schema.TopicSelector;
 import io.debezium.util.Clock;
 import io.debezium.util.SchemaNameAdjuster;
+import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.kafka.connect.source.SourceRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class OracleConnectorTask extends BaseSourceTask {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OracleConnectorTask.class);
     private static final String CONTEXT_NAME = "oracle-connector-task";
 
-    private static enum State {
-        RUNNING, STOPPED;
+    private enum State {
+        RUNNING, STOPPED
     }
 
-    private final AtomicReference<State> state = new AtomicReference<State>(State.STOPPED);
+    private final AtomicReference<State> state = new AtomicReference<>(State.STOPPED);
 
     private volatile OracleTaskContext taskContext;
     private volatile ChangeEventQueue<DataChangeEvent> queue;
@@ -66,11 +65,15 @@ public class OracleConnectorTask extends BaseSourceTask {
         SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create(LOGGER);
 
         Configuration jdbcConfig = config.subset("database.", true);
-        jdbcConnection = new OracleConnection(jdbcConfig, new OracleConnectionFactory());
+        jdbcConnection = new OracleConnection(jdbcConfig, () -> getClass().getClassLoader());
         this.schema = new OracleDatabaseSchema(connectorConfig, schemaNameAdjuster, topicSelector, jdbcConnection);
         this.schema.initializeStorage();
 
-        OffsetContext previousOffset = getPreviousOffset(new OracleOffsetContext.Loader(connectorConfig));
+        String adapterString = config.getString("connection.adapter");
+        adapterString =  adapterString == null ?  config.getString(OracleConnectorConfig.CONNECTOR_ADAPTER) : adapterString;
+        OracleConnectorConfig.ConnectorAdapter adapter = OracleConnectorConfig.ConnectorAdapter.parse(adapterString);
+        OffsetContext previousOffset = getPreviousOffset(new OracleOffsetContext.Loader(connectorConfig, adapter));
+
         if (previousOffset != null) {
             schema.recover(previousOffset);
         }
@@ -97,7 +100,7 @@ public class OracleConnectorTask extends BaseSourceTask {
                 errorHandler,
                 OracleConnector.class,
                 connectorConfig.getLogicalName(),
-                new OracleChangeEventSourceFactory(connectorConfig, jdbcConnection, errorHandler, dispatcher, clock, schema),
+                new OracleChangeEventSourceFactory(connectorConfig, jdbcConnection, errorHandler, dispatcher, clock, schema, config, taskContext),
                 dispatcher,
                 schema
         );

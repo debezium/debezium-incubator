@@ -5,19 +5,7 @@
  */
 package io.debezium.connector.oracle;
 
-import java.sql.Clob;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Savepoint;
-import java.sql.Statement;
-import java.time.Instant;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.debezium.connector.oracle.logminer.LogMinerHelper;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.SnapshotProgressListener;
 import io.debezium.pipeline.source.spi.StreamingChangeEventSource;
@@ -29,6 +17,21 @@ import io.debezium.relational.TableId;
 import io.debezium.schema.SchemaChangeEvent;
 import io.debezium.schema.SchemaChangeEvent.SchemaChangeEventType;
 import io.debezium.util.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.Clob;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Savepoint;
+import java.sql.Statement;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * A {@link StreamingChangeEventSource} for Oracle.
@@ -55,6 +58,7 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
     protected SnapshottingTask getSnapshottingTask(OffsetContext previousOffset) {
         boolean snapshotSchema = true;
         boolean snapshotData = true;
+        boolean skipSnapsotLock = false;
 
         // found a previous offset and the earlier snapshot has completed
         if (previousOffset != null && !previousOffset.isSnapshotRunning()) {
@@ -63,9 +67,10 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
         }
         else {
             snapshotData = connectorConfig.getSnapshotMode().includeData();
+            skipSnapsotLock = connectorConfig.skipSnapshotLock();
         }
 
-        return new SnapshottingTask(snapshotSchema, snapshotData);
+        return new SnapshottingTask(snapshotSchema, snapshotData, skipSnapsotLock);
     }
 
     @Override
@@ -81,7 +86,9 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
 
     @Override
     protected Set<TableId> getAllTableIds(SnapshotContext ctx) throws Exception {
-        return jdbcConnection.readTableNames(ctx.catalogName, null, null, new String[] {"TABLE"} );
+        return jdbcConnection.getAllTableIds(ctx.catalogName, connectorConfig.getSchemaName(), false);
+        // this very slow approach(commented out), it took 30 minutes on an instance with 600 tables
+        //return jdbcConnection.readTableNames(ctx.catalogName, null, null, new String[] {"TABLE"} );
     }
 
     @Override
@@ -108,7 +115,14 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
 
     @Override
     protected void determineSnapshotOffset(SnapshotContext ctx) throws Exception {
-        Optional<Long> latestTableDdlScn = getLatestTableDdlScn(ctx);
+        Optional<Long> latestTableDdlScn = Optional.empty();
+        try {
+            latestTableDdlScn = getLatestTableDdlScn(ctx);
+        }
+        catch (SQLException e) {
+            // this may happen if the DDL is older than the retention policy and no corresponding SCN could be found
+            LOGGER.warn("No snapshot found based on specified time");
+        }
         long currentScn;
 
         // we must use an SCN for taking the snapshot that represents a later timestamp than the latest DDL change than
@@ -116,7 +130,7 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
         // SCN of "now" represents the same timestamp as a newly created table that should be captured; in that case
         // we'd get a ORA-01466 when running the flashback query for doing the snapshot
         do {
-            currentScn = getCurrentScn(ctx);
+            currentScn = LogMinerHelper.getCurrentScn(jdbcConnection.connection());
         }
         while(areSameTimestamp(latestTableDdlScn.orElse(null), currentScn));
 
@@ -124,18 +138,6 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
                 .logicalName(connectorConfig)
                 .scn(currentScn)
                 .build();
-    }
-
-    private long getCurrentScn(SnapshotContext ctx) throws SQLException {
-        try(Statement statement = jdbcConnection.connection().createStatement();
-                ResultSet rs = statement.executeQuery("select CURRENT_SCN from V$DATABASE")) {
-
-            if (!rs.next()) {
-                throw new IllegalStateException("Couldn't get SCN");
-            }
-
-            return rs.getLong(1);
-        }
     }
 
     /**
@@ -170,7 +172,7 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
             lastDdlScnQuery.append(" (owner = '" + table.schema() + "' AND object_name = '" + table.table() + "') OR");
         }
 
-        String query = lastDdlScnQuery.substring(0, lastDdlScnQuery.length() - 3).toString();
+        String query = lastDdlScnQuery.substring(0, lastDdlScnQuery.length() - 3);
         try(Statement statement = jdbcConnection.connection().createStatement();
                 ResultSet rs = statement.executeQuery(query)) {
 
@@ -196,15 +198,37 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
                 throw new InterruptedException("Interrupted while reading structure of schema " + schema);
             }
 
-            jdbcConnection.readSchema(
+            // todo: slow, don't use metadata for Oracle
+//            jdbcConnection.readSchema(
+//                    snapshotContext.tables,
+//                    snapshotContext.catalogName,
+//                    schema,
+//                    connectorConfig.getTableFilters().dataCollectionFilter(),
+//                    null,
+//                    false
+//            );
+            // todo: faster, but still slow
+            jdbcConnection.readSchemaForCapturedTables(
                     snapshotContext.tables,
                     snapshotContext.catalogName,
                     schema,
-                    connectorConfig.getTableFilters().dataCollectionFilter(),
-                    null,
-                    false
+                    connectorConfig.getColumnFilter(),
+                    false,
+                    snapshotContext.capturedTables
             );
         }
+    }
+
+    @Override
+    protected String enhanceOverriddenSelect(SnapshotContext snapshotContext, String overriddenSelect, TableId tableId){
+        String columnString = buildSelectColumns(connectorConfig.getConfig().getString(connectorConfig.COLUMN_BLACKLIST), snapshotContext.tables.forTable(tableId));
+        overriddenSelect = overriddenSelect.replaceFirst("\\*", columnString);
+        long snapshotOffset = (Long) snapshotContext.offset.getOffset().get("scn");
+        String token = connectorConfig.getTokenToReplaceInSnapshotPredicate();
+        if (token != null){
+            return overriddenSelect.replaceAll(token, " AS OF SCN " + snapshotOffset);
+        }
+        return overriddenSelect;
     }
 
     @Override
@@ -226,8 +250,40 @@ public class OracleSnapshotChangeEventSource extends HistorizedRelationalSnapsho
 
     @Override
     protected String getSnapshotSelect(SnapshotContext snapshotContext, TableId tableId) {
+        String columnString = buildSelectColumns(connectorConfig.getConfig().getString(connectorConfig.COLUMN_BLACKLIST), snapshotContext.tables.forTable(tableId));
+
         long snapshotOffset = (Long) snapshotContext.offset.getOffset().get("scn");
-        return "SELECT * FROM " + tableId.schema() + "." + tableId.table() + " AS OF SCN " + snapshotOffset;
+        return "SELECT " + columnString + " FROM " + tableId.schema() + "." + tableId.table() + " AS OF SCN " + snapshotOffset;
+    }
+
+    /**
+     * This is to build "whitelisted" column list
+     * @param blackListColumnStr comma separated columns blacklist
+     * @param table the table
+     * @return column list for select
+     */
+    public static String buildSelectColumns(String blackListColumnStr, Table table) {
+        String columnsToSelect = "*";
+        if (blackListColumnStr != null && blackListColumnStr.trim().length() > 0
+                && blackListColumnStr.toUpperCase().contains(table.id().table())) {
+            String allTableColumns = table.retrieveColumnNames().stream()
+                    .map(columnName -> {
+                        StringBuilder sb = new StringBuilder();
+                        if (!columnName.contains(table.id().table())){
+                            sb.append(table.id().table()).append(".").append(columnName);
+                        } else {
+                            sb.append(columnName);
+                        }
+                        return sb.toString();
+                    }).collect(Collectors.joining(","));
+            // todo this is an unnecessary code, fix unit test, then remove it
+            String catalog = table.id().catalog();
+            List<String> blackList = new ArrayList<>(Arrays.asList(blackListColumnStr.trim().toUpperCase().replaceAll(catalog + ".", "").split(",")));
+            List<String> allColumns = new ArrayList<>(Arrays.asList(allTableColumns.toUpperCase().split(",")));
+            allColumns.removeAll(blackList);
+            columnsToSelect = String.join(",", allColumns);
+        }
+        return columnsToSelect;
     }
 
     @Override
