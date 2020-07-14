@@ -135,6 +135,6 @@ public final class CassandraTypeDeserializer {
      */
     public static SchemaBuilder getSchemaBuilder(AbstractType<?> abstractType) {
         TypeDeserializer typeDeserializer = TYPE_MAP.get(abstractType.getClass());
-        return typeDeserializer.getSchemaBuilder(abstractType);
+        return typeDeserializer.getSchemaBuilder(abstractType).optional();
     }
 }
