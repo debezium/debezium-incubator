@@ -8,7 +8,6 @@ package io.debezium.connector.cassandra;
 import java.util.Objects;
 
 import org.apache.cassandra.db.marshal.AbstractType;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -23,6 +22,7 @@ import io.debezium.connector.cassandra.transforms.CassandraTypeDeserializer;
  * type of a column in a Cassandra table.
  */
 public class CellData implements KafkaRecord {
+
     /**
      * The type of a column in a Cassandra table
      */
