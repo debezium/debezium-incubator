@@ -152,12 +152,18 @@ public class SnapshotProcessor extends AbstractProcessor {
      * by converting the row into a record and enqueue it to {@link ChangeRecord}
      */
     private void takeTableSnapshot(TableMetadata tableMetadata) throws IOException {
-        BuiltStatement statement = generateSnapshotStatement(tableMetadata);
-        statement.setConsistencyLevel(consistencyLevel);
-        LOGGER.info("Executing snapshot query '{}' with consistency level {}", statement.getQueryString(), statement.getConsistencyLevel());
-        ResultSet resultSet = cassandraClient.execute(statement);
-        processResultSet(tableMetadata, resultSet);
-        LOGGER.debug("The snapshot of table '{}' has been taken", tableName(tableMetadata));
+        try {
+            BuiltStatement statement = generateSnapshotStatement(tableMetadata);
+            statement.setConsistencyLevel(consistencyLevel);
+            LOGGER.info("Executing snapshot query '{}' with consistency level {}", statement.getQueryString(), statement.getConsistencyLevel());
+            ResultSet resultSet = cassandraClient.execute(statement);
+            processResultSet(tableMetadata, resultSet);
+            LOGGER.debug("The snapshot of table '{}' has been taken", tableName(tableMetadata));
+        }
+        catch (Exception e) {
+            LOGGER.error("Failed to snapshot table {} in keyspace {}", tableMetadata.getName(), tableMetadata.getKeyspace().getName());
+            throw e;
+        }
     }
 
     /**

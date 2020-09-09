@@ -395,23 +395,30 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
     private void populatePartitionColumns(RowData after, PartitionUpdate pu) {
         List<Object> partitionKeys = getPartitionKeys(pu);
         for (ColumnDefinition cd : pu.metadata().partitionKeyColumns()) {
-            String name = cd.name.toString();
-            Object value = partitionKeys.get(cd.position());
-            CellData cellData = new CellData(name, value, null, CellData.ColumnType.PARTITION);
-            after.addCell(cellData);
+            try {
+                String name = cd.name.toString();
+                Object value = partitionKeys.get(cd.position());
+                CellData cellData = new CellData(name, value, null, CellData.ColumnType.PARTITION);
+                after.addCell(cellData);
+            }
+            catch (Exception e) {
+                LOGGER.error("Failed to populate Column {} with Type {} of Table {} in KeySpace {}.",
+                        cd.name.toString(), cd.type, cd.cfName, cd.ksName);
+                throw e;
+            }
         }
     }
 
     private void populateClusteringColumns(RowData after, Row row, PartitionUpdate pu) {
         for (ColumnDefinition cd : pu.metadata().clusteringColumns()) {
-            String name = cd.name.toString();
             try {
+                String name = cd.name.toString();
                 Object value = CassandraTypeDeserializer.deserialize(cd.type, row.clustering().get(cd.position()));
                 CellData cellData = new CellData(name, value, null, CellData.ColumnType.CLUSTERING);
                 after.addCell(cellData);
             }
             catch (Exception e) {
-                LOGGER.debug("Failed to deserialize Column {} with Type {} in Table {} and KeySpace {}.",
+                LOGGER.error("Failed to populate Column {} with Type {} of Table {} in KeySpace {}.",
                         cd.name.toString(), cd.type, cd.cfName, cd.ksName);
                 throw e;
             }
@@ -439,7 +446,7 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
                     after.addCell(cellData);
                 }
                 catch (Exception e) {
-                    LOGGER.debug("Failed to deserialize Column {} with Type {} in Table {} and KeySpace {}.",
+                    LOGGER.error("Failed to populate Column {} with Type {} of Table {} in KeySpace {}.",
                             cd.name.toString(), cd.type, cd.cfName, cd.ksName);
                     throw e;
                 }

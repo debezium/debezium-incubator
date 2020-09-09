@@ -50,13 +50,19 @@ public class KafkaRecordEmitter implements AutoCloseable {
     }
 
     public void emit(Record record) {
-        synchronized (lock) {
-            ProducerRecord<byte[], byte[]> producerRecord = toProducerRecord(record);
-            LOGGER.debug("Sending the record '{}'", record.toString());
-            Future<RecordMetadata> future = producer.send(producerRecord);
-            LOGGER.debug("The record '{}' has been sent", record.toString());
-            futures.put(record, future);
-            maybeFlushAndMarkOffset();
+        try {
+            synchronized (lock) {
+                ProducerRecord<byte[], byte[]> producerRecord = toProducerRecord(record);
+                LOGGER.debug("Sending the record '{}'", record.toString());
+                Future<RecordMetadata> future = producer.send(producerRecord);
+                LOGGER.debug("The record '{}' has been sent", record.toString());
+                futures.put(record, future);
+                maybeFlushAndMarkOffset();
+            }
+        }
+        catch (Exception e) {
+            LOGGER.error("Failed to emit record {}", record.toString());
+            throw e;
         }
     }
 
