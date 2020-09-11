@@ -282,9 +282,12 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
             RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE,
             HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY,
             RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
+            RelationalDatabaseConnectorConfig.TABLE_INCLUDE_LIST,
             RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
+            RelationalDatabaseConnectorConfig.TABLE_EXCLUDE_LIST,
             RelationalDatabaseConnectorConfig.TABLE_IGNORE_BUILTIN,
             RelationalDatabaseConnectorConfig.COLUMN_BLACKLIST,
+            RelationalDatabaseConnectorConfig.COLUMN_EXCLUDE_LIST,
             RelationalDatabaseConnectorConfig.DECIMAL_HANDLING_MODE,
             RelationalDatabaseConnectorConfig.TIME_PRECISION_MODE,
             CommonConnectorConfig.POLL_INTERVAL_MS,
@@ -304,8 +307,11 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
                 KafkaDatabaseHistory.TOPIC, KafkaDatabaseHistory.RECOVERY_POLL_ATTEMPTS,
                 KafkaDatabaseHistory.RECOVERY_POLL_INTERVAL_MS, HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY);
         Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
+                RelationalDatabaseConnectorConfig.TABLE_INCLUDE_LIST,
                 RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
+                RelationalDatabaseConnectorConfig.TABLE_EXCLUDE_LIST,
                 RelationalDatabaseConnectorConfig.COLUMN_BLACKLIST,
+                RelationalDatabaseConnectorConfig.COLUMN_EXCLUDE_LIST,
                 RelationalDatabaseConnectorConfig.SNAPSHOT_SELECT_STATEMENT_OVERRIDES_BY_TABLE,
                 RelationalDatabaseConnectorConfig.TABLE_IGNORE_BUILTIN,
                 Heartbeat.HEARTBEAT_INTERVAL, Heartbeat.HEARTBEAT_TOPICS_PREFIX,
@@ -329,7 +335,8 @@ public class Db2ConnectorConfig extends HistorizedRelationalDatabaseConnectorCon
         this.databaseName = config.getString(DATABASE_NAME);
         this.snapshotMode = SnapshotMode.parse(config.getString(SNAPSHOT_MODE), SNAPSHOT_MODE.defaultValueAsString());
         this.snapshotIsolationMode = SnapshotIsolationMode.parse(config.getString(SNAPSHOT_ISOLATION_MODE), SNAPSHOT_ISOLATION_MODE.defaultValueAsString());
-        this.columnFilter = getColumnNameFilter(config.getString(RelationalDatabaseConnectorConfig.COLUMN_BLACKLIST));
+        this.columnFilter = getColumnNameFilter(
+                config.getFallbackStringProperty(RelationalDatabaseConnectorConfig.COLUMN_EXCLUDE_LIST, RelationalDatabaseConnectorConfig.COLUMN_BLACKLIST));
     }
 
     private static ColumnNameFilter getColumnNameFilter(String excludedColumnPatterns) {

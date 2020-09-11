@@ -140,7 +140,9 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
             SNAPSHOT_MODE,
             HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY,
             RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
+            RelationalDatabaseConnectorConfig.TABLE_INCLUDE_LIST,
             RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
+            RelationalDatabaseConnectorConfig.TABLE_EXCLUDE_LIST,
             RelationalDatabaseConnectorConfig.TABLE_IGNORE_BUILTIN,
             RelationalDatabaseConnectorConfig.MSG_KEY_COLUMNS,
             CommonConnectorConfig.POLL_INTERVAL_MS,
@@ -182,7 +184,9 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
                 KafkaDatabaseHistory.TOPIC, KafkaDatabaseHistory.RECOVERY_POLL_ATTEMPTS,
                 KafkaDatabaseHistory.RECOVERY_POLL_INTERVAL_MS, HistorizedRelationalDatabaseConnectorConfig.DATABASE_HISTORY);
         Field.group(config, "Events", RelationalDatabaseConnectorConfig.TABLE_WHITELIST,
+                RelationalDatabaseConnectorConfig.TABLE_INCLUDE_LIST,
                 RelationalDatabaseConnectorConfig.TABLE_BLACKLIST,
+                RelationalDatabaseConnectorConfig.TABLE_EXCLUDE_LIST,
                 RelationalDatabaseConnectorConfig.MSG_KEY_COLUMNS,
                 RelationalDatabaseConnectorConfig.TABLE_IGNORE_BUILTIN,
                 CommonConnectorConfig.PROVIDE_TRANSACTION_METADATA,
@@ -291,7 +295,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
     /**
      * The set of predefined SnapshotMode options or aliases.
      */
-    public static enum SnapshotMode implements EnumeratedValue {
+    public enum SnapshotMode implements EnumeratedValue {
 
         /**
          * Perform a snapshot of data and schema upon initial startup of a connector.
@@ -301,7 +305,7 @@ public class OracleConnectorConfig extends HistorizedRelationalDatabaseConnector
         /**
          * Perform a snapshot of the schema but no data upon initial startup of a connector.
          *
-         * @deprecated to be removed in 1.1; use {@link #INITIAL_SCHEMA} instead.
+         * @deprecated to be removed in 1.1; use {@link #SCHEMA_ONLY} instead.
          */
         @Deprecated
         INITIAL_SCHEMA_ONLY("initial_schema_only", false),

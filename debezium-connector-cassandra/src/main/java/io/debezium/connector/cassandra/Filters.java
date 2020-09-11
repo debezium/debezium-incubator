@@ -5,16 +5,18 @@
  */
 package io.debezium.connector.cassandra;
 
+import java.util.List;
+
 /**
  * A utility class that contains various kinds of filters.
- * Currently only field-level filter is implemented (i.e. blacklist).
+ * Currently only field-level filter is implemented (i.e. `field.exclude.list`).
  * Keyspace/table-level filters are not implemented.
  */
 public class Filters {
     private final FieldFilterSelector fieldFilterSelector;
 
-    public Filters(String[] fieldBlacklist) {
-        fieldFilterSelector = new FieldFilterSelector(fieldBlacklist);
+    public Filters(List<String> fieldExcludeList) {
+        fieldFilterSelector = new FieldFilterSelector(fieldExcludeList);
     }
 
     /**
