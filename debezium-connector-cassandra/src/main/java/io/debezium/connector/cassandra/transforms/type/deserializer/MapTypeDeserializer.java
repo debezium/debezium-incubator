@@ -38,10 +38,10 @@ public class MapTypeDeserializer extends CollectionTypeDeserializer<MapType<?, ?
     }
 
     @Override
-    public Object deserialize(MapType<?, ?> collectionType, ComplexColumnData ccd) {
-        List<ByteBuffer> bbList = collectionType.serializedValues(ccd.iterator());
-        AbstractType<?> keyType = collectionType.getKeysType();
-        AbstractType<?> valueType = collectionType.getValuesType();
+    public Object deserialize(MapType<?, ?> mapType, ComplexColumnData ccd) {
+        List<ByteBuffer> bbList = mapType.serializedValues(ccd.iterator());
+        AbstractType<?> keyType = mapType.getKeysType();
+        AbstractType<?> valueType = mapType.getValuesType();
 
         Map<Object, Object> deserializedMap = new HashMap<>();
         int i = 0;
@@ -51,6 +51,6 @@ public class MapTypeDeserializer extends CollectionTypeDeserializer<MapType<?, ?
             deserializedMap.put(super.deserialize(keyType, kbb), super.deserialize(valueType, vbb));
         }
 
-        return Values.convertToMap(getSchemaBuilder(collectionType).build(), deserializedMap);
+        return Values.convertToMap(getSchemaBuilder(mapType).build(), deserializedMap);
     }
 }

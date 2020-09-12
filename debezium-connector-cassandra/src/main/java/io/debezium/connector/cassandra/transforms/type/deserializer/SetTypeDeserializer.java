@@ -25,22 +25,22 @@ public class SetTypeDeserializer extends CollectionTypeDeserializer<SetType<?>> 
     @Override
     public Object deserialize(AbstractType<?> abstractType, ByteBuffer bb) {
         Set<?> deserializedSet = (Set<?>) super.deserialize(abstractType, bb);
-        List<?> deserializedList = (new ArrayList<>(deserializedSet));
+        List<?> deserializedList = new ArrayList<>(deserializedSet);
         return Values.convertToList(getSchemaBuilder(abstractType).build(), deserializedList);
     }
 
     @Override
     public SchemaBuilder getSchemaBuilder(AbstractType<?> abstractType) {
-        SetType<?> listType = (SetType<?>) abstractType;
-        AbstractType<?> elementsType = listType.getElementsType();
+        SetType<?> setType = (SetType<?>) abstractType;
+        AbstractType<?> elementsType = setType.getElementsType();
         Schema innerSchema = CassandraTypeDeserializer.getSchemaBuilder(elementsType).build();
         return SchemaBuilder.array(innerSchema).optional();
     }
 
     @Override
-    public Object deserialize(SetType<?> collectionType, ComplexColumnData ccd) {
-        List<ByteBuffer> bbList = collectionType.serializedValues(ccd.iterator());
-        AbstractType<?> innerType = collectionType.getElementsType();
+    public Object deserialize(SetType<?> setType, ComplexColumnData ccd) {
+        List<ByteBuffer> bbList = setType.serializedValues(ccd.iterator());
+        AbstractType<?> innerType = setType.getElementsType();
 
         Set<Object> deserializedSet = new HashSet<>();
         for (ByteBuffer bb : bbList) {
@@ -48,6 +48,6 @@ public class SetTypeDeserializer extends CollectionTypeDeserializer<SetType<?>> 
         }
 
         List<Object> deserializedList = new ArrayList<>(deserializedSet);
-        return Values.convertToList(getSchemaBuilder(collectionType).build(), deserializedList);
+        return Values.convertToList(getSchemaBuilder(setType).build(), deserializedList);
     }
 }
