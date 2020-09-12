@@ -29,6 +29,7 @@ import com.datastax.driver.core.querybuilder.BuiltStatement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 
+import io.debezium.DebeziumException;
 import io.debezium.connector.base.ChangeEventQueue;
 import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
 import io.debezium.connector.cassandra.transforms.CassandraTypeDeserializer;
@@ -161,8 +162,7 @@ public class SnapshotProcessor extends AbstractProcessor {
             LOGGER.debug("The snapshot of table '{}' has been taken", tableName(tableMetadata));
         }
         catch (Exception e) {
-            LOGGER.error("Failed to snapshot table {} in keyspace {}", tableMetadata.getName(), tableMetadata.getKeyspace().getName());
-            throw e;
+            throw new DebeziumException(String.format("Failed to snapshot table %s in keyspace %s", tableMetadata.getName(), tableMetadata.getKeyspace().getName()), e);
         }
     }
 

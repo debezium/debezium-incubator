@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.TableMetadata;
 
+import io.debezium.DebeziumException;
 import io.debezium.connector.base.ChangeEventQueue;
 import io.debezium.connector.cassandra.exceptions.CassandraConnectorSchemaException;
 import io.debezium.connector.cassandra.exceptions.CassandraConnectorTaskException;
@@ -402,9 +403,8 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
                 after.addCell(cellData);
             }
             catch (Exception e) {
-                LOGGER.error("Failed to populate Column {} with Type {} of Table {} in KeySpace {}.",
-                        cd.name.toString(), cd.type, cd.cfName, cd.ksName);
-                throw e;
+                throw new DebeziumException(String.format("Failed to populate Column %s with Type %s of Table %s in KeySpace %s.",
+                        cd.name.toString(), cd.type, cd.cfName, cd.ksName), e);
             }
         }
     }
@@ -418,9 +418,8 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
                 after.addCell(cellData);
             }
             catch (Exception e) {
-                LOGGER.error("Failed to populate Column {} with Type {} of Table {} in KeySpace {}.",
-                        cd.name.toString(), cd.type, cd.cfName, cd.ksName);
-                throw e;
+                throw new DebeziumException(String.format("Failed to populate Column %s with Type %s of Table %s in KeySpace %s.",
+                        cd.name.toString(), cd.type, cd.cfName, cd.ksName), e);
             }
         }
     }
@@ -446,9 +445,8 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
                     after.addCell(cellData);
                 }
                 catch (Exception e) {
-                    LOGGER.error("Failed to populate Column {} with Type {} of Table {} in KeySpace {}.",
-                            cd.name.toString(), cd.type, cd.cfName, cd.ksName);
-                    throw e;
+                    throw new DebeziumException(String.format("Failed to populate Column %s with Type %s of Table %s in KeySpace %s.",
+                            cd.name.toString(), cd.type, cd.cfName, cd.ksName), e);
                 }
             }
 
@@ -489,9 +487,8 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
                 values.add(value);
             }
             catch (Exception e) {
-                LOGGER.debug("Failed to deserialize Column {} with Type {} in Table {} and KeySpace {}.",
-                        cs.name.toString(), cs.type, cs.cfName, cs.ksName);
-                throw e;
+                throw new DebeziumException(String.format("Failed to deserialize Column %s with Type %s in Table %s and KeySpace %s.",
+                        cs.name.toString(), cs.type, cs.cfName, cs.ksName), e);
             }
 
             // composite partition key
@@ -524,9 +521,8 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
                     values.add(value);
                 }
                 catch (Exception e) {
-                    LOGGER.debug("Failed to deserialize Column {} with Type {} in Table {} and KeySpace {}",
-                            cs.name.toString(), cs.type, cs.cfName, cs.ksName);
-                    throw e;
+                    throw new DebeziumException(String.format("Failed to deserialize Column %s with Type %s in Table %s and KeySpace %s",
+                            cs.name.toString(), cs.type, cs.cfName, cs.ksName), e);
                 }
                 byte b = keyBytes.get();
                 if (b != 0) {

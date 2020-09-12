@@ -19,6 +19,7 @@ import org.apache.kafka.connect.storage.Converter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.debezium.DebeziumException;
 import io.debezium.schema.TopicSelector;
 
 /**
@@ -61,8 +62,7 @@ public class KafkaRecordEmitter implements AutoCloseable {
             }
         }
         catch (Exception e) {
-            LOGGER.error("Failed to emit record {}", record.toString());
-            throw e;
+            throw new DebeziumException(String.format("Failed to send record %s", record.toString()), e);
         }
     }
 
