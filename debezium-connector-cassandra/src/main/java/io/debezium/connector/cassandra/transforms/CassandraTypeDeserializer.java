@@ -49,6 +49,7 @@ import io.debezium.connector.cassandra.transforms.type.deserializer.CollectionTy
 import io.debezium.connector.cassandra.transforms.type.deserializer.DurationTypeDeserializer;
 import io.debezium.connector.cassandra.transforms.type.deserializer.InetAddressDeserializer;
 import io.debezium.connector.cassandra.transforms.type.deserializer.ListTypeDeserializer;
+import io.debezium.connector.cassandra.transforms.type.deserializer.LogicalTypeDeserializer;
 import io.debezium.connector.cassandra.transforms.type.deserializer.MapTypeDeserializer;
 import io.debezium.connector.cassandra.transforms.type.deserializer.SetTypeDeserializer;
 import io.debezium.connector.cassandra.transforms.type.deserializer.TimeUUIDTypeDeserializer;
@@ -151,5 +152,10 @@ public final class CassandraTypeDeserializer {
     public static SchemaBuilder getSchemaBuilder(AbstractType<?> abstractType) {
         TypeDeserializer typeDeserializer = TYPE_MAP.get(abstractType.getClass());
         return typeDeserializer.getSchemaBuilder(abstractType);
+    }
+
+    public static Object convertDeserializedValue(AbstractType<?> abstractType, Object object) {
+        TypeDeserializer typeDeserializer = TYPE_MAP.get(abstractType.getClass());
+        return ((LogicalTypeDeserializer) typeDeserializer).convertDeserializedValue(abstractType, object);
     }
 }

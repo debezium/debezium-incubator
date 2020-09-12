@@ -25,14 +25,17 @@ public class SetTypeDeserializer extends CollectionTypeDeserializer<SetType<?>> 
     @Override
     public Object deserialize(AbstractType<?> abstractType, ByteBuffer bb) {
         Set<?> deserializedSet = (Set<?>) super.deserialize(abstractType, bb);
-        List<?> deserializedList = new ArrayList<>(deserializedSet);
-        return Values.convertToList(getSchemaBuilder(abstractType).build(), deserializedList);
+        List<Object> convertedDeserializedList = new ArrayList<>();
+        AbstractType<?> elementsType = ((SetType<?>) abstractType).getElementsType();
+        for (Object value : deserializedSet) {
+            convertedDeserializedList.add(CassandraTypeDeserializer.convertDeserializedValue(elementsType, value));
+        }
+        return Values.convertToList(getSchemaBuilder(abstractType).build(), convertedDeserializedList);
     }
 
     @Override
     public SchemaBuilder getSchemaBuilder(AbstractType<?> abstractType) {
-        SetType<?> setType = (SetType<?>) abstractType;
-        AbstractType<?> elementsType = setType.getElementsType();
+        AbstractType<?> elementsType = ((SetType<?>) abstractType).getElementsType();
         Schema innerSchema = CassandraTypeDeserializer.getSchemaBuilder(elementsType).build();
         return SchemaBuilder.array(innerSchema).optional();
     }
@@ -40,11 +43,11 @@ public class SetTypeDeserializer extends CollectionTypeDeserializer<SetType<?>> 
     @Override
     public Object deserialize(SetType<?> setType, ComplexColumnData ccd) {
         List<ByteBuffer> bbList = setType.serializedValues(ccd.iterator());
-        AbstractType<?> innerType = setType.getElementsType();
+        AbstractType<?> elementsType = setType.getElementsType();
 
         Set<Object> deserializedSet = new HashSet<>();
         for (ByteBuffer bb : bbList) {
-            deserializedSet.add(super.deserialize(innerType, bb));
+            deserializedSet.add(super.deserialize(elementsType, bb));
         }
 
         List<Object> deserializedList = new ArrayList<>(deserializedSet);

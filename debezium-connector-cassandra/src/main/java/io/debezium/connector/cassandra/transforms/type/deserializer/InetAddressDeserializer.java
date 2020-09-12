@@ -9,20 +9,26 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
 import org.apache.cassandra.db.marshal.AbstractType;
-
-import io.debezium.connector.cassandra.transforms.CassandraTypeKafkaSchemaBuilders;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
-public class InetAddressDeserializer extends TypeDeserializer {
+import io.debezium.connector.cassandra.transforms.CassandraTypeKafkaSchemaBuilders;
+
+public class InetAddressDeserializer extends LogicalTypeDeserializer {
 
     @Override
     public Object deserialize(AbstractType<?> abstractType, ByteBuffer bb) {
-        InetAddress inetAddress = (InetAddress) super.deserialize(abstractType, bb);
-        return inetAddress.toString();
+        Object value = super.deserialize(abstractType, bb);
+        return convertDeserializedValue(abstractType, value);
     }
 
     @Override
     public SchemaBuilder getSchemaBuilder(AbstractType<?> abstractType) {
         return CassandraTypeKafkaSchemaBuilders.STRING_TYPE;
+    }
+
+    @Override
+    public Object convertDeserializedValue(AbstractType<?> abstractType, Object value) {
+        InetAddress inetAddress = (InetAddress) value;
+        return inetAddress.toString();
     }
 }

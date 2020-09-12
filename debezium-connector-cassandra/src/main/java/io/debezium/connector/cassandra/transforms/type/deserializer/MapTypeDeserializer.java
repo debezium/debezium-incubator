@@ -24,7 +24,16 @@ public class MapTypeDeserializer extends CollectionTypeDeserializer<MapType<?, ?
     @Override
     public Object deserialize(AbstractType<?> abstractType, ByteBuffer bb) {
         Map<?, ?> deserializedMap = (Map<?, ?>) super.deserialize(abstractType, bb);
-        return Values.convertToMap(getSchemaBuilder(abstractType).build(), deserializedMap);
+        Map<Object, Object> convertedDeserializedMap = new HashMap<>();
+        MapType<?, ?> mapType = (MapType<?, ?>) abstractType;
+        AbstractType<?> keysType = mapType.getKeysType();
+        AbstractType<?> valuesType = mapType.getValuesType();
+        for (Map.Entry entry : deserializedMap.entrySet()) {
+            Object convertedKey = CassandraTypeDeserializer.convertDeserializedValue(keysType, entry.getKey());
+            Object convertedValue = CassandraTypeDeserializer.convertDeserializedValue(valuesType, entry.getValue());
+            convertedDeserializedMap.put(convertedKey, convertedValue);
+        }
+        return Values.convertToMap(getSchemaBuilder(abstractType).build(), convertedDeserializedMap);
     }
 
     @Override
