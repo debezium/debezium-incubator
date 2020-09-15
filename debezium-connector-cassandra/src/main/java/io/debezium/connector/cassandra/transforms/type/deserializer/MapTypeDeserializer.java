@@ -24,16 +24,8 @@ public class MapTypeDeserializer extends CollectionTypeDeserializer<MapType<?, ?
     @Override
     public Object deserialize(AbstractType<?> abstractType, ByteBuffer bb) {
         Map<?, ?> deserializedMap = (Map<?, ?>) super.deserialize(abstractType, bb);
-        Map<Object, Object> convertedDeserializedMap = new HashMap<>();
-        MapType<?, ?> mapType = (MapType<?, ?>) abstractType;
-        AbstractType<?> keysType = mapType.getKeysType();
-        AbstractType<?> valuesType = mapType.getValuesType();
-        for (Map.Entry entry : deserializedMap.entrySet()) {
-            Object convertedKey = CassandraTypeDeserializer.convertDeserializedValue(keysType, entry.getKey());
-            Object convertedValue = CassandraTypeDeserializer.convertDeserializedValue(valuesType, entry.getValue());
-            convertedDeserializedMap.put(convertedKey, convertedValue);
-        }
-        return Values.convertToMap(getSchemaBuilder(abstractType).build(), convertedDeserializedMap);
+        deserializedMap = convertDeserializedElementsIfNecessary(abstractType, deserializedMap);
+        return Values.convertToMap(getSchemaBuilder(abstractType).build(), deserializedMap);
     }
 
     @Override
@@ -61,5 +53,26 @@ public class MapTypeDeserializer extends CollectionTypeDeserializer<MapType<?, ?
         }
 
         return Values.convertToMap(getSchemaBuilder(mapType).build(), deserializedMap);
+    }
+
+    private Map<?, ?> convertDeserializedElementsIfNecessary(AbstractType<?> abstractType, Map<?, ?> deserializedMap) {
+        MapType<?, ?> mapType = (MapType<?, ?>) abstractType;
+        AbstractType<?> keysType = mapType.getKeysType();
+        AbstractType<?> valuesType = mapType.getValuesType();
+        TypeDeserializer keysTypeDeserializer = CassandraTypeDeserializer.getTypeDeserializer(keysType);
+        TypeDeserializer valuesTypeDeserializer = CassandraTypeDeserializer.getTypeDeserializer(valuesType);
+        Map<Object, Object> resultedMap = new HashMap<>();
+        for (Map.Entry entry : deserializedMap.entrySet()) {
+            Object key = entry.getKey();
+            if (CassandraTypeDeserializer.isLogicalTypeDeserializer(keysTypeDeserializer)) {
+                key = ((LogicalTypeDeserializer) keysTypeDeserializer).convertDeserializedValue(keysType, key);
+            }
+            Object value = entry.getValue();
+            if (CassandraTypeDeserializer.isLogicalTypeDeserializer(valuesTypeDeserializer)) {
+                value = ((LogicalTypeDeserializer) valuesTypeDeserializer).convertDeserializedValue(valuesType, value);
+            }
+            resultedMap.put(key, value);
+        }
+        return resultedMap;
     }
 }

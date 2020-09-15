@@ -154,8 +154,11 @@ public final class CassandraTypeDeserializer {
         return typeDeserializer.getSchemaBuilder(abstractType);
     }
 
-    public static Object convertDeserializedValue(AbstractType<?> abstractType, Object object) {
-        TypeDeserializer typeDeserializer = TYPE_MAP.get(abstractType.getClass());
-        return ((LogicalTypeDeserializer) typeDeserializer).convertDeserializedValue(abstractType, object);
+    public static TypeDeserializer getTypeDeserializer(AbstractType<?> abstractType) {
+        return TYPE_MAP.get(abstractType.getClass());
+    }
+
+    public static boolean isLogicalTypeDeserializer(TypeDeserializer typeDeserializer) {
+        return LogicalTypeDeserializer.class.isAssignableFrom(typeDeserializer.getClass());
     }
 }

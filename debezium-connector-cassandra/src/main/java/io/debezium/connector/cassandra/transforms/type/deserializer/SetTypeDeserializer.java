@@ -25,12 +25,8 @@ public class SetTypeDeserializer extends CollectionTypeDeserializer<SetType<?>> 
     @Override
     public Object deserialize(AbstractType<?> abstractType, ByteBuffer bb) {
         Set<?> deserializedSet = (Set<?>) super.deserialize(abstractType, bb);
-        List<Object> convertedDeserializedList = new ArrayList<>();
-        AbstractType<?> elementsType = ((SetType<?>) abstractType).getElementsType();
-        for (Object value : deserializedSet) {
-            convertedDeserializedList.add(CassandraTypeDeserializer.convertDeserializedValue(elementsType, value));
-        }
-        return Values.convertToList(getSchemaBuilder(abstractType).build(), convertedDeserializedList);
+        List<?> deserializedList = convertDeserializedElementsIfNecessary(abstractType, deserializedSet);
+        return Values.convertToList(getSchemaBuilder(abstractType).build(), deserializedList);
     }
 
     @Override
@@ -44,13 +40,25 @@ public class SetTypeDeserializer extends CollectionTypeDeserializer<SetType<?>> 
     public Object deserialize(SetType<?> setType, ComplexColumnData ccd) {
         List<ByteBuffer> bbList = setType.serializedValues(ccd.iterator());
         AbstractType<?> elementsType = setType.getElementsType();
-
         Set<Object> deserializedSet = new HashSet<>();
         for (ByteBuffer bb : bbList) {
             deserializedSet.add(super.deserialize(elementsType, bb));
         }
-
         List<Object> deserializedList = new ArrayList<>(deserializedSet);
         return Values.convertToList(getSchemaBuilder(setType).build(), deserializedList);
+    }
+
+    public List<Object> convertDeserializedElementsIfNecessary(AbstractType<?> abstractType, Set<?> deserializedSet) {
+        AbstractType<?> elementsType = ((SetType<?>) abstractType).getElementsType();
+        TypeDeserializer elementsTypeDeserializer = CassandraTypeDeserializer.getTypeDeserializer(elementsType);
+        if (CassandraTypeDeserializer.isLogicalTypeDeserializer(elementsTypeDeserializer)) {
+            List<Object> convertedDeserializedList = new ArrayList<>();
+            for (Object element : deserializedSet) {
+                Object convertedValue = ((LogicalTypeDeserializer) elementsTypeDeserializer).convertDeserializedValue(elementsType, element);
+                convertedDeserializedList.add(convertedValue);
+            }
+            return convertedDeserializedList;
+        }
+        return new ArrayList<>(deserializedSet);
     }
 }
