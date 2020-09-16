@@ -25,7 +25,7 @@ public class SetTypeDeserializer extends CollectionTypeDeserializer<SetType<?>> 
     @Override
     public Object deserialize(AbstractType<?> abstractType, ByteBuffer bb) {
         Set<?> deserializedSet = (Set<?>) super.deserialize(abstractType, bb);
-        List<?> deserializedList = new ArrayList<>(deserializedSet);
+        List<?> deserializedList = convertDeserializedElementsIfNecessary(abstractType, deserializedSet);
         return Values.convertToList(getSchemaBuilder(abstractType).build(), deserializedList);
     }
 
@@ -47,5 +47,25 @@ public class SetTypeDeserializer extends CollectionTypeDeserializer<SetType<?>> 
         }
         List<Object> deserializedList = new ArrayList<>(deserializedSet);
         return Values.convertToList(getSchemaBuilder(setType).build(), deserializedList);
+    }
+
+    /**
+     * If elements in a deserialized set is LogicalType, convert each element to fit in Kafka Schema type
+     * @param abstractType the {@link AbstractType} of a column in Cassandra
+     * @param deserializedSet Set deserialized from Cassandra
+     * @return A deserialized list from Cassandra with each element that fits in Kafka Schema type
+     */
+    private List<Object> convertDeserializedElementsIfNecessary(AbstractType<?> abstractType, Set<?> deserializedSet) {
+        AbstractType<?> elementsType = ((SetType<?>) abstractType).getElementsType();
+        TypeDeserializer elementsTypeDeserializer = CassandraTypeDeserializer.getTypeDeserializer(elementsType);
+        if (LogicalTypeDeserializer.isParentOf(elementsTypeDeserializer)) {
+            List<Object> convertedDeserializedList = new ArrayList<>();
+            for (Object element : deserializedSet) {
+                Object convertedValue = ((LogicalTypeDeserializer) elementsTypeDeserializer).convertDeserializedValue(elementsType, element);
+                convertedDeserializedList.add(convertedValue);
+            }
+            return convertedDeserializedList;
+        }
+        return new ArrayList<>(deserializedSet);
     }
 }

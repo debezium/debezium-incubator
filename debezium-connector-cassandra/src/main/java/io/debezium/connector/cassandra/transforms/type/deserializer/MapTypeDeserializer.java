@@ -24,6 +24,7 @@ public class MapTypeDeserializer extends CollectionTypeDeserializer<MapType<?, ?
     @Override
     public Object deserialize(AbstractType<?> abstractType, ByteBuffer bb) {
         Map<?, ?> deserializedMap = (Map<?, ?>) super.deserialize(abstractType, bb);
+        deserializedMap = convertDeserializedElementsIfNecessary(abstractType, deserializedMap);
         return Values.convertToMap(getSchemaBuilder(abstractType).build(), deserializedMap);
     }
 
@@ -50,5 +51,32 @@ public class MapTypeDeserializer extends CollectionTypeDeserializer<MapType<?, ?
             deserializedMap.put(super.deserialize(keysType, kbb), super.deserialize(valuesType, vbb));
         }
         return Values.convertToMap(getSchemaBuilder(mapType).build(), deserializedMap);
+    }
+
+    /**
+     * If elements in a deserialized map is LogicalType, convert each element to fit in Kafka Schema type
+     * @param abstractType the {@link AbstractType} of a column in Cassandra
+     * @param deserializedMap Map deserialized from Cassandra
+     * @return A deserialized map from Cassandra with each element that fits in Kafka Schema type
+     */
+    private Map<?, ?> convertDeserializedElementsIfNecessary(AbstractType<?> abstractType, Map<?, ?> deserializedMap) {
+        MapType<?, ?> mapType = (MapType<?, ?>) abstractType;
+        AbstractType<?> keysType = mapType.getKeysType();
+        AbstractType<?> valuesType = mapType.getValuesType();
+        TypeDeserializer keysTypeDeserializer = CassandraTypeDeserializer.getTypeDeserializer(keysType);
+        TypeDeserializer valuesTypeDeserializer = CassandraTypeDeserializer.getTypeDeserializer(valuesType);
+        Map<Object, Object> resultedMap = new HashMap<>();
+        for (Map.Entry entry : deserializedMap.entrySet()) {
+            Object key = entry.getKey();
+            if (LogicalTypeDeserializer.isParentOf(keysTypeDeserializer)) {
+                key = ((LogicalTypeDeserializer) keysTypeDeserializer).convertDeserializedValue(keysType, key);
+            }
+            Object value = entry.getValue();
+            if (LogicalTypeDeserializer.isParentOf(valuesTypeDeserializer)) {
+                value = ((LogicalTypeDeserializer) valuesTypeDeserializer).convertDeserializedValue(valuesType, value);
+            }
+            resultedMap.put(key, value);
+        }
+        return resultedMap;
     }
 }

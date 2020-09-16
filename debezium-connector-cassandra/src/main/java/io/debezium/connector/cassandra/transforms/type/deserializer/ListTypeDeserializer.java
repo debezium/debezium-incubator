@@ -23,6 +23,7 @@ public class ListTypeDeserializer extends CollectionTypeDeserializer<ListType<?>
     @Override
     public Object deserialize(AbstractType<?> abstractType, ByteBuffer bb) {
         List<?> deserializedList = (List<?>) super.deserialize(abstractType, bb);
+        deserializedList = convertDeserializedElementsIfNecessary(abstractType, deserializedList);
         return Values.convertToList(getSchemaBuilder(abstractType).build(), deserializedList);
     }
 
@@ -43,5 +44,25 @@ public class ListTypeDeserializer extends CollectionTypeDeserializer<ListType<?>
             deserializedList.add(super.deserialize(elementsType, bb));
         }
         return Values.convertToList(getSchemaBuilder(listType).build(), deserializedList);
+    }
+
+    /**
+     * If elements in a deserialized list is LogicalType, convert each element to fit in Kafka Schema type
+     * @param abstractType the {@link AbstractType} of a column in Cassandra
+     * @param deserializedList List deserialized from Cassandra
+     * @return A deserialized list from Cassandra with each element that fits in Kafka Schema type
+     */
+    private List<?> convertDeserializedElementsIfNecessary(AbstractType<?> abstractType, List<?> deserializedList) {
+        AbstractType<?> elementsType = ((ListType<?>) abstractType).getElementsType();
+        TypeDeserializer elementsTypeDeserializer = CassandraTypeDeserializer.getTypeDeserializer(elementsType);
+        if (LogicalTypeDeserializer.isParentOf(elementsTypeDeserializer)) {
+            List<Object> convertedDeserializedList = new ArrayList<>();
+            for (Object element : deserializedList) {
+                Object convertedElement = ((LogicalTypeDeserializer) elementsTypeDeserializer).convertDeserializedValue(elementsType, element);
+                convertedDeserializedList.add(convertedElement);
+            }
+            return convertedDeserializedList;
+        }
+        return deserializedList;
     }
 }
