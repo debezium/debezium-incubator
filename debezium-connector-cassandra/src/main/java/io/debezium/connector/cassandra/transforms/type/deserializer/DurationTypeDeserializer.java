@@ -9,10 +9,10 @@ import java.nio.ByteBuffer;
 
 import org.apache.cassandra.cql3.Duration;
 import org.apache.cassandra.db.marshal.AbstractType;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 import io.debezium.connector.cassandra.transforms.CassandraTypeKafkaSchemaBuilders;
 import io.debezium.time.NanoDuration;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class DurationTypeDeserializer extends LogicalTypeDeserializer {
     /*

@@ -9,9 +9,9 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
 import org.apache.cassandra.db.marshal.AbstractType;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
 import io.debezium.connector.cassandra.transforms.CassandraTypeKafkaSchemaBuilders;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class InetAddressDeserializer extends LogicalTypeDeserializer {
 
