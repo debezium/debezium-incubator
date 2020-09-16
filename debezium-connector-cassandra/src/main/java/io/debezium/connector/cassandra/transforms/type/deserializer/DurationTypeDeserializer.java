@@ -12,15 +12,12 @@ import org.apache.cassandra.db.marshal.AbstractType;
 
 import io.debezium.connector.cassandra.transforms.CassandraTypeKafkaSchemaBuilders;
 import io.debezium.time.NanoDuration;
+import org.apache.kafka.connect.data.SchemaBuilder;
 
-public class DurationTypeDeserializer extends BasicTypeDeserializer {
+public class DurationTypeDeserializer extends TypeDeserializer {
     /*
      * Cassandra Duration type is serialized into micro seconds in double.
      */
-
-    public DurationTypeDeserializer() {
-        super(CassandraTypeKafkaSchemaBuilders.DURATION_TYPE);
-    }
 
     @Override
     public Object deserialize(AbstractType<?> abstractType, ByteBuffer bb) {
@@ -29,5 +26,10 @@ public class DurationTypeDeserializer extends BasicTypeDeserializer {
         int days = duration.getDays();
         long nanoSec = duration.getNanoseconds();
         return NanoDuration.durationNanos(0, months, days, 0, 0, 0, nanoSec);
+    }
+
+    @Override
+    public SchemaBuilder getSchemaBuilder(AbstractType<?> abstractType) {
+        return CassandraTypeKafkaSchemaBuilders.DURATION_TYPE;
     }
 }

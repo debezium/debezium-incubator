@@ -35,15 +35,13 @@ public class ListTypeDeserializer extends CollectionTypeDeserializer<ListType<?>
     }
 
     @Override
-    public Object deserialize(ListType<?> collectionType, ComplexColumnData ccd) {
-        List<ByteBuffer> bbList = collectionType.serializedValues(ccd.iterator());
-        AbstractType<?> innerType = collectionType.getElementsType();
-
+    public Object deserialize(ListType<?> listType, ComplexColumnData ccd) {
+        List<ByteBuffer> bbList = listType.serializedValues(ccd.iterator());
+        AbstractType<?> elementsType = listType.getElementsType();
         List<Object> deserializedList = new ArrayList<>(bbList.size());
         for (ByteBuffer bb : bbList) {
-            deserializedList.add(super.deserialize(innerType, bb));
+            deserializedList.add(super.deserialize(elementsType, bb));
         }
-
-        return Values.convertToList(getSchemaBuilder(collectionType).build(), deserializedList);
+        return Values.convertToList(getSchemaBuilder(listType).build(), deserializedList);
     }
 }
