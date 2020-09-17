@@ -41,7 +41,7 @@ public class ListTypeDeserializer extends CollectionTypeDeserializer<ListType<?>
         AbstractType<?> elementsType = listType.getElementsType();
         List<Object> deserializedList = new ArrayList<>(bbList.size());
         for (ByteBuffer bb : bbList) {
-            deserializedList.add(super.deserialize(elementsType, bb));
+            deserializedList.add(CassandraTypeDeserializer.deserialize(elementsType, bb));
         }
         return Values.convertToList(getSchemaBuilder(listType).build(), deserializedList);
     }

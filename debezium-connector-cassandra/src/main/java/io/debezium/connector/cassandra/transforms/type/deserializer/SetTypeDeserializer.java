@@ -43,7 +43,7 @@ public class SetTypeDeserializer extends CollectionTypeDeserializer<SetType<?>> 
         AbstractType<?> elementsType = setType.getElementsType();
         Set<Object> deserializedSet = new HashSet<>();
         for (ByteBuffer bb : bbList) {
-            deserializedSet.add(super.deserialize(elementsType, bb));
+            deserializedSet.add(CassandraTypeDeserializer.deserialize(elementsType, bb));
         }
         List<Object> deserializedList = new ArrayList<>(deserializedSet);
         return Values.convertToList(getSchemaBuilder(setType).build(), deserializedList);

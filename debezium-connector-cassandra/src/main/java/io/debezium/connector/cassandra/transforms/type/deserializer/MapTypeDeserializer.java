@@ -48,7 +48,7 @@ public class MapTypeDeserializer extends CollectionTypeDeserializer<MapType<?, ?
         while (i < bbList.size()) {
             ByteBuffer kbb = bbList.get(i++);
             ByteBuffer vbb = bbList.get(i++);
-            deserializedMap.put(super.deserialize(keysType, kbb), super.deserialize(valuesType, vbb));
+            deserializedMap.put(CassandraTypeDeserializer.deserialize(keysType, kbb), CassandraTypeDeserializer.deserialize(valuesType, vbb));
         }
         return Values.convertToMap(getSchemaBuilder(mapType).build(), deserializedMap);
     }
