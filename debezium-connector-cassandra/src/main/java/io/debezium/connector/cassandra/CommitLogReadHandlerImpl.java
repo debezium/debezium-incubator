@@ -232,7 +232,13 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
                 return;
             }
 
-            process(pu, offsetPosition, keyspaceTable);
+            try {
+                process(pu, offsetPosition, keyspaceTable);
+            }
+            catch (Exception e) {
+                throw new DebeziumException(String.format("Failed to process PartitionUpdate s% at s% for table s%",
+                        pu, offsetPosition, keyspaceTable), e);
+            }
         }
 
         metrics.onSuccess();
