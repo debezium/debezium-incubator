@@ -7,6 +7,9 @@ package io.debezium.connector.cassandra.transforms.type.deserializer;
 
 import org.apache.cassandra.db.marshal.AbstractType;
 
+/**
+ * For deserializing logical-type columns in Cassandra, like UUID, TIMEUUID, Duration, etc.
+ */
 public abstract class LogicalTypeDeserializer extends TypeDeserializer {
 
     /**
@@ -17,12 +20,4 @@ public abstract class LogicalTypeDeserializer extends TypeDeserializer {
      */
     public abstract Object convertDeserializedValue(AbstractType<?> abstractType, Object value);
 
-    /**
-     * Check if a TypeDeserializer extends from LogicalTypeDeserializer
-     * @param typeDeserializer TypeDeserializer
-     * @return true if the TypeDeserializer extends from LogicalTypeDeserializer
-     */
-    public static boolean isParentOf(TypeDeserializer typeDeserializer) {
-        return LogicalTypeDeserializer.class.isAssignableFrom(typeDeserializer.getClass());
-    }
 }

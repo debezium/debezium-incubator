@@ -68,7 +68,7 @@ public class MapTypeDeserializer extends CollectionTypeDeserializer<MapType<?, ?
         Map<Object, Object> resultedMap = new HashMap<>();
         for (Map.Entry entry : deserializedMap.entrySet()) {
             Object key = entry.getKey();
-            if (LogicalTypeDeserializer.isParentOf(keysTypeDeserializer)) {
+            if (keysTypeDeserializer instanceof LogicalTypeDeserializer) {
                 key = ((LogicalTypeDeserializer) keysTypeDeserializer).convertDeserializedValue(keysType, key);
             }
             Object value = entry.getValue();

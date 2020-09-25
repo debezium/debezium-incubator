@@ -236,8 +236,8 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
                 process(pu, offsetPosition, keyspaceTable);
             }
             catch (Exception e) {
-                throw new DebeziumException(String.format("Failed to process PartitionUpdate s% at s% for table s%",
-                        pu, offsetPosition, keyspaceTable), e);
+                throw new DebeziumException(String.format("Failed to process PartitionUpdate %s at %s for table %s.",
+                        pu.toString(), offsetPosition.toString(), keyspaceTable.name()), e);
             }
         }
 
@@ -253,10 +253,10 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
     @Override
     public boolean shouldSkipSegmentOnError(CommitLogReadException exception) throws IOException {
         if (exception.permissible) {
-            LOGGER.error("Encountered a permissible exception during log replay: {}", exception);
+            LOGGER.error("Encountered a permissible exception during log replay", exception);
         }
         else {
-            LOGGER.error("Encountered a non-permissible exception during log replay: {}", exception);
+            LOGGER.error("Encountered a non-permissible exception during log replay", exception);
         }
         return false;
     }
@@ -410,7 +410,7 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
             }
             catch (Exception e) {
                 throw new DebeziumException(String.format("Failed to populate Column %s with Type %s of Table %s in KeySpace %s.",
-                        cd.name.toString(), cd.type, cd.cfName, cd.ksName), e);
+                        cd.name.toString(), cd.type.toString(), cd.cfName, cd.ksName), e);
             }
         }
     }
@@ -425,7 +425,7 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
             }
             catch (Exception e) {
                 throw new DebeziumException(String.format("Failed to populate Column %s with Type %s of Table %s in KeySpace %s.",
-                        cd.name.toString(), cd.type, cd.cfName, cd.ksName), e);
+                        cd.name.toString(), cd.type.toString(), cd.cfName, cd.ksName), e);
             }
         }
     }
@@ -452,7 +452,7 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
                 }
                 catch (Exception e) {
                     throw new DebeziumException(String.format("Failed to populate Column %s with Type %s of Table %s in KeySpace %s.",
-                            cd.name.toString(), cd.type, cd.cfName, cd.ksName), e);
+                            cd.name.toString(), cd.type.toString(), cd.cfName, cd.ksName), e);
                 }
             }
 
@@ -494,7 +494,7 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
             }
             catch (Exception e) {
                 throw new DebeziumException(String.format("Failed to deserialize Column %s with Type %s in Table %s and KeySpace %s.",
-                        cs.name.toString(), cs.type, cs.cfName, cs.ksName), e);
+                        cs.name.toString(), cs.type.toString(), cs.cfName, cs.ksName), e);
             }
 
             // composite partition key
@@ -528,7 +528,7 @@ public class CommitLogReadHandlerImpl implements CommitLogReadHandler {
                 }
                 catch (Exception e) {
                     throw new DebeziumException(String.format("Failed to deserialize Column %s with Type %s in Table %s and KeySpace %s",
-                            cs.name.toString(), cs.type, cs.cfName, cs.ksName), e);
+                            cs.name.toString(), cs.type.toString(), cs.cfName, cs.ksName), e);
                 }
                 byte b = keyBytes.get();
                 if (b != 0) {
