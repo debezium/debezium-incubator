@@ -72,7 +72,7 @@ public class MapTypeDeserializer extends CollectionTypeDeserializer<MapType<?, ?
                 key = ((LogicalTypeDeserializer) keysTypeDeserializer).convertDeserializedValue(keysType, key);
             }
             Object value = entry.getValue();
-            if (LogicalTypeDeserializer.isParentOf(valuesTypeDeserializer)) {
+            if (valuesTypeDeserializer instanceof LogicalTypeDeserializer) {
                 value = ((LogicalTypeDeserializer) valuesTypeDeserializer).convertDeserializedValue(valuesType, value);
             }
             resultedMap.put(key, value);
