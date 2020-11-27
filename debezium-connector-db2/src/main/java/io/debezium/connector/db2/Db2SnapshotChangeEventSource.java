@@ -106,8 +106,8 @@ public class Db2SnapshotChangeEventSource extends RelationalSnapshotChangeEventS
                     }
 
                     LOGGER.info("Locking table {}", tableId);
-
-                    String query = String.format("SELECT * FROM %s.%s WHERE 0=1 WITH CS", tableId.schema(), tableId.table());
+                    String query = String.format("SELECT * FROM %s.%s WHERE 0=1 WITH CS", Db2ObjectNameQuoter.quoteNameIfNecessary(tableId.schema()),
+                            Db2ObjectNameQuoter.quoteNameIfNecessary(tableId.table()));
                     statement.executeQuery(query).close();
                 }
             }
@@ -193,7 +193,8 @@ public class Db2SnapshotChangeEventSource extends RelationalSnapshotChangeEventS
      */
     @Override
     protected Optional<String> getSnapshotSelect(RelationalSnapshotContext snapshotContext, TableId tableId) {
-        return Optional.of(String.format("SELECT * FROM %s.%s", tableId.schema(), tableId.table()));
+        return Optional.of(String.format("SELECT * FROM %s.%s", Db2ObjectNameQuoter.quoteNameIfNecessary(tableId.schema()),
+                Db2ObjectNameQuoter.quoteNameIfNecessary(tableId.table())));
     }
 
     /**

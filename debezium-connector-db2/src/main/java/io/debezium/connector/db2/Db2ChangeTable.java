@@ -13,7 +13,7 @@ import io.debezium.relational.TableId;
  * There is usually one change table for each source table. When the schema of the source table
  * is changed then two change tables could be present.
  *
- * @author Jiri Pechanec, Peter Urbanetz
+ * @author Jiri Pechanec, Peter Urbanetz, Luis Garcés-Erice
  *
  */
 public class Db2ChangeTable extends ChangeTable {
@@ -30,14 +30,24 @@ public class Db2ChangeTable extends ChangeTable {
      */
     private Lsn stopLsn;
 
+    /**
+     * The table in the CDC schema that captures changes, suitably quoted for Db2 
+     */
+    private String db2CaptureInstance;
+
     public Db2ChangeTable(TableId sourceTableId, String captureInstance, int changeTableObjectId, Lsn startLsn, Lsn stopLsn) {
         super(captureInstance, sourceTableId, resolveChangeTableId(sourceTableId, captureInstance), changeTableObjectId);
         this.startLsn = startLsn;
         this.stopLsn = stopLsn;
+        this.db2CaptureInstance = Db2ObjectNameQuoter.quoteNameIfNecessary(captureInstance);
     }
 
     public Db2ChangeTable(String captureInstance, int changeTableObjectId, Lsn startLsn, Lsn stopLsn) {
         this(null, captureInstance, changeTableObjectId, startLsn, stopLsn);
+    }
+
+    public String getCaptureInstance() {
+        return db2CaptureInstance;
     }
 
     public Lsn getStartLsn() {
@@ -60,6 +70,6 @@ public class Db2ChangeTable extends ChangeTable {
     }
 
     private static TableId resolveChangeTableId(TableId sourceTableId, String captureInstance) {
-        return sourceTableId != null ? new TableId(sourceTableId.catalog(), CDC_SCHEMA, captureInstance) : null;
+        return sourceTableId != null ? new TableId(sourceTableId.catalog(), CDC_SCHEMA, Db2ObjectNameQuoter.quoteNameIfNecessary(captureInstance)) : null;
     }
 }

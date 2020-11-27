@@ -231,7 +231,7 @@ public class Db2Connection extends JdbcConnection {
     }
 
     private String cdcNameForTable(TableId tableId) {
-        return tableId.schema() + '_' + tableId.table();
+        return Db2ObjectNameQuoter.quoteNameIfNecessary(tableId.schema() + '_' + tableId.table());
     }
 
     public static class CdcEnabledTable {

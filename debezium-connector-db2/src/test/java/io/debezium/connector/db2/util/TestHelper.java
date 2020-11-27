@@ -58,13 +58,14 @@ public class TestHelper {
      */
     public static final String TYPE_SCALE_PARAMETER_KEY = "__debezium.source.column.scale";
 
-    private static final String STATEMENTS_PLACEHOLDER = "#";
+    private static final String STATEMENTS_TABLE_PLACEHOLDER = "#";
+    private static final String STATEMENTS_SCHEMA_PLACEHOLDER = "@";
 
     private static final String ENABLE_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('start','asncdc')";
     private static final String DISABLE_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('stop','asncdc')";
     private static final String STATUS_DB_CDC = "VALUES ASNCDC.ASNCDCSERVICES('status','asncdc')";
-    private static final String ENABLE_TABLE_CDC = "CALL ASNCDC.ADDTABLE('DB2INST1', '#' )";
-    private static final String DISABLE_TABLE_CDC = "CALL ASNCDC.REMOVETABLE('DB2INST1', '#' )";
+    private static final String ENABLE_TABLE_CDC = "CALL ASNCDC.ADDTABLE('@', '#' )";
+    private static final String DISABLE_TABLE_CDC = "CALL ASNCDC.REMOVETABLE('@', '#' )";
     private static final String RESTART_ASN_CDC = "VALUES ASNCDC.ASNCDCSERVICES('reinit','asncdc')";
 
     public static JdbcConfiguration adminJdbcConfig() {
@@ -164,11 +165,26 @@ public class TestHelper {
      * @throws SQLException if anything unexpected fails
      */
     public static void enableTableCdc(Db2Connection connection, String name) throws SQLException {
-        Objects.requireNonNull(name);
-        String enableCdcForTableStmt = ENABLE_TABLE_CDC.replace(STATEMENTS_PLACEHOLDER, name);
+        enableTableCdc(connection, "DB2INST1", name);
+    }
+
+    /**
+     * Enables CDC for a table if not already enabled and generates the wrapper
+     * functions for that table.
+     * 
+     * @param schemaName
+     *            the name of the schema, may not be {@code null}
+     * @param tableName
+     *            the name of the table, may not be {@code null}
+     * @throws SQLException if anything unexpected fails
+     */
+    public static void enableTableCdc(Db2Connection connection, String schemaName, String tableName) throws SQLException {
+        Objects.requireNonNull(schemaName);
+        Objects.requireNonNull(tableName);
+        String enableCdcForTableStmt = ENABLE_TABLE_CDC.replace(STATEMENTS_SCHEMA_PLACEHOLDER, schemaName).replace(STATEMENTS_TABLE_PLACEHOLDER, tableName);
         connection.execute(enableCdcForTableStmt);
 
-        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER  = 'DB2INST1' AND SOURCE_TABLE = '" + name + "'");
+        connection.execute("UPDATE ASNCDC.IBMSNAP_REGISTER SET STATE = 'A' WHERE SOURCE_OWNER  = '" + schemaName + "' AND SOURCE_TABLE = '" + tableName + "'");
         connection.execute(RESTART_ASN_CDC);
     }
 
@@ -180,8 +196,22 @@ public class TestHelper {
      * @throws SQLException if anything unexpected fails
      */
     public static void disableTableCdc(Db2Connection connection, String name) throws SQLException {
-        Objects.requireNonNull(name);
-        String disableCdcForTableStmt = DISABLE_TABLE_CDC.replace(STATEMENTS_PLACEHOLDER, name);
+        disableTableCdc(connection, "DB2INST1", name);
+    }
+
+    /**
+     * Disables CDC for a table for which it was enabled before.
+     * 
+     * @param schemaName
+     *            the name of the schema, may not be {@code null}
+     * @param tableName
+     *            the name of the table, may not be {@code null}
+     * @throws SQLException if anything unexpected fails
+     */
+    public static void disableTableCdc(Db2Connection connection, String schemaName, String tableName) throws SQLException {
+        Objects.requireNonNull(schemaName);
+        Objects.requireNonNull(tableName);
+        String disableCdcForTableStmt = DISABLE_TABLE_CDC.replace(STATEMENTS_SCHEMA_PLACEHOLDER, schemaName).replace(STATEMENTS_TABLE_PLACEHOLDER, tableName);
         connection.execute(disableCdcForTableStmt);
         connection.execute(RESTART_ASN_CDC);
     }
