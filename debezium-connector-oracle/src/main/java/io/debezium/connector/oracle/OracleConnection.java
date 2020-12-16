@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.debezium.config.Configuration;
+import io.debezium.config.Field;
 import io.debezium.connector.oracle.OracleConnectorConfig.ConnectorAdapter;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
@@ -46,6 +48,11 @@ public class OracleConnection extends JdbcConnection {
      * Returned by column metadata in Oracle if no scale is set;
      */
     private static final int ORACLE_UNSET_SCALE = -127;
+
+    /**
+     * A field for the raw jdbc url. This field has no default value.
+     */
+    private static final Field URL = Field.create("url", "Raw JDBC url");
 
     public OracleConnection(Configuration config, Supplier<ClassLoader> classLoaderSupplier) {
         super(config, resolveConnectionFactory(config), classLoaderSupplier);
@@ -274,7 +281,10 @@ public class OracleConnection extends JdbcConnection {
     }
 
     private static ConnectionFactory resolveConnectionFactory(Configuration config) {
-        final String connectionUrl = ConnectorAdapter.parse(config.getString("connection.adapter")).getConnectionUrl();
+
+        final String connectionUrl = config.getString(URL) != null ? config.getString(URL)
+                : ConnectorAdapter.parse(config.getString("connection.adapter")).getConnectionUrl();
+
         return JdbcConnection.patternBasedFactory(connectionUrl);
     }
 }
