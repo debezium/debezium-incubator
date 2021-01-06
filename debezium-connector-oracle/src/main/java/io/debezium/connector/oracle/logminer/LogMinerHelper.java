@@ -534,7 +534,7 @@ public class LogMinerHelper {
     public static Map<String, Long> getOnlineLogFilesForOffsetScn(Connection connection, Long offsetScn) throws SQLException {
         Map<String, String> redoLogFiles = getMap(connection, SqlUtils.allOnlineLogsQuery(), "-1");
         return redoLogFiles.entrySet().stream()
-                .filter(entry -> new BigInteger(entry.getValue()).longValue() > offsetScn || new BigInteger(entry.getValue()).longValue() == -1).collect(Collectors
+                .filter(entry -> new BigInteger(entry.getValue()).longValue() >= offsetScn || new BigInteger(entry.getValue()).longValue() == -1).collect(Collectors
                         .toMap(Map.Entry::getKey, e -> new BigInteger(e.getValue()).longValue() == -1 ? Long.MAX_VALUE : new BigInteger(e.getValue()).longValue()));
     }
 
