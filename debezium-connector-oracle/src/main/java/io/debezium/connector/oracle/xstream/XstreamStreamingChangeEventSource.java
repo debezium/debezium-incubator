@@ -5,6 +5,7 @@
  */
 package io.debezium.connector.oracle.xstream;
 
+import java.time.Duration;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -20,9 +21,13 @@ import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.StreamingChangeEventSource;
 import io.debezium.relational.TableId;
 import io.debezium.util.Clock;
+import io.debezium.util.Metronome;
 
 import oracle.jdbc.OracleConnection;
 import oracle.sql.NUMBER;
+import oracle.streams.ChunkColumnValue;
+import oracle.streams.LCR;
+import oracle.streams.RowLCR;
 import oracle.streams.StreamsException;
 import oracle.streams.XStreamOut;
 import oracle.streams.XStreamUtility;
@@ -71,11 +76,26 @@ public class XstreamStreamingChangeEventSource implements StreamingChangeEventSo
                     startPosition, 1, 1, XStreamOut.DEFAULT_MODE);
 
             LcrEventHandler handler = new LcrEventHandler(errorHandler, dispatcher, clock, schema, offsetContext, this.tablenameCaseInsensitive);
+            Metronome metronome = Metronome.sleeper(Duration.ofSeconds(1), Clock.SYSTEM);
 
             // 2. receive events while running
-            while (context.isRunning()) {
-                LOGGER.trace("Receiving LCR");
-                xsOut.receiveLCRCallback(handler, XStreamOut.DEFAULT_MODE);
+            while (true) {
+                LCR lcr = xsOut.receiveLCR(XStreamOut.DEFAULT_MODE);
+                if (xsOut.getBatchStatus() == XStreamOut.EXECUTING) {
+                    processLCR(lcr, handler);
+                }
+                else {
+                    // When a batch begins, Xstream expects that to end before a new operation can
+                    // be performed, which includes detachment. This is why we only test for context
+                    // shutdown once we've left the LCR batch execution status.
+                    if (!context.isRunning()) {
+                        break;
+                    }
+
+                    // Xstream callback API implies a 1 second delay between batches
+                    // To mimic that behavior with the non-callback API, we apply a pause of 1 second
+                    metronome.pause();
+                }
             }
         }
         catch (Throwable e) {
@@ -137,6 +157,25 @@ public class XstreamStreamingChangeEventSource implements StreamingChangeEventSo
         }
         catch (StreamsException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void processLCR(LCR lcr, LcrEventHandler handler) throws StreamsException {
+        LOGGER.trace("Receiving LCR");
+
+        // First process the LCR
+        handler.processLCR(lcr);
+
+        // For RowLCR types, if it has chunk data, we should invoke the chunk handlers.
+        // This is to mimic the behavior of the Xstream callback API
+        if (lcr instanceof RowLCR) {
+            if (((RowLCR) lcr).hasChunkData()) {
+                ChunkColumnValue chunk;
+                do {
+                    chunk = xsOut.receiveChunk(XStreamOut.DEFAULT_MODE);
+                    handler.processChunk(chunk);
+                } while (!chunk.isEndOfRow());
+            }
         }
     }
 }
