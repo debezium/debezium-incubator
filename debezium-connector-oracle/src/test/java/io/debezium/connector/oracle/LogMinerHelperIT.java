@@ -81,7 +81,7 @@ public class LogMinerHelperIT extends AbstractConnectorTest {
     @Test
     public void shouldAddRightOnlineRedoFiles() throws Exception {
         // case 1 : oldest scn = current scn
-        long currentScn = LogMinerHelper.getCurrentScn(conn);
+        long currentScn = conn.getCurrentScn();
         LogMinerHelper.setRedoLogFilesForMining(conn, currentScn, Duration.ofHours(0L));
         assertThat(getNumberOfAddedLogFiles(conn) == 1).isTrue();
 
@@ -102,7 +102,7 @@ public class LogMinerHelperIT extends AbstractConnectorTest {
     @Test
     public void shouldAddRightArchivedRedoFiles() throws Exception {
         // case 1 : oldest scn = current scn
-        long currentScn = LogMinerHelper.getCurrentScn(conn);
+        long currentScn = conn.getCurrentScn();
         Map<String, String> archivedRedoFiles = LogMinerHelper.getMap(conn, SqlUtils.archiveLogsQuery(currentScn, Duration.ofHours(0L)), "-1");
         assertThat(archivedRedoFiles.size() == 0).isTrue();
 
@@ -140,7 +140,7 @@ public class LogMinerHelperIT extends AbstractConnectorTest {
         Optional<Long> abandonWatermark = LogMinerHelper.getLastScnToAbandon(conn, oldestOnlineScn, Duration.ofHours(1));
         assertThat(abandonWatermark.isPresent()).isTrue();
 
-        long currentScn = LogMinerHelper.getCurrentScn(conn);
+        long currentScn = conn.getCurrentScn();
         abandonWatermark = LogMinerHelper.getLastScnToAbandon(conn, currentScn, Duration.ofHours(1));
         assertThat(abandonWatermark.isPresent()).isFalse();
 
@@ -158,7 +158,7 @@ public class LogMinerHelperIT extends AbstractConnectorTest {
             twoHoursAgoScn = rs.getBigDecimal(1).longValue();
         }
         String query = SqlUtils.diffInDaysQuery(twoHoursAgoScn);
-        Float diffInDays = (Float) LogMinerHelper.getSingleResult(conn, query, LogMinerHelper.DATATYPE.FLOAT);
+        Float diffInDays = conn.querySingleResult(query, (rs) -> rs.getFloat(1));
         assertThat(Math.round(diffInDays * 24) == 2).isTrue();
 
         diffInDays += 0.6F; // + 4 hours

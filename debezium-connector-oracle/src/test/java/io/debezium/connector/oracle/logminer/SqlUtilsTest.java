@@ -8,10 +8,7 @@ package io.debezium.connector.oracle.logminer;
 import static org.fest.assertions.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.io.IOException;
-import java.sql.SQLRecoverableException;
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -35,8 +32,6 @@ public class SqlUtilsTest {
 
     @Test
     public void testStatements() {
-        SqlUtils.setRac(false);
-
         String result = SqlUtils.addLogFileStatement("ADD", "FILENAME");
         String expected = "BEGIN sys.dbms_logmnr.add_logfile(LOGFILENAME => 'FILENAME', OPTIONS => ADD);END;";
         assertThat(expected.equals(result)).isTrue();
@@ -91,10 +86,6 @@ public class SqlUtilsTest {
         result = SqlUtils.diffInDaysQuery(null);
         assertThat(result).isNull();
 
-        result = SqlUtils.bulkHistoryInsertStmt("table_name");
-        expected = "INSERT  /*+ APPEND */ INTO table_name SELECT * FROM LOG_MINING_TEMP";
-        assertThat(result).isEqualTo(expected);
-
         result = SqlUtils.redoLogStatusQuery();
         expected = "SELECT F.MEMBER, R.STATUS FROM V$LOGFILE F, V$LOG R WHERE F.GROUP# = R.GROUP# ORDER BY 2";
         assertThat(expected.equals(result)).isTrue();
@@ -131,20 +122,6 @@ public class SqlUtilsTest {
         expected = "SELECT '1' AS ONE FROM USER_TABLES WHERE TABLE_NAME = 'table_name'";
         assertThat(result).isEqualTo(expected);
 
-        result = SqlUtils.logMiningHistoryDdl("table_name");
-        expected = "create  TABLE table_name(" +
-                "row_sequence NUMBER(19,0), " +
-                "captured_scn NUMBER(19,0), " +
-                "table_name VARCHAR2(30 CHAR), " +
-                "seg_owner VARCHAR2(30 CHAR), " +
-                "operation_code NUMBER(19,0), " +
-                "change_time TIMESTAMP(6), " +
-                "transaction_id VARCHAR2(50 CHAR), " +
-                "csf NUMBER(19,0), " +
-                "redo_sql VARCHAR2(4000 CHAR)" +
-                ") nologging";
-        assertThat(result).isEqualTo(expected);
-
         result = SqlUtils.archiveLogsQuery(10L, Duration.ofHours(0L));
         expected = "SELECT NAME AS FILE_NAME, NEXT_CHANGE# AS NEXT_CHANGE, FIRST_CHANGE# AS FIRST_CHANGE FROM V$ARCHIVED_LOG " +
                 "WHERE NAME IS NOT NULL AND ARCHIVED = 'YES' " +
@@ -160,45 +137,5 @@ public class SqlUtilsTest {
         result = SqlUtils.deleteLogFileStatement("file_name");
         expected = "BEGIN SYS.DBMS_LOGMNR.REMOVE_LOGFILE(LOGFILENAME => 'file_name');END;";
         assertThat(result).isEqualTo(expected);
-
-        result = SqlUtils.getHistoryTableNamesQuery();
-        expected = "SELECT TABLE_NAME, '1' FROM USER_TABLES WHERE TABLE_NAME LIKE 'LM_HIST_%'";
-        assertThat(result).isEqualTo(expected);
-
-        result = SqlUtils.dropHistoryTableStatement("table_name");
-        expected = "DROP TABLE TABLE_NAME PURGE";
-        assertThat(result).isEqualTo(expected);
-
-    }
-
-    @Test
-    public void shouldParseHistoryTableNames() {
-        String name = SqlUtils.buildHistoryTableName(LocalDateTime.now());
-        long diff = SqlUtils.parseRetentionFromName(name);
-        assertThat(diff).isEqualTo(0);
-
-        name = SqlUtils.buildHistoryTableName(LocalDateTime.now().minusHours(10));
-        diff = SqlUtils.parseRetentionFromName(name);
-        assertThat(diff).isEqualTo(10);
-
-        diff = SqlUtils.parseRetentionFromName(SqlUtils.LOGMNR_HISTORY_TABLE_PREFIX + "10_2_4_5");
-        assertThat(diff).isEqualTo(0);
-
-    }
-
-    @Test
-    public void shouldDetectConnectionProblems() {
-        assertThat(SqlUtils.connectionProblem(new IOException("connection"))).isTrue();
-        assertThat(SqlUtils.connectionProblem(new SQLRecoverableException("connection"))).isTrue();
-        assertThat(SqlUtils.connectionProblem(new Throwable())).isFalse();
-        assertThat(SqlUtils.connectionProblem(new Exception("ORA-03135 problem"))).isTrue();
-        assertThat(SqlUtils.connectionProblem(new Exception("ORA-12543 problem"))).isTrue();
-        assertThat(SqlUtils.connectionProblem(new Exception("ORA-00604 problem"))).isTrue();
-        assertThat(SqlUtils.connectionProblem(new Exception("ORA-01089 problem"))).isTrue();
-        assertThat(SqlUtils.connectionProblem(new Exception("ORA-00600 problem"))).isTrue();
-        assertThat(SqlUtils.connectionProblem(new Exception("ORA-99999 problem"))).isFalse();
-        assertThat(SqlUtils.connectionProblem(new Exception("NO MORE DATA TO READ FROM SOCKET problem"))).isTrue();
-
-        assertThat(SqlUtils.connectionProblem(new Exception("12543 problem"))).isFalse();
     }
 }

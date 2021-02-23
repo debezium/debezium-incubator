@@ -5,6 +5,7 @@
  */
 package io.debezium.connector.oracle;
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -351,6 +352,33 @@ public class OracleConnection extends JdbcConnection {
             commit();
         }
         return this;
+    }
+
+    public OracleConnection prepareCall(boolean executeOnConnect, String sqlStatement) throws SQLException {
+        try (CallableStatement statement = connection(executeOnConnect).prepareCall(sqlStatement)) {
+            statement.execute();
+        }
+        return this;
+    }
+
+    public OracleConnection prepareCallWithCommit(boolean executeOnConnect, String sqlStatement) throws SQLException {
+        try (CallableStatement statement = connection(executeOnConnect).prepareCall(sqlStatement)) {
+            statement.execute();
+            commit();
+        }
+        return this;
+    }
+
+    public <T> T querySingleResult(String query, ResultSetExtractor<T> extractor) throws SQLException {
+        return querySingleResult(query, null, extractor);
+    }
+
+    public <T> T querySingleResult(String query, T defaultValue, ResultSetExtractor<T> extractor) throws SQLException {
+        return queryAndMap(query, (rs) -> (rs.next() ? extractor.apply(rs) : defaultValue));
+    }
+
+    public long getCurrentScn() throws SQLException {
+        return queryAndMap("SELECT CURRENT_SCN FROM V$DATABASE", singleResultMapper(rs -> rs.getLong(1), "Couldn't get SCN"));
     }
 
     public static String connectionString(Configuration config) {
