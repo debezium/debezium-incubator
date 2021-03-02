@@ -12,86 +12,15 @@ Licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/
 
 Debezium is an open source project that provides a low latency data streaming platform for change data capture (CDC).
 
+_Note, Mar. 2021: The remaining Oracle connector has matured enough that it has been related to the Debezium main repository along side the other project-led connectors._
+
 _Note, Dec. 2020: We're moving away from a model of a shared incubator repo, instead there'll be dedicated repos for each incubating and/or community-led connector.
-The Oracle connector is the last remaining connector in this repository, which will be renamed accordingly soon._
+The Oracle connector is the last remaining connector in this repository.
 
-This repository contains incubating connectors and modules which are in an **early stage of their development**.
-You are encouraged to explore these connectors and test them, but typically they are not recommended yet for production usage.
-E.g. the format of emitted messages may change, specific features may not be implemented yet etc.
+This repository is being retained and archived for historical, read-only purposes.
 
-Once connectors are deemed mature enough, they may be promoted into the Debezium main repository.
+If you're looking for a connector that was once part of this repository, below are links to where they've been relocated:
 
-## Building Debezium Incubator Modules
-
-Please see the [README.md](https://github.com/debezium/debezium#building-debezium) in the main repository for general instructions on building Debezium from source (prerequisites, usage of Docker etc).
-
-### Building the Oracle connector
-
-**Note:** The Debezium Oracle connector currently exclusively uses the XStream API for ingesting change events from the Oracle database; using this API in production requires to have a license for the Golden Gate product.
-We're going to explore alternatives to XStream which may be friendly in terms of licensing.
-
-Building this connector first requires the main [debezium](https://github.com/debezium/debezium) code repository to be built locally using `mvn clean install`.
-
-In order to build the Debezium Oracle connector, the following prerequisites must be met:
-
-* Oracle DB is installed, enabled for change data capturing and configured as described in the [README.md](https://github.com/debezium/oracle-vagrant-box) of the debezium-vagrant-box project
-(Running Oracle in VirtualBox is not a requirement, but we found it to be the easiest in terms of set-up)
-* The Instant Client is downloaded (e.g. [from here](http://www.oracle.com/technetwork/topics/linuxx86-64soft-092277.html) for Linux) and unpacked
-* The _xstream.jar_ from the Instant Client directory must be installed to the local Maven repository:
-
-```bash
-mvn install:install-file \
-  -DgroupId=com.oracle.instantclient \
-  -DartifactId=xstreams \
-  -Dversion=12.2.0.1 \
-  -Dpackaging=jar \
-  -Dfile=xstreams.jar
-```
-
-Then the Oracle connector can be built like so:
-
-    $ mvn clean install -pl debezium-connector-oracle -am -Poracle -Dinstantclient.dir=/path/to/instant-client-dir
-
-#### Oracle Log Miner
-
-If the connector is to be built and tested using the Oracle Log Miner implementation, it can be built like so:
-
-    $ mvn clean install -pl debezium-connector-oracle -am -Poracle,logminer -Dinstantclient.dir=/home/to/instant-client-dir
-
-#### For Oracle 11g
-
-To run Debezium Oracle connector with Oracle 11g, add these additional parameters. If running with Oracle 12c+, leave these parameters to default.
-Note: The required configuration values will be determined automatically in a future version,
-making these parameters potentially obsolete.
-
-```json
-"database.tablename.case.insensitive": "true"
-"database.oracle.version": "11"
-```
-
-By default, Debezium will ignore some admin tables in Oracle 12c.
-But as those tables are different in Oracle 11g, Debezium will report an error on those tables. So when use Debezium on Oracle 11g, use `table.include.list` (remember to use lower case):
-
-```json
-"table.include.list": "orcl\\.debezium\\.(.*)"
-```
-
-Making this configuration obsolete is tracked under [DBZ-1045](https://issues.jboss.org/browse/DBZ-1045).
-
-### Running tests
-
-The Debezium Oracle connector's test suite can be tested against both a CDB installation (Oracle 12+) and a non-CDB installation (Oracle 11+).
-Starting with Oracle 12, CDB installations are the default way Oracle Database is installed unless explicitly changed prior to installation.
-
-#### CDB mode
-
-By default the Debezium Oracle connector test suite assumes CDB mode and so no additional arguments are required.
-
-#### Non CDB mode
-
-In order to run the Debezium Oracle connector tests against a non-CDB environment, 
-pass `-Ddatabase.pdb.name=` on the Maven command line. 
- 
-## Contributing
-
-The Debezium community welcomes anyone that wants to help out in any way, whether that includes reporting problems, helping with documentation, or contributing code changes to fix bugs, add tests, or implement new features. See [this document](https://github.com/debezium/debezium/blob/master/CONTRIBUTE.md) for details.
+* [Cassandra](https://github.com/debezium/debezium-connector-cassandra)
+* [Db2](https://github.com/debezium/debezium-connector-db2)
+* [Oracle](https://github.com/debezium/debezium)
