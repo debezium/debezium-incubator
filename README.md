@@ -12,10 +12,7 @@ Licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/
 
 Debezium is an open source project that provides a low latency data streaming platform for change data capture (CDC).
 
-_Note, Mar. 2021: The remaining Oracle connector has matured enough that it has been related to the Debezium main repository along side the other project-led connectors._
-
-_Note, Dec. 2020: We're moving away from a model of a shared incubator repo, instead there'll be dedicated repos for each incubating and/or community-led connector.
-The Oracle connector is the last remaining connector in this repository.
+_Note, Mar. 2021: The Debezium project has moved away from the model of a shared incubator repo; instead there'are dedicated repos for each incubating and/or community-led connector._
 
 This repository is being retained and archived for historical, read-only purposes.
 
